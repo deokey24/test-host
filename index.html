@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DOKPYUNSA — 독편사 편입논술학원</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Noto+Sans+KR:wght@300;400;500;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+body{font-family:'Noto Sans KR',sans-serif;background:#f2f2f0;color:#1a1a1a;min-height:100vh;overflow-x:hidden}
+:root{
+  --bg:#f2f2f0;--white:#fff;--black:#1a1a1a;
+  --g100:#f7f7f5;--g200:#ebebea;--g300:#d4d4d2;--g500:#8a8a88;--g700:#4a4a48;
+  --red:#e8453c;--red-lt:#fef0ef;--ora:#f59e0b;--ora-lt:#fffbeb;
+  --grn:#16a34a;--grn-lt:#f0fdf4;
+  --rsm:6px;--rmd:12px;--rlg:20px;
+  --s1:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --s2:0 4px 16px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04);
+  --s3:0 16px 48px rgba(0,0,0,.12),0 4px 8px rgba(0,0,0,.06);
+}
+
+/* ── NAV ── */
+.nav-outer{position:sticky;top:14px;z-index:1000;padding:0 20px;pointer-events:none}
+nav{max-width:1200px;margin:0 auto;background:var(--white);border-radius:var(--rlg);box-shadow:var(--s2);border:1px solid rgba(0,0,0,.06);pointer-events:all;position:relative}
+.nav-bar{display:flex;align-items:center;justify-content:space-between;padding:13px 26px;gap:8px}
+.nav-logo{font-family:'DM Sans',sans-serif;font-weight:700;font-size:17px;letter-spacing:-.3px;color:var(--black);cursor:pointer;text-decoration:none;flex-shrink:0}
+.nav-menu{display:flex;align-items:center;gap:2px;flex:1;justify-content:center}
+.nm-item{position:relative}
+.nm-btn{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:500;color:var(--g700);background:none;border:none;cursor:pointer;padding:7px 11px;border-radius:8px;transition:background .15s,color .15s;white-space:nowrap;font-family:'Noto Sans KR',sans-serif}
+.nm-btn:hover,.nm-btn.open{background:var(--g100);color:var(--black)}
+.nm-btn.active-menu{color:var(--black);font-weight:700;background:var(--g100)}
+.nm-arr{font-size:9px;transition:transform .2s;opacity:.45;margin-top:1px}
+.nm-btn.open .nm-arr{transform:rotate(180deg)}
+.nm-drop{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(-6px);background:var(--white);border:1px solid var(--g200);border-radius:var(--rmd);box-shadow:var(--s3);min-width:176px;padding:6px;opacity:0;pointer-events:none;transition:opacity .15s,transform .15s}
+.nm-drop.open{opacity:1;pointer-events:all;transform:translateX(-50%) translateY(0)}
+.nm-drop a{display:block;padding:9px 13px;border-radius:8px;font-size:13.5px;color:var(--g700);text-decoration:none;cursor:pointer;transition:background .12s,color .12s;white-space:nowrap}
+.nm-drop a:hover{background:var(--g100);color:var(--black)}
+.nm-drop a.sub-active{color:var(--red);font-weight:700}
+.nav-cta{background:var(--black);color:var(--white);font-size:13px;font-weight:600;padding:9px 20px;border-radius:var(--rmd);border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:background .15s,transform .15s;white-space:nowrap;flex-shrink:0}
+.nav-cta:hover{background:#333;transform:translateY(-1px)}
+
+/* ── PAGE SYSTEM ── */
+.page{display:none;padding-top:22px;min-height:80vh}
+.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.page.active .a1{animation:fadeUp .35s ease both}
+.page.active .a2{animation:fadeUp .35s .07s ease both}
+.page.active .a3{animation:fadeUp .35s .14s ease both}
+.page.active .a4{animation:fadeUp .35s .21s ease both}
+
+/* ── COMMON ── */
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+.sec{margin-top:50px}
+.sec-hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
+.sec-hd h2{font-family:'DM Sans',sans-serif;font-size:26px;font-weight:700;letter-spacing:-.8px}
+.sec-more{font-size:13px;color:var(--g500);cursor:pointer;text-decoration:none;transition:color .15s}
+.sec-more:hover{color:var(--black)}
+.pb80{padding-bottom:80px}
+.wcard{background:var(--white);border:1px solid var(--g200);border-radius:var(--rmd);box-shadow:var(--s1)}
+.badge{font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.b-red{color:var(--red);background:var(--red-lt)}
+.b-ora{color:#b45309;background:var(--ora-lt)}
+.b-grn{color:var(--grn);background:var(--grn-lt)}
+.b-blk{color:var(--white);background:var(--black)}
+.b-gray{color:var(--g700);background:var(--g200)}
+.b-blue{color:#1d4ed8;background:#eff6ff}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
+
+/* ── MAIN PAGE ── */
+.hero{padding:52px 24px 0;max-width:1160px;margin:0 auto}
+.hero h1{font-family:'DM Sans',sans-serif;font-size:clamp(44px,6vw,76px);font-weight:700;letter-spacing:-2px;line-height:1.0}
+.hero h1 em{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;color:var(--red)}
+.hero-sub{margin-top:14px;font-size:15.5px;color:var(--g500);line-height:1.7;max-width:480px}
+.stats-bar{max-width:1160px;margin:34px auto 0;padding:0 24px;display:flex;background:var(--white);border-radius:var(--rmd);box-shadow:var(--s1);border:1px solid var(--g200);overflow:hidden}
+.stat-i{flex:1;padding:19px 22px;border-right:1px solid var(--g200);text-align:center}
+.stat-i:last-child{border-right:none}
+.stat-n{font-family:'DM Sans',sans-serif;font-size:24px;font-weight:700;letter-spacing:-.5px}
+.stat-n .rs{color:var(--red);font-size:16px}
+.stat-l{font-size:12px;color:var(--g500);margin-top:3px}
+.clist{overflow:hidden}
+.crow{display:flex;align-items:center;padding:19px 26px;border-bottom:1px solid var(--g200);gap:20px;transition:background .13s;cursor:pointer}
+.crow:last-child{border-bottom:none}
+.crow:hover{background:var(--g100)}
+.crow-name{font-size:14.5px;font-weight:600;flex:0 0 256px;letter-spacing:-.2px}
+.crow-desc{font-size:13px;color:var(--g500);flex:1}
+.fcard{padding:26px 22px;transition:box-shadow .2s,transform .2s}
+.fcard:hover{box-shadow:var(--s2);transform:translateY(-2px)}
+.fi-icon{font-size:26px;margin-bottom:12px}
+.fi-title{font-size:14.5px;font-weight:700;margin-bottom:6px;letter-spacing:-.2px}
+.fi-desc{font-size:13px;color:var(--g500);line-height:1.65}
+.tcard{padding:22px}
+.tcard-q{font-size:13px;line-height:1.75;color:var(--g700);margin-bottom:16px;font-style:italic}
+.tcard-q::before{content:'"';font-size:18px;color:var(--red);display:block;margin-bottom:3px;font-style:normal}
+.tcard-name{font-size:13px;font-weight:700}
+.tcard-info{font-size:12px;color:var(--g500);margin-top:2px}
+
+/* ── INTRO PAGE ── */
+.intro-hero{background:linear-gradient(135deg,#0f1f38 0%,#1a3356 100%);color:#fff;padding:60px 24px 0}
+.intro-hi{max-width:1160px;margin:0 auto}
+.intro-lbl{font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,.45);margin-bottom:10px}
+.intro-hi h1{font-family:'DM Sans',sans-serif;font-size:clamp(32px,5vw,52px);font-weight:700;letter-spacing:-1.5px;line-height:1.1;margin-bottom:14px}
+.intro-hi p{font-size:14.5px;color:rgba(255,255,255,.65);line-height:1.8;max-width:500px;margin-bottom:40px}
+.stab-bar{display:flex;gap:6px;padding:26px 24px 0;max-width:1160px;margin:0 auto}
+.stab{padding:9px 20px;border-radius:20px;font-size:13.5px;font-weight:600;cursor:pointer;border:1.5px solid var(--g300);background:var(--white);color:var(--g700);transition:all .15s;font-family:'Noto Sans KR',sans-serif}
+.stab.active,.stab:hover{background:var(--black);color:var(--white);border-color:var(--black)}
+.sub-content{display:none}
+.sub-content.active{display:block}
+.intro-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:20px}
+.intro-card{padding:30px;background:var(--white);border:1px solid var(--g200);border-radius:var(--rmd);box-shadow:var(--s1)}
+.intro-card h3{font-size:17px;font-weight:700;margin-bottom:10px;letter-spacing:-.3px}
+.intro-card p{font-size:13.5px;color:var(--g700);line-height:1.8}
+.teacher-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}
+.tc{background:var(--white);border:1px solid var(--g200);border-radius:var(--rmd);padding:28px 22px;box-shadow:var(--s1);text-align:center}
+.tc-av{width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,var(--g100),var(--g200));display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 13px}
+.tc-name{font-size:15px;font-weight:700;margin-bottom:3px}
+.tc-role{font-size:11.5px;color:var(--red);font-weight:600;margin-bottom:9px}
+.tc-desc{font-size:12.5px;color:var(--g500);line-height:1.65}
+
+/* ── 인강 PAGE ── */
+.lec-wrap{max-width:1160px;margin:0 auto;padding:28px 24px 80px;display:grid;grid-template-columns:205px 1fr;gap:22px;align-items:start}
+.sidebar{position:sticky;top:84px;padding:20px;background:var(--white);border:1px solid var(--g200);border-radius:var(--rmd);box-shadow:var(--s1)}
+.fg{margin-bottom:22px}
+.fg:last-child{margin-bottom:0}
+.fg-title{font-size:11px;font-weight:700;color:var(--g500);letter-spacing:.6px;text-transform:uppercase;margin-bottom:11px}
+.fi{display:flex;align-items:center;gap:9px;margin-bottom:9px;cursor:pointer}
+.fi label{font-size:13px;color:var(--g700);cursor:pointer}
+.fi input[type=checkbox]{width:15px;height:15px;accent-color:var(--black);cursor:pointer}
+.fi input[type=radio]{width:15px;height:15px;accent-color:var(--red);cursor:pointer}
+.lgrid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.lcard{background:var(--white);border:1.5px solid var(--g200);border-radius:var(--rmd);padding:22px;box-shadow:var(--s1);transition:box-shadow .2s,transform .2s,border-color .2s;display:flex;flex-direction:column}
+.lcard:hover{box-shadow:var(--s2);transform:translateY(-2px);border-color:var(--g300)}
+.ltop{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:12px}
+.ltop-left{flex:1;min-width:0}
+.lnum{font-family:'DM Sans',sans-serif;font-size:10.5px;font-weight:500;color:var(--g500);letter-spacing:.4px;margin-bottom:6px}
+.lenroll{font-size:11px;font-weight:700;color:#b45309;background:var(--ora-lt);padding:3px 9px;border-radius:20px}
+.ltitle{font-size:17px;font-weight:700;letter-spacing:-.4px;line-height:1.35;margin-bottom:0}
+.lthumb{width:88px;height:68px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--g200)}
+.lmeta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px 14px;margin:16px 0 18px;padding-bottom:17px;border-bottom:1px solid var(--g200)}
+.ml{font-size:10.5px;color:var(--g500);margin-bottom:3px}
+.mv{font-size:13px;font-weight:600;letter-spacing:-.1px}
+.mv.hl{color:var(--red)}
+.lbtns{display:flex;gap:8px}
+.btn-d{flex:1;padding:10px 0;text-align:center;border:1.5px solid var(--g300);border-radius:var(--rmd);font-size:13px;font-weight:600;color:var(--g700);cursor:pointer;background:none;transition:border-color .15s,color .15s;font-family:'Noto Sans KR',sans-serif}
+.btn-d:hover{border-color:var(--black);color:var(--black)}
+.btn-e{flex:1;padding:11px 0;text-align:center;border:1.5px solid var(--red);border-radius:30px;font-size:14px;font-weight:700;color:var(--red);cursor:pointer;background:var(--white);transition:background .15s,color .15s;font-family:'Noto Sans KR',sans-serif}
+.btn-e:hover{background:var(--red);color:#fff}
+
+/* ── 학원(현강+라이브) PAGE ── */
+.hwon-hd{background:var(--black);color:#fff;padding:46px 24px 0}
+.hwon-hd-in{max-width:1160px;margin:0 auto}
+.hwon-hd h1{font-family:'DM Sans',sans-serif;font-size:clamp(26px,4vw,44px);font-weight:700;letter-spacing:-1.5px;margin-bottom:6px}
+.hwon-hd p{font-size:13.5px;color:rgba(255,255,255,.55);margin-bottom:28px}
+.htab-bar{display:flex;gap:2px;border-bottom:1px solid rgba(255,255,255,.12)}
+.htab{padding:12px 22px;font-size:14px;font-weight:600;color:rgba(255,255,255,.45);cursor:pointer;border:none;background:none;border-bottom:2.5px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;font-family:'Noto Sans KR',sans-serif}
+.htab:hover{color:rgba(255,255,255,.8)}
+.htab.active{color:#fff;border-color:#fff}
+.htab-content{display:none;max-width:1160px;margin:0 auto;padding:28px 24px 80px}
+.htab-content.active{display:block}
+.hwon-list{background:var(--white);border:1px solid var(--g200);border-radius:var(--rmd);overflow:hidden;box-shadow:var(--s1)}
+.hwon-row{display:grid;grid-template-columns:1fr 130px 110px 140px 110px;align-items:center;gap:14px;padding:16px 22px;border-bottom:1px solid var(--g200);transition:background .13s;cursor:pointer}
+.hwon-row:last-child{border-bottom:none}
+.hwon-row:hover{background:var(--g100)}
+.hwon-row-hd{background:var(--g100);font-size:11px;font-weight:700;color:var(--g500);letter-spacing:.4px;cursor:default}
+.hwon-row-hd:hover{background:var(--g100)}
+.hr-name{font-size:14px;font-weight:600;letter-spacing:-.2px}
+.hr-meta{font-size:13px;color:var(--g700)}
+
+/* ── 합격 현황 PAGE ── */
+.hap-head{text-align:center;padding:50px 24px 34px}
+.hap-pill{display:inline-block;border:1px solid var(--g300);color:var(--red);font-size:12.5px;font-weight:600;padding:5px 16px;border-radius:20px;margin-bottom:14px;background:var(--white)}
+.hap-head h1{font-family:'Noto Sans KR',sans-serif;font-size:clamp(30px,5vw,48px);font-weight:700;letter-spacing:-1px;margin-bottom:8px}
+.hap-head p{font-size:14px;color:var(--g500)}
+.hap-tabs{display:flex;gap:8px;max-width:1160px;margin:0 auto;padding:0 24px}
+.htab2{padding:9px 20px;border-radius:20px;font-size:13.5px;font-weight:600;cursor:pointer;border:1.5px solid var(--g300);background:var(--white);color:var(--g700);transition:all .15s;font-family:'Noto Sans KR',sans-serif}
+.htab2.active,.htab2:hover{background:var(--black);color:var(--white);border-color:var(--black)}
+.hap-content{display:none}
+.hap-content.active{display:block}
+.sukgi-list{max-width:860px;margin:22px auto 0;padding:0 24px}
+.sukgi-card{background:var(--white);border:1px solid var(--g200);border-radius:var(--rmd);overflow:hidden;box-shadow:var(--s1)}
+.sukgi-row{display:flex;align-items:center;padding:17px 22px;border-bottom:1px solid var(--g200);gap:14px;cursor:pointer;transition:background .13s}
+.sukgi-row:last-child{border-bottom:none}
+.sukgi-row:hover{background:var(--g100)}
+.sukgi-univ{font-size:11px;font-weight:700;color:var(--red);background:var(--red-lt);padding:3px 9px;border-radius:20px;flex-shrink:0}
+.sukgi-title{font-size:14px;font-weight:600;flex:1;letter-spacing:-.2px}
+.sukgi-date{font-size:12px;color:var(--g500);flex-shrink:0}
+.cert-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;max-width:1160px;margin:22px auto 0;padding:0 24px}
+.cert-card{background:var(--white);border:1px solid var(--g200);border-radius:var(--rmd);padding:18px 14px;text-align:center;box-shadow:var(--s1);transition:box-shadow .2s,transform .2s;cursor:pointer}
+.cert-card:hover{box-shadow:var(--s2);transform:translateY(-2px)}
+.cert-img{width:100%;aspect-ratio:3/4;background:linear-gradient(135deg,var(--g100),var(--g200));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:11px}
+.cert-name{font-size:13px;font-weight:700;margin-bottom:2px}
+.cert-univ{font-size:12px;color:var(--red);font-weight:600}
+.cert-dept{font-size:11px;color:var(--g500);margin-top:2px}
+
+/* ── 강의생생후기 PAGE ── */
+.rv-hd{text-align:center;padding:50px 24px 36px}
+.rv-pill{display:inline-block;border:1px solid var(--g300);color:var(--red);font-size:12.5px;font-weight:600;padding:5px 16px;border-radius:20px;margin-bottom:14px;background:var(--white)}
+.rv-hd h1{font-size:clamp(30px,5vw,48px);font-weight:700;letter-spacing:-1px;margin-bottom:8px}
+.rv-hd p{font-size:14px;color:var(--g500)}
+.rv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;max-width:1160px;margin:0 auto;padding:0 24px 80px}
+.rv-card{background:var(--white);border:1px solid var(--g200);border-radius:var(--rmd);padding:22px;box-shadow:var(--s1);transition:box-shadow .2s,transform .2s}
+.rv-card:hover{box-shadow:var(--s2);transform:translateY(-2px)}
+.rv-stars{color:var(--ora);font-size:13px;margin-bottom:9px}
+.rv-course{font-size:11px;font-weight:700;color:var(--red);background:var(--red-lt);padding:3px 9px;border-radius:20px;display:inline-block;margin-bottom:11px}
+.rv-text{font-size:13px;color:var(--g700);line-height:1.75;margin-bottom:14px}
+.rv-div{height:1px;background:var(--g200);margin-bottom:12px}
+.rv-name{font-size:13px;font-weight:700}
+.rv-info{font-size:11.5px;color:var(--g500);margin-top:2px}
+.rv-date{font-size:11px;color:var(--g300);margin-top:3px}
+
+/* ── FOOTER ── */
+footer{background:var(--black);color:rgba(255,255,255,.5);padding:46px 24px 34px}
+.fi-wrap{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:38px;padding-bottom:34px;border-bottom:1px solid rgba(255,255,255,.1)}
+.fi-logo{font-family:'DM Sans',sans-serif;font-size:17px;font-weight:700;color:#fff;margin-bottom:9px;letter-spacing:-.3px}
+.fi-desc{font-size:12.5px;line-height:1.7;color:rgba(255,255,255,.38)}
+.fc-title{font-size:11px;font-weight:700;color:#fff;letter-spacing:.5px;margin-bottom:13px}
+.fc-links{display:flex;flex-direction:column;gap:9px}
+.fc-links a{font-size:13px;color:rgba(255,255,255,.42);text-decoration:none;cursor:pointer;transition:color .15s}
+.fc-links a:hover{color:rgba(255,255,255,.85)}
+.fi-bot{max-width:1160px;margin:22px auto 0;display:flex;justify-content:space-between;font-size:11.5px;color:rgba(255,255,255,.22)}
+/* new footer info */
+.footer-info-wrap{max-width:1160px;margin:0 auto;padding-bottom:34px;border-bottom:1px solid rgba(255,255,255,.1);display:grid;grid-template-columns:1fr 1fr;gap:38px}
+.footer-campus-title{font-size:12px;font-weight:700;color:#fff;letter-spacing:.4px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.12)}
+.footer-info-line{font-size:11.5px;color:rgba(255,255,255,.38);line-height:2;word-break:keep-all}
+.footer-info-line b{color:rgba(255,255,255,.55);font-weight:600}
+@media(max-width:680px){
+  .footer-info-wrap{grid-template-columns:1fr}
+}
+
+/* ── MAIN IMG STACK ── */
+.main-img-stack{display:flex;flex-direction:column;width:100%;max-width:1160px;margin:0 auto;padding:0 24px}
+.main-img-stack img{width:100%;height:auto;display:block}
+
+/* ── HERO BANNER ── */
+.hero-banner{width:100%;max-height:480px;overflow:hidden;margin-bottom:0}
+.hero-banner img{width:100%;height:auto;display:block;object-fit:cover}
+
+/* ── HAMBURGER ── */
+.nav-hamburger{display:none;flex-direction:column;justify-content:center;gap:5px;width:38px;height:38px;background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;transition:background .15s;flex-shrink:0}
+.nav-hamburger:hover{background:var(--g100)}
+.nav-hamburger span{display:block;height:2px;background:var(--black);border-radius:2px;transition:transform .25s, opacity .2s}
+.nav-hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.nav-hamburger.open span:nth-child(2){opacity:0}
+.nav-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+
+/* mobile nav drawer */
+.nav-drawer{display:none;flex-direction:column;padding:8px 12px 14px;border-top:1px solid var(--g200);gap:2px}
+.nav-drawer.open{display:flex}
+.nd-item{position:relative}
+.nd-btn{display:flex;align-items:center;justify-content:space-between;width:100%;font-size:14px;font-weight:500;color:var(--g700);background:none;border:none;cursor:pointer;padding:10px 12px;border-radius:8px;transition:background .15s,color .15s;font-family:'Noto Sans KR',sans-serif;text-align:left}
+.nd-btn:hover,.nd-btn.open{background:var(--g100);color:var(--black)}
+.nd-arr{font-size:9px;transition:transform .2s;opacity:.45}
+.nd-btn.open .nd-arr{transform:rotate(180deg)}
+.nd-sub{display:none;padding:2px 0 4px 16px;flex-direction:column;gap:1px}
+.nd-sub.open{display:flex}
+.nd-sub a{display:block;padding:8px 12px;border-radius:8px;font-size:13.5px;color:var(--g500);text-decoration:none;cursor:pointer;transition:background .12s,color .12s}
+.nd-sub a:hover{background:var(--g100);color:var(--black)}
+.nd-cta{margin:8px 12px 0;background:var(--black);color:var(--white);font-size:13.5px;font-weight:600;padding:12px;border-radius:var(--rmd);border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;text-align:center;transition:background .15s}
+.nd-cta:hover{background:#333}
+
+/* ── RESPONSIVE ── */
+@media(max-width:960px){
+  .grid3{grid-template-columns:1fr 1fr}
+  .fi-wrap{grid-template-columns:1fr 1fr;gap:26px}
+  .lec-wrap{grid-template-columns:1fr}
+  .sidebar{position:static}
+  .lgrid{grid-template-columns:1fr}
+  .hwon-row{grid-template-columns:1fr 100px 100px}
+  .hwon-row .hr-meta:nth-child(4),.hwon-row .hr-meta:nth-child(5){display:none}
+  .cert-grid{grid-template-columns:repeat(3,1fr)}
+  .teacher-grid{grid-template-columns:1fr 1fr}
+  .rv-grid{grid-template-columns:1fr 1fr}
+  .intro-grid{grid-template-columns:1fr}
+}
+@media(max-width:680px){
+  .grid3,.teacher-grid,.rv-grid,.intro-grid{grid-template-columns:1fr}
+  .cert-grid{grid-template-columns:1fr 1fr}
+  .nav-bar{padding:11px 15px}
+  .nav-menu,.nav-cta{display:none}
+  .nav-hamburger{display:flex}
+  .nm-btn{padding:6px 8px;font-size:12px}
+  .stats-bar{flex-wrap:wrap}
+  .stat-i{flex:0 0 50%;border-bottom:1px solid var(--g200);border-right:none}
+  .hwon-row{grid-template-columns:1fr 90px}
+  .crow-desc{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ NAV ══ -->
+<div class="nav-outer">
+<nav>
+  <div class="nav-bar">
+    <a class="nav-logo" onclick="showPage('main')" style="display:flex;align-items:center;padding:0">
+      <img src="https://acadock.com/files/BannerImg/skin006_1678413743" alt="DOKPYUNSA" style="height:54px;width:auto;display:block;object-fit:contain">
+    </a>
+    <div class="nav-menu">
+
+      <!-- 독편논소개 -->
+      <div class="nm-item">
+        <button class="nm-btn" id="nbtn-intro" onclick="toggleDrop('intro')">독편논소개 <span class="nm-arr">▾</span></button>
+        <div class="nm-drop" id="drop-intro">
+          <a onclick="showSubPage('intro','greeting')">인사말</a>
+          <a onclick="showSubPage('intro','ceo')">대표 소개</a>
+          <a onclick="showSubPage('intro','teachers')">강사 소개</a>
+        </div>
+      </div>
+
+      <!-- 인강 -->
+      <div class="nm-item">
+        <button class="nm-btn" id="nbtn-ingang" onclick="showPage('ingang')">인강</button>
+      </div>
+
+      <!-- 학원(현강+라이브) -->
+      <div class="nm-item">
+        <button class="nm-btn" id="nbtn-hwon" onclick="toggleDrop('hwon')">학원<span style="font-size:10px;color:var(--g500);margin-left:2px">(현강+라이브)</span> <span class="nm-arr">▾</span></button>
+        <div class="nm-drop" id="drop-hwon">
+          <a onclick="goHwon('nonsul')">논술반</a>
+          <a onclick="goHwon('gyeongchal')">경찰대반</a>
+          <a onclick="goHwon('hanye')">한예종논술반</a>
+        </div>
+      </div>
+
+      <!-- 합격 현황 -->
+      <div class="nm-item">
+        <button class="nm-btn" id="nbtn-hapgyeok" onclick="toggleDrop('hapgyeok')">합격 현황 <span class="nm-arr">▾</span></button>
+        <div class="nm-drop" id="drop-hapgyeok">
+          <a onclick="goHapgyeok('sukgi')">합격 수기</a>
+          <a onclick="goHapgyeok('cert')">합격증 보기</a>
+        </div>
+      </div>
+
+      <!-- 강의생생후기 -->
+      <div class="nm-item">
+        <button class="nm-btn" id="nbtn-review" onclick="showPage('review')">강의생생후기</button>
+      </div>
+
+    </div>
+    <button class="nav-cta" onclick="alert('로그인')">로그인</button>
+    <button class="nav-hamburger" id="hamburger-btn" onclick="toggleHamburger()" aria-label="메뉴">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <!-- Mobile Drawer -->
+  <div class="nav-drawer" id="nav-drawer">
+    <div class="nd-item">
+      <button class="nd-btn" onclick="toggleMobileDrop('m-intro')">독편논소개 <span class="nd-arr">▾</span></button>
+      <div class="nd-sub" id="nd-sub-m-intro">
+        <a onclick="showPage('intro');showIntroTab('greeting');closeHamburger()">인사말</a>
+        <a onclick="showPage('intro');showIntroTab('ceo');closeHamburger()">대표 소개</a>
+        <a onclick="showPage('intro');showIntroTab('teachers');closeHamburger()">강사 소개</a>
+      </div>
+    </div>
+    <div class="nd-item">
+      <button class="nd-btn" onclick="showPage('ingang');closeHamburger()">인강</button>
+    </div>
+    <div class="nd-item">
+      <button class="nd-btn" onclick="toggleMobileDrop('m-hwon')">학원<span style="font-size:11px;color:var(--g500);margin-left:3px">(현강+라이브)</span> <span class="nd-arr">▾</span></button>
+      <div class="nd-sub" id="nd-sub-m-hwon">
+        <a onclick="goHwon('nonsul');closeHamburger()">논술반</a>
+        <a onclick="goHwon('gyeongchal');closeHamburger()">경찰대반</a>
+        <a onclick="goHwon('hanye');closeHamburger()">한예종논술반</a>
+      </div>
+    </div>
+    <div class="nd-item">
+      <button class="nd-btn" onclick="toggleMobileDrop('m-hap')">합격 현황 <span class="nd-arr">▾</span></button>
+      <div class="nd-sub" id="nd-sub-m-hap">
+        <a onclick="goHapgyeok('sukgi');closeHamburger()">합격 수기</a>
+        <a onclick="goHapgyeok('cert');closeHamburger()">합격증 보기</a>
+      </div>
+    </div>
+    <div class="nd-item">
+      <button class="nd-btn" onclick="showPage('review');closeHamburger()">강의생생후기</button>
+    </div>
+    <button class="nd-cta" onclick="alert('로그인');closeHamburger()">로그인</button>
+  </div>
+</nav>
+</div>
+
+<!-- ══════════════════════════════
+     PAGE: MAIN
+══════════════════════════════ -->
+<div id="page-main" class="page active">
+  <div class="hero-banner a1">
+    <img src="https://acadock.com/files/BannerImg/1771496802" alt="독편사 메인 배너">
+  </div>
+  <!-- 배너 하단 이미지들 -->
+  <div class="main-img-stack">
+    <img src="https://acadock.com/files/BannerImg/skin006_1750933286" alt="">
+    <img src="https://acadock.com/files/BannerImg/skin006_1767944037" alt="">
+    <img src="https://acadock.com/files/BannerImg/skin006_1767944320" alt="">
+    <img src="https://acadock.com/files/BannerImg/skin006_1772115951" alt="">
+    <img src="https://acadock.com/files/BannerImg/skin006_1772115999" alt="">
+    <img src="https://acadock.com/files/BannerImg/skin006_1772116012" alt="">
+    <img src="https://acadock.com/files/BannerImg/skin006_1772116492" alt="">
+    <img src="https://acadock.com/files/BannerImg/skin006_1767943749" alt="">
+  </div>
+  <div class="sec wrap a1 pb80" style="padding-top:40px">
+    <div class="sec-hd"><h2>Current Classes</h2><a class="sec-more" onclick="showPage('ingang')">전체 강좌 →</a></div>
+    <div class="wcard clist">
+      <div class="crow" onclick="showPage('ingang')"><div class="crow-name">연고대 편입논술반 (인문/사회)</div><div class="crow-desc">5월 개강반 모집 중</div><span class="badge b-red">인원 마감 임박</span></div>
+      <div class="crow" onclick="showPage('ingang')"><div class="crow-name">경찰대 편입 언어논리 (김현수T)</div><div class="crow-desc">기초~심화 통합 과정</div><span class="badge b-ora">25% N수생 할인</span></div>
+      <div class="crow" onclick="goHwon('hanye')"><div class="crow-name">한예종논술반</div><div class="crow-desc">예술 계열 특화 논술 지도</div><span class="badge b-blk">NEW</span></div>
+      <div class="crow" onclick="showPage('ingang')"><div class="crow-name">편입 면접 &amp; 자소서 완성반</div><div class="crow-desc">1:1 대면 첨삭 포함</div><span class="badge b-gray">상시 모집</span></div>
+    </div>
+  </div>
+  <footer>
+    <div class="footer-info-wrap">
+      <div>
+        <div class="footer-campus-title">🏫 오프라인 캠퍼스</div>
+        <div class="footer-info-line">
+          <b>학원명</b> 독편사편입논술학원 독자생존편입학원<br>
+          <b>주소</b> 서초구 반포시 서래로9길 산노프 2인 타워빌딩 2층 201호<br>
+          <b>상담·등록·신청</b> 02-6404-1010<br>
+          <b>학원설립·운영등록번호</b> 0220220006호<br>
+          <b>사업자등록번호</b> 104-94-47747<br>
+          <b>개인정보 관리 책임자</b> honeythink@naver.com<br>
+          <b>평일 운영시간</b> 월~금 14:00 ~ 22:00<br>
+          <b>상담시간</b> 월~금 15:00 ~ 20:00<br>
+          Copyright ⓒ 주식회사 벌격 All Right Reserved
+        </div>
+      </div>
+      <div>
+        <div class="footer-campus-title">💻 온라인 캠퍼스</div>
+        <div class="footer-info-line">
+          <b>기관명</b> 한국사회경제협회 교육원<br>
+          <b>주소</b> 서울시 금천구 가산디지털1로 142, 1115호(가산동 더 스카이밸리 1차)<br>
+          <b>법인명</b> 한국표준경제협회<br>
+          <b>사업자등록번호</b> 113-86-94251<br>
+          <b>통신판매업</b> 제2020-서울구로-0932호<br>
+          <b>대표이사</b> 이강곤<br>
+          <b>원격평생교육시설신고</b> 서울남부교육지원청 제577호<br>
+          <b>정보책임관리자</b> 강재욱<br>
+          <b>Tel</b> 1855-1308 &nbsp;|&nbsp; <b>Fax</b> 02-6442-1358<br>
+          <b>Email</b> jw118602@naver.com<br>
+          Copyright ⓒ 한국표준경제협회 All Right Reserved
+        </div>
+      </div>
+    </div>
+    <div class="fi-bot"><span>© 2026 DOKPYUNSA. All rights reserved.</span><span>개인정보처리방침 · 이용약관</span></div>
+  </footer>
+</div>
+
+<!-- ══════════════════════════════
+     PAGE: 독편논소개
+══════════════════════════════ -->
+<div id="page-intro" class="page">
+  <div class="hwon-hd a1">
+    <div class="hwon-hd-in">
+      <h1>독편논소개</h1>
+      <p>연세대·고려대·경찰대·한예종 편입을 책임지는 독편사의 이야기를 만나보세요.</p>
+      <div class="htab-bar">
+        <button class="htab active" id="stab-greeting" onclick="showIntroTab('greeting')">인사말</button>
+        <button class="htab" id="stab-ceo" onclick="showIntroTab('ceo')">대표 소개</button>
+        <button class="htab" id="stab-teachers" onclick="showIntroTab('teachers')">강사 소개</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="intro-greeting" class="sub-content active">
+    <div class="main-img-stack">
+      <img src="https://acadock.com/files/BannerImg/skin006_1768220195" alt="인사말">
+    </div>
+  </div>
+  <div id="intro-ceo" class="sub-content">
+    <div class="main-img-stack">
+      <img src="https://acadock.com/files/BannerImg/1745860767" alt="대표소개 1">
+      <img src="https://acadock.com/files/BannerImg/skin006_1768219973" alt="대표소개 2">
+    </div>
+  </div>
+  <div id="intro-teachers" class="sub-content">
+    <div class="main-img-stack">
+      <img src="https://acadock.com/files/BannerImg/skin006_1777459820" alt="강사소개">
+    </div>
+  </div>
+  <footer>
+    <div class="footer-info-wrap">
+      <div>
+        <div class="footer-campus-title">🏫 오프라인 캠퍼스</div>
+        <div class="footer-info-line">
+          <b>학원명</b> 독편사편입논술학원 독자생존편입학원<br>
+          <b>주소</b> 서초구 반포시 서래로9길 산노프 2인 타워빌딩 2층 201호<br>
+          <b>상담·등록·신청</b> 02-6404-1010<br>
+          <b>학원설립·운영등록번호</b> 0220220006호<br>
+          <b>사업자등록번호</b> 104-94-47747<br>
+          <b>개인정보 관리 책임자</b> honeythink@naver.com<br>
+          <b>평일 운영시간</b> 월~금 14:00 ~ 22:00<br>
+          <b>상담시간</b> 월~금 15:00 ~ 20:00<br>
+          Copyright ⓒ 주식회사 벌격 All Right Reserved
+        </div>
+      </div>
+      <div>
+        <div class="footer-campus-title">💻 온라인 캠퍼스</div>
+        <div class="footer-info-line">
+          <b>기관명</b> 한국사회경제협회 교육원<br>
+          <b>주소</b> 서울시 금천구 가산디지털1로 142, 1115호(가산동 더 스카이밸리 1차)<br>
+          <b>법인명</b> 한국표준경제협회<br>
+          <b>사업자등록번호</b> 113-86-94251<br>
+          <b>통신판매업</b> 제2020-서울구로-0932호<br>
+          <b>대표이사</b> 이강곤<br>
+          <b>원격평생교육시설신고</b> 서울남부교육지원청 제577호<br>
+          <b>정보책임관리자</b> 강재욱<br>
+          <b>Tel</b> 1855-1308 &nbsp;|&nbsp; <b>Fax</b> 02-6442-1358<br>
+          <b>Email</b> jw118602@naver.com<br>
+          Copyright ⓒ 한국표준경제협회 All Right Reserved
+        </div>
+      </div>
+    </div>
+    <div class="fi-bot"><span>© 2026 DOKPYUNSA. All rights reserved.</span><span>개인정보처리방침 · 이용약관</span></div>
+  </footer>
+</div>
+
+<!-- ══════════════════════════════
+     PAGE: 인강
+══════════════════════════════ -->
+<div id="page-ingang" class="page">
+  <div class="lec-wrap">
+    <aside class="sidebar a1">
+      <div class="fg"><div class="fg-title">과목 카테고리</div>
+        <label class="fi"><input type="checkbox"/><span>연고대 논술</span></label>
+        <label class="fi"><input type="checkbox"/><span>경찰대 언어논리</span></label>
+        <label class="fi"><input type="checkbox"/><span>자기소개서/면접</span></label>
+        <label class="fi"><input type="checkbox"/><span>한예종 논술</span></label>
+      </div>
+      <div class="fg"><div class="fg-title">수강 시간</div>
+        <label class="fi"><input type="checkbox"/><span>평일 오전</span></label>
+        <label class="fi"><input type="checkbox"/><span>평일 오후</span></label>
+        <label class="fi"><input type="checkbox"/><span>주말 (집중반)</span></label>
+      </div>
+      <div class="fg"><div class="fg-title">난이도</div>
+        <label class="fi"><input type="radio" name="lv"/><span>기초 입문</span></label>
+        <label class="fi"><input type="radio" name="lv" checked/><span>심화 실전</span></label>
+        <label class="fi"><input type="radio" name="lv"/><span>파이널 모의고사</span></label>
+      </div>
+    </aside>
+    <div class="lgrid a2">
+      <div class="lcard">
+        <div class="ltop">
+          <div class="ltop-left">
+            <div class="lnum">LECTURE #2026-P01</div>
+            <div class="ltitle">2025 경찰대 언어논리</div>
+          </div>
+          <img class="lthumb" src="https://acadock.com/files/LectureImg/1722304214D.png" alt="강좌 이미지">
+        </div>
+        <div class="lmeta">
+          <div><div class="ml">강사명</div><div class="mv">김현수</div></div>
+          <div><div class="ml">수강기간</div><div class="mv">60일</div></div>
+          <div><div class="ml">수강료</div><div class="mv">210,000원</div></div>
+        </div>
+        <div class="lbtns"><button class="btn-e">결제하기</button></div>
+      </div>
+      <div class="lcard">
+        <div class="ltop">
+          <div class="ltop-left">
+            <div class="lnum">LECTURE #2026-N01</div>
+            <div class="ltitle">연고대 편입논술 기본 유형 완성</div>
+          </div>
+          <img class="lthumb" src="https://acadock.com/files/LectureImg/1681111842D.png" alt="강좌 이미지">
+        </div>
+        <div class="lmeta">
+          <div><div class="ml">강사명</div><div class="mv">김현수</div></div>
+          <div><div class="ml">수강기간</div><div class="mv">60일</div></div>
+          <div><div class="ml">수강료</div><div class="mv">210,000원</div></div>
+        </div>
+        <div class="lbtns"><button class="btn-e">결제하기</button></div>
+      </div>
+      <div class="lcard">
+        <div class="ltop">
+          <div class="ltop-left">
+            <div class="lnum">LECTURE #2026-S01</div>
+            <div class="ltitle">독해학개론(연결독해)</div>
+          </div>
+          <img class="lthumb" src="https://acadock.com/files/LectureImg/1691821142D.png" alt="강좌 이미지">
+        </div>
+        <div class="lmeta">
+          <div><div class="ml">강사명</div><div class="mv">황성찬</div></div>
+          <div><div class="ml">수강기간</div><div class="mv">60일</div></div>
+          <div><div class="ml">수강료</div><div class="mv">210,000원</div></div>
+        </div>
+        <div class="lbtns"><button class="btn-e">결제하기</button></div>
+      </div>
+      <div class="lcard">
+        <div class="ltop">
+          <div class="ltop-left">
+            <div class="lnum">LECTURE #2026-A01</div>
+            <div class="ltitle">연세대 수시논술 특강</div>
+          </div>
+          <img class="lthumb" src="https://acadock.com/files/LectureImg/1704276475D.png" alt="강좌 이미지">
+        </div>
+        <div class="lmeta">
+          <div><div class="ml">강사명</div><div class="mv">김현수</div></div>
+          <div><div class="ml">수강기간</div><div class="mv">60일</div></div>
+          <div><div class="ml">수강료</div><div class="mv">210,000원</div></div>
+        </div>
+        <div class="lbtns"><button class="btn-e">결제하기</button></div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <div class="footer-info-wrap">
+      <div>
+        <div class="footer-campus-title">🏫 오프라인 캠퍼스</div>
+        <div class="footer-info-line">
+          <b>학원명</b> 독편사편입논술학원 독자생존편입학원<br>
+          <b>주소</b> 서초구 반포시 서래로9길 산노프 2인 타워빌딩 2층 201호<br>
+          <b>상담·등록·신청</b> 02-6404-1010<br>
+          <b>학원설립·운영등록번호</b> 0220220006호<br>
+          <b>사업자등록번호</b> 104-94-47747<br>
+          <b>개인정보 관리 책임자</b> honeythink@naver.com<br>
+          <b>평일 운영시간</b> 월~금 14:00 ~ 22:00<br>
+          <b>상담시간</b> 월~금 15:00 ~ 20:00<br>
+          Copyright ⓒ 주식회사 벌격 All Right Reserved
+        </div>
+      </div>
+      <div>
+        <div class="footer-campus-title">💻 온라인 캠퍼스</div>
+        <div class="footer-info-line">
+          <b>기관명</b> 한국사회경제협회 교육원<br>
+          <b>주소</b> 서울시 금천구 가산디지털1로 142, 1115호(가산동 더 스카이밸리 1차)<br>
+          <b>법인명</b> 한국표준경제협회<br>
+          <b>사업자등록번호</b> 113-86-94251<br>
+          <b>통신판매업</b> 제2020-서울구로-0932호<br>
+          <b>대표이사</b> 이강곤<br>
+          <b>원격평생교육시설신고</b> 서울남부교육지원청 제577호<br>
+          <b>정보책임관리자</b> 강재욱<br>
+          <b>Tel</b> 1855-1308 &nbsp;|&nbsp; <b>Fax</b> 02-6442-1358<br>
+          <b>Email</b> jw118602@naver.com<br>
+          Copyright ⓒ 한국표준경제협회 All Right Reserved
+        </div>
+      </div>
+    </div>
+    <div class="fi-bot"><span>© 2026 DOKPYUNSA. All rights reserved.</span><span>개인정보처리방침 · 이용약관</span></div>
+  </footer>
+</div>
+
+<!-- ══════════════════════════════
+     PAGE: 학원(현강+라이브)
+══════════════════════════════ -->
+<div id="page-hwon" class="page">
+  <div class="hwon-hd a1">
+    <div class="hwon-hd-in">
+      <h1>학원 강의 <span style="font-size:.58em;font-weight:400;opacity:.55">(현강 + 라이브)</span></h1>
+      <p>강남 캠퍼스 현장 강의 및 실시간 라이브 강의를 운영합니다.</p>
+      <div class="htab-bar">
+        <button class="htab active" id="htab-nonsul" onclick="switchHwonTab('nonsul')">논술반</button>
+        <button class="htab" id="htab-gyeongchal" onclick="switchHwonTab('gyeongchal')">경찰대반</button>
+        <button class="htab" id="htab-hanye" onclick="switchHwonTab('hanye')">한예종논술반</button>
+      </div>
+    </div>
+  </div>
+  <!-- 논술반 -->
+  <div id="hwon-nonsul" class="htab-content active a2">
+    <div class="hwon-list">
+      <div class="hwon-row hwon-row-hd"><div>강좌명</div><div>강사</div><div>일정</div><div>수업시간</div><div>상태</div></div>
+      <div class="hwon-row"><div class="hr-name">연고대 인문논술 기초반</div><div class="hr-meta">독편사 논술팀</div><div class="hr-meta">05.04 개강</div><div class="hr-meta">토 14:00-17:00</div><div><span class="badge b-red">마감임박</span></div></div>
+      <div class="hwon-row"><div class="hr-name">연고대 사회논술 심화반</div><div class="hr-meta">독편사 논술팀</div><div class="hr-meta">05.11 개강</div><div class="hr-meta">토 18:00-21:00</div><div><span class="badge b-grn">모집중</span></div></div>
+      <div class="hwon-row"><div class="hr-name">도표/통계 집중 분석반</div><div class="hr-meta">독편사 전문팀</div><div class="hr-meta">05.18 개강</div><div class="hr-meta">일 10:00-13:00</div><div><span class="badge b-grn">모집중</span></div></div>
+      <div class="hwon-row"><div class="hr-name">자소서 &amp; 면접 완성반</div><div class="hr-meta">독편사 면접팀</div><div class="hr-meta">05.20 개강</div><div class="hr-meta">화·목 18:00-20:00</div><div><span class="badge b-grn">모집중</span></div></div>
+      <div class="hwon-row"><div class="hr-name">파이널 모의고사반 (라이브)</div><div class="hr-meta">독편사 논술팀</div><div class="hr-meta">06.01 개강</div><div class="hr-meta">수 19:00-21:00</div><div><span class="badge b-blue">라이브</span></div></div>
+    </div>
+  </div>
+  <!-- 경찰대반 -->
+  <div id="hwon-gyeongchal" class="htab-content a2">
+    <div class="hwon-list">
+      <div class="hwon-row hwon-row-hd"><div>강좌명</div><div>강사</div><div>일정</div><div>수업시간</div><div>상태</div></div>
+      <div class="hwon-row"><div class="hr-name">경찰대 언어논리 기초반</div><div class="hr-meta">김현수 T</div><div class="hr-meta">05.02 개강</div><div class="hr-meta">목 19:00-22:00</div><div><span class="badge b-ora">N수생 25%</span></div></div>
+      <div class="hwon-row"><div class="hr-name">경찰대 언어논리 심화반</div><div class="hr-meta">김현수 T</div><div class="hr-meta">05.09 개강</div><div class="hr-meta">금 19:00-22:00</div><div><span class="badge b-grn">모집중</span></div></div>
+      <div class="hwon-row"><div class="hr-name">경찰대 파이널 실전반 (라이브)</div><div class="hr-meta">김현수 T</div><div class="hr-meta">05.25 개강</div><div class="hr-meta">토 10:00-13:00</div><div><span class="badge b-blue">라이브</span></div></div>
+    </div>
+  </div>
+  <!-- 한예종논술반 -->
+  <div id="hwon-hanye" class="htab-content a2">
+    <div class="hwon-list">
+      <div class="hwon-row hwon-row-hd"><div>강좌명</div><div>강사</div><div>일정</div><div>수업시간</div><div>상태</div></div>
+      <div class="hwon-row"><div class="hr-name">한예종 논술 입문반</div><div class="hr-meta">한예종 논술팀</div><div class="hr-meta">05.10 개강</div><div class="hr-meta">토 10:00-13:00</div><div><span class="badge b-blk">NEW</span></div></div>
+      <div class="hwon-row"><div class="hr-name">한예종 논술 심화반</div><div class="hr-meta">한예종 논술팀</div><div class="hr-meta">05.17 개강</div><div class="hr-meta">토 14:00-17:00</div><div><span class="badge b-grn">모집중</span></div></div>
+      <div class="hwon-row"><div class="hr-name">한예종 파이널 모의고사 (라이브)</div><div class="hr-meta">한예종 논술팀</div><div class="hr-meta">06.07 개강</div><div class="hr-meta">일 14:00-17:00</div><div><span class="badge b-blue">라이브</span></div></div>
+    </div>
+  </div>
+  <div style="height:60px"></div>
+  <footer>
+    <div class="footer-info-wrap">
+      <div>
+        <div class="footer-campus-title">🏫 오프라인 캠퍼스</div>
+        <div class="footer-info-line">
+          <b>학원명</b> 독편사편입논술학원 독자생존편입학원<br>
+          <b>주소</b> 서초구 반포시 서래로9길 산노프 2인 타워빌딩 2층 201호<br>
+          <b>상담·등록·신청</b> 02-6404-1010<br>
+          <b>학원설립·운영등록번호</b> 0220220006호<br>
+          <b>사업자등록번호</b> 104-94-47747<br>
+          <b>개인정보 관리 책임자</b> honeythink@naver.com<br>
+          <b>평일 운영시간</b> 월~금 14:00 ~ 22:00<br>
+          <b>상담시간</b> 월~금 15:00 ~ 20:00<br>
+          Copyright ⓒ 주식회사 벌격 All Right Reserved
+        </div>
+      </div>
+      <div>
+        <div class="footer-campus-title">💻 온라인 캠퍼스</div>
+        <div class="footer-info-line">
+          <b>기관명</b> 한국사회경제협회 교육원<br>
+          <b>주소</b> 서울시 금천구 가산디지털1로 142, 1115호(가산동 더 스카이밸리 1차)<br>
+          <b>법인명</b> 한국표준경제협회<br>
+          <b>사업자등록번호</b> 113-86-94251<br>
+          <b>통신판매업</b> 제2020-서울구로-0932호<br>
+          <b>대표이사</b> 이강곤<br>
+          <b>원격평생교육시설신고</b> 서울남부교육지원청 제577호<br>
+          <b>정보책임관리자</b> 강재욱<br>
+          <b>Tel</b> 1855-1308 &nbsp;|&nbsp; <b>Fax</b> 02-6442-1358<br>
+          <b>Email</b> jw118602@naver.com<br>
+          Copyright ⓒ 한국표준경제협회 All Right Reserved
+        </div>
+      </div>
+    </div>
+    <div class="fi-bot"><span>© 2026 DOKPYUNSA. All rights reserved.</span><span>개인정보처리방침 · 이용약관</span></div>
+  </footer>
+</div>
+
+<!-- ══════════════════════════════
+     PAGE: 합격 현황
+══════════════════════════════ -->
+<div id="page-hapgyeok" class="page">
+  <div class="hap-head a1"><div class="hap-pill">합격 현황</div><h1>합격을 확인하세요</h1><p>독편사 수강생들의 실제 합격 기록입니다.</p></div>
+  <div class="hap-tabs a2">
+    <button class="htab2 active" id="htab2-sukgi" onclick="switchHapTab('sukgi')">합격 수기</button>
+    <button class="htab2" id="htab2-cert" onclick="switchHapTab('cert')">합격증 보기</button>
+  </div>
+  <div id="hapgyeok-sukgi" class="hap-content active">
+    <div class="sukgi-list">
+      <div class="sukgi-card">
+        <div class="sukgi-row"><span class="sukgi-univ">연세대</span><div class="sukgi-title">2026 연세대 고려대 일반편입 합격수기</div><span class="sukgi-date">02-10</span></div>
+        <div class="sukgi-row"><span class="sukgi-univ">연세대</span><div class="sukgi-title">2026학년도 연세대 어문계열 학사편입 합격후기</div><span class="sukgi-date">02-10</span></div>
+        <div class="sukgi-row"><span class="sukgi-univ">연세대</span><div class="sukgi-title">2026 연세대 경영학과 학사편입 합격 수기</div><span class="sukgi-date">02-10</span></div>
+        <div class="sukgi-row"><span class="sukgi-univ">고려대</span><div class="sukgi-title">2026 고려대학교 사범대학 일반편입 합격수기</div><span class="sukgi-date">02-10</span></div>
+        <div class="sukgi-row"><span class="sukgi-univ">연세대</span><div class="sukgi-title">2026 연세대학교 의류환경학과 학사편입 합격수기</div><span class="sukgi-date">02-10</span></div>
+        <div class="sukgi-row"><span class="sukgi-univ">경찰대</span><div class="sukgi-title">2026 경찰대학 편입 합격 — 김현수T 덕분에 가능했습니다</div><span class="sukgi-date">01-28</span></div>
+        <div class="sukgi-row"><span class="sukgi-univ">한예종</span><div class="sukgi-title">2026 한국예술종합학교 논술 합격 수기</div><span class="sukgi-date">01-20</span></div>
+      </div>
+    </div>
+    <div style="height:60px"></div>
+  </div>
+  <div id="hapgyeok-cert" class="hap-content">
+    <div class="cert-grid">
+      <div class="cert-card"><div class="cert-img">📄</div><div class="cert-name">김○○</div><div class="cert-univ">연세대학교</div><div class="cert-dept">경영학과 학사편입</div></div>
+      <div class="cert-card"><div class="cert-img">📄</div><div class="cert-name">이○○</div><div class="cert-univ">연세대학교</div><div class="cert-dept">어문계열 학사편입</div></div>
+      <div class="cert-card"><div class="cert-img">📄</div><div class="cert-name">박○○</div><div class="cert-univ">고려대학교</div><div class="cert-dept">사범대학 일반편입</div></div>
+      <div class="cert-card"><div class="cert-img">📄</div><div class="cert-name">최○○</div><div class="cert-univ">연세대학교</div><div class="cert-dept">의류환경학과 학사편입</div></div>
+      <div class="cert-card"><div class="cert-img">📄</div><div class="cert-name">정○○</div><div class="cert-univ">경찰대학</div><div class="cert-dept">편입</div></div>
+      <div class="cert-card"><div class="cert-img">📄</div><div class="cert-name">강○○</div><div class="cert-univ">한국예술종합학교</div><div class="cert-dept">논술 전형</div></div>
+      <div class="cert-card"><div class="cert-img">📄</div><div class="cert-name">윤○○</div><div class="cert-univ">고려대학교</div><div class="cert-dept">일반편입</div></div>
+      <div class="cert-card"><div class="cert-img">📄</div><div class="cert-name">장○○</div><div class="cert-univ">연세대학교</div><div class="cert-dept">일반편입</div></div>
+    </div>
+    <div style="height:60px"></div>
+  </div>
+  <footer>
+    <div class="footer-info-wrap">
+      <div>
+        <div class="footer-campus-title">🏫 오프라인 캠퍼스</div>
+        <div class="footer-info-line">
+          <b>학원명</b> 독편사편입논술학원 독자생존편입학원<br>
+          <b>주소</b> 서초구 반포시 서래로9길 산노프 2인 타워빌딩 2층 201호<br>
+          <b>상담·등록·신청</b> 02-6404-1010<br>
+          <b>학원설립·운영등록번호</b> 0220220006호<br>
+          <b>사업자등록번호</b> 104-94-47747<br>
+          <b>개인정보 관리 책임자</b> honeythink@naver.com<br>
+          <b>평일 운영시간</b> 월~금 14:00 ~ 22:00<br>
+          <b>상담시간</b> 월~금 15:00 ~ 20:00<br>
+          Copyright ⓒ 주식회사 벌격 All Right Reserved
+        </div>
+      </div>
+      <div>
+        <div class="footer-campus-title">💻 온라인 캠퍼스</div>
+        <div class="footer-info-line">
+          <b>기관명</b> 한국사회경제협회 교육원<br>
+          <b>주소</b> 서울시 금천구 가산디지털1로 142, 1115호(가산동 더 스카이밸리 1차)<br>
+          <b>법인명</b> 한국표준경제협회<br>
+          <b>사업자등록번호</b> 113-86-94251<br>
+          <b>통신판매업</b> 제2020-서울구로-0932호<br>
+          <b>대표이사</b> 이강곤<br>
+          <b>원격평생교육시설신고</b> 서울남부교육지원청 제577호<br>
+          <b>정보책임관리자</b> 강재욱<br>
+          <b>Tel</b> 1855-1308 &nbsp;|&nbsp; <b>Fax</b> 02-6442-1358<br>
+          <b>Email</b> jw118602@naver.com<br>
+          Copyright ⓒ 한국표준경제협회 All Right Reserved
+        </div>
+      </div>
+    </div>
+    <div class="fi-bot"><span>© 2026 DOKPYUNSA. All rights reserved.</span><span>개인정보처리방침 · 이용약관</span></div>
+  </footer>
+</div>
+
+<!-- ══════════════════════════════
+     PAGE: 강의생생후기
+══════════════════════════════ -->
+<div id="page-review" class="page">
+  <div class="rv-hd a1"><div class="rv-pill">강의 생생 후기</div><h1>수강생의 솔직한 이야기</h1><p>독편사 수강생들이 직접 남긴 생생한 후기입니다.</p></div>
+  <div class="rv-grid a2">
+    <div class="rv-card"><div class="rv-stars">★★★★★</div><div class="rv-course">연고대 논술반</div><div class="rv-text">처음에는 논술이 너무 막막했는데, 선생님의 체계적인 피드백 덕분에 매 수업마다 눈에 띄게 실력이 늘었어요. 첨삭이 정말 꼼꼼하고 구체적입니다.</div><div class="rv-div"></div><div class="rv-name">김○○</div><div class="rv-info">연세대 경영학과 합격</div><div class="rv-date">2024. 04. 10</div></div>
+    <div class="rv-card"><div class="rv-stars">★★★★★</div><div class="rv-course">경찰대 언어논리</div><div class="rv-text">김현수T 수업은 단순 문제 풀이가 아니라 논리 사고의 흐름을 잡아주는 수업입니다. 시험장에서 여유 있게 풀 수 있었어요.</div><div class="rv-div"></div><div class="rv-name">이○○</div><div class="rv-info">경찰대 편입 합격</div><div class="rv-date">2024. 03. 28</div></div>
+    <div class="rv-card"><div class="rv-stars">★★★★☆</div><div class="rv-course">한예종 논술반</div><div class="rv-text">예술 계열 특화 논술을 이렇게 전문적으로 가르쳐 주는 곳이 많지 않은데, 독편사에서 정말 맞춤형 지도를 받을 수 있었습니다.</div><div class="rv-div"></div><div class="rv-name">박○○</div><div class="rv-info">한예종 합격</div><div class="rv-date">2024. 03. 15</div></div>
+    <div class="rv-card"><div class="rv-stars">★★★★★</div><div class="rv-course">인강 — 자소서/면접</div><div class="rv-text">인강이라 혼자 할 수 있을까 걱정했는데, 1:1 첨삭 피드백이 정말 꼼꼼하게 진행돼서 오히려 현강보다 더 집중할 수 있었어요.</div><div class="rv-div"></div><div class="rv-name">최○○</div><div class="rv-info">고려대 일반편입 합격</div><div class="rv-date">2024. 03. 05</div></div>
+    <div class="rv-card"><div class="rv-stars">★★★★★</div><div class="rv-course">연고대 논술반</div><div class="rv-text">매달 개강이라 제가 준비된 시점에 바로 시작할 수 있어서 좋았습니다. 커리큘럼이 탄탄하고 강사분들이 정말 열정적이에요.</div><div class="rv-div"></div><div class="rv-name">정○○</div><div class="rv-info">연세대 어문계열 합격</div><div class="rv-date">2024. 02. 20</div></div>
+    <div class="rv-card"><div class="rv-stars">★★★★★</div><div class="rv-course">경찰대 언어논리</div><div class="rv-text">N수생 할인으로 부담 없이 시작했는데 결과가 정말 좋았습니다. 강의 퀄리티에 비해 가격이 합리적이고, 관리도 철저해요.</div><div class="rv-div"></div><div class="rv-name">강○○</div><div class="rv-info">경찰대 편입 합격</div><div class="rv-date">2024. 02. 10</div></div>
+  </div>
+  <footer>
+    <div class="footer-info-wrap">
+      <div>
+        <div class="footer-campus-title">🏫 오프라인 캠퍼스</div>
+        <div class="footer-info-line">
+          <b>학원명</b> 독편사편입논술학원 독자생존편입학원<br>
+          <b>주소</b> 서초구 반포시 서래로9길 산노프 2인 타워빌딩 2층 201호<br>
+          <b>상담·등록·신청</b> 02-6404-1010<br>
+          <b>학원설립·운영등록번호</b> 0220220006호<br>
+          <b>사업자등록번호</b> 104-94-47747<br>
+          <b>개인정보 관리 책임자</b> honeythink@naver.com<br>
+          <b>평일 운영시간</b> 월~금 14:00 ~ 22:00<br>
+          <b>상담시간</b> 월~금 15:00 ~ 20:00<br>
+          Copyright ⓒ 주식회사 벌격 All Right Reserved
+        </div>
+      </div>
+      <div>
+        <div class="footer-campus-title">💻 온라인 캠퍼스</div>
+        <div class="footer-info-line">
+          <b>기관명</b> 한국사회경제협회 교육원<br>
+          <b>주소</b> 서울시 금천구 가산디지털1로 142, 1115호(가산동 더 스카이밸리 1차)<br>
+          <b>법인명</b> 한국표준경제협회<br>
+          <b>사업자등록번호</b> 113-86-94251<br>
+          <b>통신판매업</b> 제2020-서울구로-0932호<br>
+          <b>대표이사</b> 이강곤<br>
+          <b>원격평생교육시설신고</b> 서울남부교육지원청 제577호<br>
+          <b>정보책임관리자</b> 강재욱<br>
+          <b>Tel</b> 1855-1308 &nbsp;|&nbsp; <b>Fax</b> 02-6442-1358<br>
+          <b>Email</b> jw118602@naver.com<br>
+          Copyright ⓒ 한국표준경제협회 All Right Reserved
+        </div>
+      </div>
+    </div>
+    <div class="fi-bot"><span>© 2026 DOKPYUNSA. All rights reserved.</span><span>개인정보처리방침 · 이용약관</span></div>
+  </footer>
+</div>
+
+<script>
+/* ── 햄버거 메뉴 ── */
+function toggleHamburger() {
+  const btn = document.getElementById('hamburger-btn');
+  const drawer = document.getElementById('nav-drawer');
+  btn.classList.toggle('open');
+  drawer.classList.toggle('open');
+}
+function closeHamburger() {
+  document.getElementById('hamburger-btn').classList.remove('open');
+  document.getElementById('nav-drawer').classList.remove('open');
+  document.querySelectorAll('.nd-sub').forEach(s => s.classList.remove('open'));
+  document.querySelectorAll('.nd-btn').forEach(b => b.classList.remove('open'));
+}
+function toggleMobileDrop(id) {
+  const sub = document.getElementById('nd-sub-' + id);
+  const btn = sub.previousElementSibling;
+  const wasOpen = sub.classList.contains('open');
+  document.querySelectorAll('.nd-sub').forEach(s => s.classList.remove('open'));
+  document.querySelectorAll('.nd-btn').forEach(b => b.classList.remove('open'));
+  if (!wasOpen) { sub.classList.add('open'); btn.classList.add('open'); }
+}
+
+/* ── 페이지 전환 ── */
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+  closeAllDrops();
+  setNavActive(name);
+}
+
+function setNavActive(name) {
+  document.querySelectorAll('.nm-btn').forEach(b => b.classList.remove('active-menu'));
+  const map = {intro:'nbtn-intro',ingang:'nbtn-ingang',hwon:'nbtn-hwon',hapgyeok:'nbtn-hapgyeok',review:'nbtn-review'};
+  if (map[name]) document.getElementById(map[name]).classList.add('active-menu');
+}
+
+/* ── 드롭다운 ── */
+function toggleDrop(id) {
+  const drop = document.getElementById('drop-'+id);
+  const btn = drop.previousElementSibling;
+  const wasOpen = drop.classList.contains('open');
+  closeAllDrops();
+  if (!wasOpen) { drop.classList.add('open'); btn.classList.add('open'); }
+}
+function closeAllDrops() {
+  document.querySelectorAll('.nm-drop').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.nm-btn').forEach(b => b.classList.remove('open'));
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.nm-item')) closeAllDrops();
+});
+
+/* ── 독편논소개 탭 ── */
+function showSubPage(page, tab) { showPage(page); showIntroTab(tab); }
+function showIntroTab(tab) {
+  document.querySelectorAll('#page-intro .sub-content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('#page-intro .htab').forEach(b => b.classList.remove('active'));
+  document.getElementById('intro-'+tab).classList.add('active');
+  document.getElementById('stab-'+tab).classList.add('active');
+}
+
+/* ── 학원 탭 ── */
+function goHwon(tab) { showPage('hwon'); switchHwonTab(tab); }
+function switchHwonTab(tab) {
+  document.querySelectorAll('.htab-content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.htab').forEach(b => b.classList.remove('active'));
+  document.getElementById('hwon-'+tab).classList.add('active');
+  document.getElementById('htab-'+tab).classList.add('active');
+}
+
+/* ── 합격 현황 탭 ── */
+function goHapgyeok(tab) { showPage('hapgyeok'); switchHapTab(tab); }
+function switchHapTab(tab) {
+  document.querySelectorAll('.hap-content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.htab2').forEach(b => b.classList.remove('active'));
+  document.getElementById('hapgyeok-'+tab).classList.add('active');
+  document.getElementById('htab2-'+tab).classList.add('active');
+}
+</script>
+</body>
+</html>
