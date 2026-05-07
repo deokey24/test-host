@@ -24,20 +24,20 @@ body{font-family:'Noto Sans KR',sans-serif;background:#f2f2f0;color:#1a1a1a;min-
 .nav-outer{position:sticky;top:14px;z-index:1000;padding:0 20px;pointer-events:none}
 nav{max-width:1200px;margin:0 auto;background:var(--white);border-radius:var(--rlg);box-shadow:var(--s2);border:1px solid rgba(0,0,0,.06);pointer-events:all;position:relative}
 .nav-bar{display:flex;align-items:center;justify-content:space-between;padding:13px 26px;gap:8px}
-.nav-logo{font-family:'DM Sans',sans-serif;font-weight:700;font-size:17px;letter-spacing:-.3px;color:var(--black);cursor:pointer;text-decoration:none;flex-shrink:0}
+.nav-logo{font-family:'DM Sans',sans-serif;font-weight:700;font-size:22px;letter-spacing:-.3px;color:var(--black);cursor:pointer;text-decoration:none;flex-shrink:0}
 .nav-menu{display:flex;align-items:center;gap:2px;flex:1;justify-content:center}
 .nm-item{position:relative}
-.nm-btn{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:500;color:var(--g700);background:none;border:none;cursor:pointer;padding:7px 11px;border-radius:8px;transition:background .15s,color .15s;white-space:nowrap;font-family:'Noto Sans KR',sans-serif}
+.nm-btn{display:flex;align-items:center;gap:4px;font-size:17px;font-weight:500;color:var(--g700);background:none;border:none;cursor:pointer;padding:9px 14px;border-radius:8px;transition:background .15s,color .15s;white-space:nowrap;font-family:'Noto Sans KR',sans-serif}
 .nm-btn:hover,.nm-btn.open{background:var(--g100);color:var(--black)}
 .nm-btn.active-menu{color:var(--black);font-weight:700;background:var(--g100)}
-.nm-arr{font-size:9px;transition:transform .2s;opacity:.45;margin-top:1px}
+.nm-arr{font-size:12px;transition:transform .2s;opacity:.45;margin-top:1px}
 .nm-btn.open .nm-arr{transform:rotate(180deg)}
 .nm-drop{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(-6px);background:var(--white);border:1px solid var(--g200);border-radius:var(--rmd);box-shadow:var(--s3);min-width:176px;padding:6px;opacity:0;pointer-events:none;transition:opacity .15s,transform .15s}
 .nm-drop.open{opacity:1;pointer-events:all;transform:translateX(-50%) translateY(0)}
-.nm-drop a{display:block;padding:9px 13px;border-radius:8px;font-size:13.5px;color:var(--g700);text-decoration:none;cursor:pointer;transition:background .12s,color .12s;white-space:nowrap}
+.nm-drop a{display:block;padding:9px 13px;border-radius:8px;font-size:17.5px;color:var(--g700);text-decoration:none;cursor:pointer;transition:background .12s,color .12s;white-space:nowrap}
 .nm-drop a:hover{background:var(--g100);color:var(--black)}
 .nm-drop a.sub-active{color:var(--red);font-weight:700}
-.nav-cta{background:var(--black);color:var(--white);font-size:13px;font-weight:600;padding:9px 20px;border-radius:var(--rmd);border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:background .15s,transform .15s;white-space:nowrap;flex-shrink:0}
+.nav-cta{background:var(--black);color:var(--white);font-size:17px;font-weight:600;padding:11px 26px;border-radius:var(--rmd);border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:background .15s,transform .15s;white-space:nowrap;flex-shrink:0}
 .nav-cta:hover{background:#333;transform:translateY(-1px)}
 
 /* ── PAGE SYSTEM ── */
@@ -118,33 +118,33 @@ nav{max-width:1200px;margin:0 auto;background:var(--white);border-radius:var(--r
 .tc-desc{font-size:12.5px;color:var(--g500);line-height:1.65}
 
 /* ── 인강 PAGE ── */
-.lec-wrap{max-width:1160px;margin:0 auto;padding:28px 24px 80px;display:grid;grid-template-columns:205px 1fr;gap:22px;align-items:start}
-.sidebar{position:sticky;top:84px;padding:20px;background:var(--white);border:1px solid var(--g200);border-radius:var(--rmd);box-shadow:var(--s1)}
-.fg{margin-bottom:22px}
-.fg:last-child{margin-bottom:0}
-.fg-title{font-size:11px;font-weight:700;color:var(--g500);letter-spacing:.6px;text-transform:uppercase;margin-bottom:11px}
-.fi{display:flex;align-items:center;gap:9px;margin-bottom:9px;cursor:pointer}
-.fi label{font-size:13px;color:var(--g700);cursor:pointer}
-.fi input[type=checkbox]{width:15px;height:15px;accent-color:var(--black);cursor:pointer}
-.fi input[type=radio]{width:15px;height:15px;accent-color:var(--red);cursor:pointer}
-.lgrid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
-.lcard{background:var(--white);border:1.5px solid var(--g200);border-radius:var(--rmd);padding:22px;box-shadow:var(--s1);transition:box-shadow .2s,transform .2s,border-color .2s;display:flex;flex-direction:column}
+.ingang-cat-bar{max-width:1160px;margin:28px auto 0;padding:0 24px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.ingang-cat-btn{padding:9px 22px;border-radius:20px;font-size:13.5px;font-weight:600;cursor:pointer;border:1.5px solid var(--g300);background:var(--white);color:var(--g700);transition:all .15s;font-family:'Noto Sans KR',sans-serif;white-space:nowrap}
+.ingang-cat-btn:hover{background:var(--g100);border-color:var(--g500)}
+.ingang-cat-btn.active{background:var(--black);color:var(--white);border-color:var(--black)}
+.lgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;max-width:1160px;margin:24px auto 0;padding:0 24px 80px}
+.lcard{background:var(--white);border:1px solid var(--g200);border-radius:var(--rmd);box-shadow:var(--s1);transition:box-shadow .2s,transform .2s,border-color .2s;display:flex;flex-direction:column;overflow:hidden}
 .lcard:hover{box-shadow:var(--s2);transform:translateY(-2px);border-color:var(--g300)}
-.ltop{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:12px}
-.ltop-left{flex:1;min-width:0}
-.lnum{font-family:'DM Sans',sans-serif;font-size:10.5px;font-weight:500;color:var(--g500);letter-spacing:.4px;margin-bottom:6px}
-.lenroll{font-size:11px;font-weight:700;color:#b45309;background:var(--ora-lt);padding:3px 9px;border-radius:20px}
-.ltitle{font-size:17px;font-weight:700;letter-spacing:-.4px;line-height:1.35;margin-bottom:0}
-.lthumb{width:88px;height:68px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--g200)}
-.lmeta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px 14px;margin:16px 0 18px;padding-bottom:17px;border-bottom:1px solid var(--g200)}
-.ml{font-size:10.5px;color:var(--g500);margin-bottom:3px}
-.mv{font-size:13px;font-weight:600;letter-spacing:-.1px}
-.mv.hl{color:var(--red)}
-.lbtns{display:flex;gap:8px}
-.btn-d{flex:1;padding:10px 0;text-align:center;border:1.5px solid var(--g300);border-radius:var(--rmd);font-size:13px;font-weight:600;color:var(--g700);cursor:pointer;background:none;transition:border-color .15s,color .15s;font-family:'Noto Sans KR',sans-serif}
-.btn-d:hover{border-color:var(--black);color:var(--black)}
-.btn-e{flex:1;padding:11px 0;text-align:center;border:1.5px solid var(--red);border-radius:30px;font-size:14px;font-weight:700;color:var(--red);cursor:pointer;background:var(--white);transition:background .15s,color .15s;font-family:'Noto Sans KR',sans-serif}
-.btn-e:hover{background:var(--red);color:#fff}
+/* 3:4 이미지 비율 */
+.lthumb-wrap{width:100%;aspect-ratio:3/4;overflow:hidden;background:var(--g200);flex-shrink:0}
+.lthumb{width:100%;height:100%;object-fit:fill;display:block}
+/* 카드 본문 */
+.lcard-body{padding:14px 14px 0;flex:1;display:flex;flex-direction:column}
+.lnum{font-family:'DM Sans',sans-serif;font-size:10px;font-weight:500;color:var(--g500);letter-spacing:.4px;margin-bottom:5px}
+.ltitle{font-size:14.5px;font-weight:700;letter-spacing:-.3px;line-height:1.4;margin-bottom:6px}
+.lcard-teacher{font-size:12.5px;color:var(--g500);margin-bottom:0}
+/* 구분선 */
+.lcard-div{height:1px;background:var(--g200);margin:12px 14px}
+/* 메타 영역 */
+.lmeta-wrap{padding:0 14px 4px}
+.lmeta-row{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;margin-bottom:5px}
+.lmeta-label{color:var(--g500)}
+.lmeta-val{font-weight:600;letter-spacing:-.1px;color:var(--black)}
+.lmeta-val.hl{color:var(--red);font-size:14px;font-weight:700}
+/* 결제 버튼 */
+.lcard-foot{padding:10px 14px 14px;margin-top:auto}
+.btn-e{width:100%;padding:12px 0;text-align:center;border:none;border-radius:10px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;background:var(--red);transition:background .15s,transform .1s;font-family:'Noto Sans KR',sans-serif;display:block}
+.btn-e:hover{background:#d03830;transform:translateY(-1px)}
 
 /* ── 학원(현강+라이브) PAGE ── */
 .hwon-hd{background:var(--black);color:#fff;padding:46px 24px 0}
@@ -155,7 +155,7 @@ nav{max-width:1200px;margin:0 auto;background:var(--white);border-radius:var(--r
 .htab{padding:12px 22px;font-size:14px;font-weight:600;color:rgba(255,255,255,.45);cursor:pointer;border:none;background:none;border-bottom:2.5px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;font-family:'Noto Sans KR',sans-serif}
 .htab:hover{color:rgba(255,255,255,.8)}
 .htab.active{color:#fff;border-color:#fff}
-.htab-content{display:none;max-width:1160px;margin:0 auto;padding:28px 24px 80px}
+.htab-content{display:none;max-width:1160px;margin:0 auto;padding:22px 24px 80px}
 .htab-content.active{display:block}
 .hwon-list{background:var(--white);border:1px solid var(--g200);border-radius:var(--rmd);overflow:hidden;box-shadow:var(--s1)}
 .hwon-row{display:grid;grid-template-columns:1fr 130px 110px 140px 110px;align-items:center;gap:14px;padding:16px 22px;border-bottom:1px solid var(--g200);transition:background .13s;cursor:pointer}
@@ -171,7 +171,7 @@ nav{max-width:1200px;margin:0 auto;background:var(--white);border-radius:var(--r
 .hap-pill{display:inline-block;border:1px solid var(--g300);color:var(--red);font-size:12.5px;font-weight:600;padding:5px 16px;border-radius:20px;margin-bottom:14px;background:var(--white)}
 .hap-head h1{font-family:'Noto Sans KR',sans-serif;font-size:clamp(30px,5vw,48px);font-weight:700;letter-spacing:-1px;margin-bottom:8px}
 .hap-head p{font-size:14px;color:var(--g500)}
-.hap-tabs{display:flex;gap:8px;max-width:1160px;margin:0 auto;padding:0 24px}
+.hap-tabs{display:flex;gap:8px;max-width:1160px;margin:0 auto;padding:0 24px;justify-content:center}
 .htab2{padding:9px 20px;border-radius:20px;font-size:13.5px;font-weight:600;cursor:pointer;border:1.5px solid var(--g300);background:var(--white);color:var(--g700);transition:all .15s;font-family:'Noto Sans KR',sans-serif}
 .htab2.active,.htab2:hover{background:var(--black);color:var(--white);border-color:var(--black)}
 .hap-content{display:none}
@@ -447,15 +447,15 @@ footer{background:var(--black);color:rgba(255,255,255,.5);padding:46px 24px 34px
 ══════════════════════════════ -->
 <div id="page-intro" class="page">
   <div class="hwon-hd a1">
-    <div class="hwon-hd-in">
+    <div class="hwon-hd-in" style="padding-bottom:46px">
       <h1>독편논소개</h1>
       <p>연세대·고려대·경찰대·한예종 편입을 책임지는 독편사의 이야기를 만나보세요.</p>
-      <div class="htab-bar">
-        <button class="htab active" id="stab-greeting" onclick="showIntroTab('greeting')">인사말</button>
-        <button class="htab" id="stab-ceo" onclick="showIntroTab('ceo')">대표 소개</button>
-        <button class="htab" id="stab-teachers" onclick="showIntroTab('teachers')">강사 소개</button>
-      </div>
     </div>
+  </div>
+  <div class="hap-tabs a2" style="margin-top:28px;justify-content:center">
+    <button class="htab2 active" id="stab-greeting" onclick="showIntroTab('greeting')">인사말</button>
+    <button class="htab2" id="stab-ceo" onclick="showIntroTab('ceo')">대표 소개</button>
+    <button class="htab2" id="stab-teachers" onclick="showIntroTab('teachers')">강사 소개</button>
   </div>
 
   <div id="intro-greeting" class="sub-content active">
@@ -515,86 +515,75 @@ footer{background:var(--black);color:rgba(255,255,255,.5);padding:46px 24px 34px
      PAGE: 인강
 ══════════════════════════════ -->
 <div id="page-ingang" class="page">
-  <div class="lec-wrap">
-    <aside class="sidebar a1">
-      <div class="fg"><div class="fg-title">과목 카테고리</div>
-        <label class="fi"><input type="checkbox"/><span>연고대 논술</span></label>
-        <label class="fi"><input type="checkbox"/><span>경찰대 언어논리</span></label>
-        <label class="fi"><input type="checkbox"/><span>자기소개서/면접</span></label>
-        <label class="fi"><input type="checkbox"/><span>한예종 논술</span></label>
+  <!-- 카테고리 탭 -->
+  <div class="ingang-cat-bar a1">
+    <button class="ingang-cat-btn active" onclick="filterIngang(this,'all')">연고대 논술</button>
+    <button class="ingang-cat-btn" onclick="filterIngang(this,'gyeongchal')">경찰대 언어논리</button>
+    <button class="ingang-cat-btn" onclick="filterIngang(this,'jasoseo')">자기소개서/면접</button>
+    <button class="ingang-cat-btn" onclick="filterIngang(this,'hanye')">농협대/간호 논술</button>
+  </div>
+
+  <!-- 강의 카드 그리드 -->
+  <div class="lgrid a2">
+    <div class="lcard">
+      <div class="lthumb-wrap">
+        <img class="lthumb" src="https://acadock.com/files/LectureImg/1722304214D.png" alt="강좌 이미지">
       </div>
-      <div class="fg"><div class="fg-title">수강 시간</div>
-        <label class="fi"><input type="checkbox"/><span>평일 오전</span></label>
-        <label class="fi"><input type="checkbox"/><span>평일 오후</span></label>
-        <label class="fi"><input type="checkbox"/><span>주말 (집중반)</span></label>
+      <div class="lcard-body">
+        <div class="ltitle">2025 경찰대 언어논리</div>
       </div>
-      <div class="fg"><div class="fg-title">난이도</div>
-        <label class="fi"><input type="radio" name="lv"/><span>기초 입문</span></label>
-        <label class="fi"><input type="radio" name="lv" checked/><span>심화 실전</span></label>
-        <label class="fi"><input type="radio" name="lv"/><span>파이널 모의고사</span></label>
+      <div class="lcard-div"></div>
+      <div class="lmeta-wrap">
+        <div class="lmeta-row"><span class="lmeta-label">강사명</span><span class="lmeta-val">김현수</span></div>
+        <div class="lmeta-row"><span class="lmeta-label">수강기간</span><span class="lmeta-val">60일</span></div>
+        <div class="lmeta-row"><span class="lmeta-label">수강료</span><span class="lmeta-val hl">210,000원</span></div>
       </div>
-    </aside>
-    <div class="lgrid a2">
-      <div class="lcard">
-        <div class="ltop">
-          <div class="ltop-left">
-            <div class="lnum">LECTURE #2026-P01</div>
-            <div class="ltitle">2025 경찰대 언어논리</div>
-          </div>
-          <img class="lthumb" src="https://acadock.com/files/LectureImg/1722304214D.png" alt="강좌 이미지">
-        </div>
-        <div class="lmeta">
-          <div><div class="ml">강사명</div><div class="mv">김현수</div></div>
-          <div><div class="ml">수강기간</div><div class="mv">60일</div></div>
-          <div><div class="ml">수강료</div><div class="mv">210,000원</div></div>
-        </div>
-        <div class="lbtns"><button class="btn-e">결제하기</button></div>
+      <div class="lcard-foot"><button class="btn-e">결제하기</button></div>
+    </div>
+    <div class="lcard">
+      <div class="lthumb-wrap">
+        <img class="lthumb" src="https://acadock.com/files/LectureImg/1681111842D.png" alt="강좌 이미지">
       </div>
-      <div class="lcard">
-        <div class="ltop">
-          <div class="ltop-left">
-            <div class="lnum">LECTURE #2026-N01</div>
-            <div class="ltitle">연고대 편입논술 기본 유형 완성</div>
-          </div>
-          <img class="lthumb" src="https://acadock.com/files/LectureImg/1681111842D.png" alt="강좌 이미지">
-        </div>
-        <div class="lmeta">
-          <div><div class="ml">강사명</div><div class="mv">김현수</div></div>
-          <div><div class="ml">수강기간</div><div class="mv">60일</div></div>
-          <div><div class="ml">수강료</div><div class="mv">210,000원</div></div>
-        </div>
-        <div class="lbtns"><button class="btn-e">결제하기</button></div>
+      <div class="lcard-body">
+        <div class="ltitle">연고대 편입논술 기본 유형 완성</div>
       </div>
-      <div class="lcard">
-        <div class="ltop">
-          <div class="ltop-left">
-            <div class="lnum">LECTURE #2026-S01</div>
-            <div class="ltitle">독해학개론(연결독해)</div>
-          </div>
-          <img class="lthumb" src="https://acadock.com/files/LectureImg/1691821142D.png" alt="강좌 이미지">
-        </div>
-        <div class="lmeta">
-          <div><div class="ml">강사명</div><div class="mv">황성찬</div></div>
-          <div><div class="ml">수강기간</div><div class="mv">60일</div></div>
-          <div><div class="ml">수강료</div><div class="mv">210,000원</div></div>
-        </div>
-        <div class="lbtns"><button class="btn-e">결제하기</button></div>
+      <div class="lcard-div"></div>
+      <div class="lmeta-wrap">
+        <div class="lmeta-row"><span class="lmeta-label">강사명</span><span class="lmeta-val">김현수</span></div>
+        <div class="lmeta-row"><span class="lmeta-label">수강기간</span><span class="lmeta-val">60일</span></div>
+        <div class="lmeta-row"><span class="lmeta-label">수강료</span><span class="lmeta-val hl">210,000원</span></div>
       </div>
-      <div class="lcard">
-        <div class="ltop">
-          <div class="ltop-left">
-            <div class="lnum">LECTURE #2026-A01</div>
-            <div class="ltitle">연세대 수시논술 특강</div>
-          </div>
-          <img class="lthumb" src="https://acadock.com/files/LectureImg/1704276475D.png" alt="강좌 이미지">
-        </div>
-        <div class="lmeta">
-          <div><div class="ml">강사명</div><div class="mv">김현수</div></div>
-          <div><div class="ml">수강기간</div><div class="mv">60일</div></div>
-          <div><div class="ml">수강료</div><div class="mv">210,000원</div></div>
-        </div>
-        <div class="lbtns"><button class="btn-e">결제하기</button></div>
+      <div class="lcard-foot"><button class="btn-e">결제하기</button></div>
+    </div>
+    <div class="lcard">
+      <div class="lthumb-wrap">
+        <img class="lthumb" src="https://acadock.com/files/LectureImg/1691821142D.png" alt="강좌 이미지">
       </div>
+      <div class="lcard-body">
+        <div class="ltitle">독해학개론(연결독해)</div>
+      </div>
+      <div class="lcard-div"></div>
+      <div class="lmeta-wrap">
+        <div class="lmeta-row"><span class="lmeta-label">강사명</span><span class="lmeta-val">황성찬</span></div>
+        <div class="lmeta-row"><span class="lmeta-label">수강기간</span><span class="lmeta-val">60일</span></div>
+        <div class="lmeta-row"><span class="lmeta-label">수강료</span><span class="lmeta-val hl">210,000원</span></div>
+      </div>
+      <div class="lcard-foot"><button class="btn-e">결제하기</button></div>
+    </div>
+    <div class="lcard">
+      <div class="lthumb-wrap">
+        <img class="lthumb" src="https://acadock.com/files/LectureImg/1704276475D.png" alt="강좌 이미지">
+      </div>
+      <div class="lcard-body">
+        <div class="ltitle">연세대 수시논술 특강</div>
+      </div>
+      <div class="lcard-div"></div>
+      <div class="lmeta-wrap">
+        <div class="lmeta-row"><span class="lmeta-label">강사명</span><span class="lmeta-val">김현수</span></div>
+        <div class="lmeta-row"><span class="lmeta-label">수강기간</span><span class="lmeta-val">60일</span></div>
+        <div class="lmeta-row"><span class="lmeta-label">수강료</span><span class="lmeta-val hl">210,000원</span></div>
+      </div>
+      <div class="lcard-foot"><button class="btn-e">결제하기</button></div>
     </div>
   </div>
   <footer>
@@ -639,15 +628,15 @@ footer{background:var(--black);color:rgba(255,255,255,.5);padding:46px 24px 34px
 ══════════════════════════════ -->
 <div id="page-hwon" class="page">
   <div class="hwon-hd a1">
-    <div class="hwon-hd-in">
+    <div class="hwon-hd-in" style="padding-bottom:46px">
       <h1>학원 강의 <span style="font-size:.58em;font-weight:400;opacity:.55">(현강 + 라이브)</span></h1>
       <p>강남 캠퍼스 현장 강의 및 실시간 라이브 강의를 운영합니다.</p>
-      <div class="htab-bar">
-        <button class="htab active" id="htab-nonsul" onclick="switchHwonTab('nonsul')">논술반</button>
-        <button class="htab" id="htab-gyeongchal" onclick="switchHwonTab('gyeongchal')">경찰대반</button>
-        <button class="htab" id="htab-hanye" onclick="switchHwonTab('hanye')">한예종논술반</button>
-      </div>
     </div>
+  </div>
+  <div class="hap-tabs a2" style="margin-top:28px;justify-content:center">
+    <button class="htab2 active" id="htab-nonsul" onclick="switchHwonTab('nonsul')">논술반</button>
+    <button class="htab2" id="htab-gyeongchal" onclick="switchHwonTab('gyeongchal')">경찰대반</button>
+    <button class="htab2" id="htab-hanye" onclick="switchHwonTab('hanye')">한예종논술반</button>
   </div>
   <!-- 논술반 -->
   <div id="hwon-nonsul" class="htab-content active a2">
@@ -840,6 +829,12 @@ footer{background:var(--black);color:rgba(255,255,255,.5);padding:46px 24px 34px
 </div>
 
 <script>
+/* ── 인강 카테고리 탭 ── */
+function filterIngang(btn, cat) {
+  document.querySelectorAll('.ingang-cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
 /* ── 햄버거 메뉴 ── */
 function toggleHamburger() {
   const btn = document.getElementById('hamburger-btn');
@@ -897,7 +892,7 @@ document.addEventListener('click', e => {
 function showSubPage(page, tab) { showPage(page); showIntroTab(tab); }
 function showIntroTab(tab) {
   document.querySelectorAll('#page-intro .sub-content').forEach(c => c.classList.remove('active'));
-  document.querySelectorAll('#page-intro .htab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#page-intro .htab2').forEach(b => b.classList.remove('active'));
   document.getElementById('intro-'+tab).classList.add('active');
   document.getElementById('stab-'+tab).classList.add('active');
 }
@@ -906,7 +901,7 @@ function showIntroTab(tab) {
 function goHwon(tab) { showPage('hwon'); switchHwonTab(tab); }
 function switchHwonTab(tab) {
   document.querySelectorAll('.htab-content').forEach(c => c.classList.remove('active'));
-  document.querySelectorAll('.htab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#page-hwon .htab2').forEach(b => b.classList.remove('active'));
   document.getElementById('hwon-'+tab).classList.add('active');
   document.getElementById('htab-'+tab).classList.add('active');
 }
