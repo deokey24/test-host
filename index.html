@@ -1841,6 +1841,131 @@
     .cd-apply-grid { grid-template-columns: 1fr; }
     .cd-tab { padding: 14px 14px; font-size: 13px; }
   }
+
+  /* ── 왜 만들었는가 섹션 ── */
+  .why-section { background: linear-gradient(180deg, #0D0D0D 0%, #0f0e08 100%); padding: 80px 40px; text-align: center; }
+  .why-inner { max-width: 1100px; margin: 0 auto; }
+  .why-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 48px; }
+  .why-card {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px; padding: 32px 20px; text-align: left;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .why-card:hover { border-color: rgba(201,168,76,0.3); transform: translateY(-3px); }
+  .why-card-icon { font-size: 28px; margin-bottom: 16px; }
+  .why-card-title { font-size: 15px; font-weight: 700; color: var(--white); margin-bottom: 10px; }
+  .why-card-desc { font-size: 13px; color: rgba(255,255,255,0.45); line-height: 1.8; }
+
+  /* ── 차이 섹션 ── */
+  .diff-section { background: linear-gradient(180deg, #0f0e08 0%, #0D0D0D 100%); padding: 80px 40px; text-align: center; }
+  .diff-inner { max-width: 1100px; margin: 0 auto; }
+  .diff-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 48px; }
+  .diff-card {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px; padding: 32px 24px;
+    display: flex; flex-direction: column; gap: 12px;
+    transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+  }
+  .diff-card:hover { border-color: rgba(201,168,76,0.3); transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+  .diff-card-num {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 1px solid rgba(201,168,76,0.5); color: var(--gold);
+    font-size: 15px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(201,168,76,0.06);
+  }
+  .diff-card-title { font-size: 16px; font-weight: 700; color: var(--white); line-height: 1.4; }
+  .diff-card-desc { font-size: 13px; color: rgba(255,255,255,0.45); line-height: 1.8; }
+
+  /* ── 독편사 소개 섹션 ── */
+  .intro-section {
+    background: #f5f3ef; padding: 100px 120px;
+    display: flex; align-items: center; gap: 80px;
+  }
+  .intro-img {
+    flex: 0 0 420px; aspect-ratio: 4/3;
+    background: linear-gradient(135deg, #1a1a2e 0%, #2d2d4a 100%);
+    border-radius: 8px; display: flex; align-items: center;
+    justify-content: center; font-size: 60px; color: rgba(255,255,255,0.15);
+  }
+  .intro-text { flex: 1; }
+  .intro-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(26px, 3vw, 42px); font-weight: 900;
+    color: var(--dark); line-height: 1.35; margin-bottom: 20px;
+  }
+  .intro-title .gold { color: var(--gold-dark); }
+  .intro-desc { font-size: 15px; color: #555; line-height: 1.95; }
+
+  /* ── 첨삭 시스템 섹션 ── */
+  .chum-section { background: var(--black); padding: 100px 40px; text-align: center; }
+  .chum-inner { max-width: 900px; margin: 0 auto; }
+  .chum-ba { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 48px; text-align: left; }
+  .chum-card { background: #1a1a1a; border-radius: 10px; padding: 32px; border: 1px solid rgba(255,255,255,0.07); }
+  .chum-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.15em;
+    margin-bottom: 16px; padding: 4px 12px; border-radius: 4px; display: inline-block;
+  }
+  .chum-label-before { background: #333; color: rgba(255,255,255,0.5); }
+  .chum-label-after { background: var(--gold-dark); color: var(--white); }
+  .chum-card-text { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.9; }
+  .chum-points {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin-top: 40px;
+  }
+  .chum-point {
+    background: rgba(255,255,255,0.04); border-radius: 8px; padding: 14px 18px;
+    font-size: 13px; color: rgba(255,255,255,0.65);
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .chum-point::before { content: '✓'; color: var(--gold); flex-shrink: 0; }
+
+  /* ── 정회원 혜택 섹션 ── */
+  .member-section { background: #0a0a0a; padding: 100px 40px; text-align: center; }
+  .member-inner { max-width: 1000px; margin: 0 auto; }
+  .member-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }
+  .member-card {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px; padding: 32px 24px; text-align: left;
+    transition: border-color 0.2s;
+  }
+  .member-card:hover { border-color: rgba(201,168,76,0.3); }
+  .member-card-icon { font-size: 28px; margin-bottom: 16px; }
+  .member-card-title { font-size: 16px; font-weight: 700; color: var(--white); margin-bottom: 10px; }
+  .member-card-desc { font-size: 13px; color: rgba(255,255,255,0.45); line-height: 1.8; }
+
+  /* ── FAQ 섹션 ── */
+  .faq-section { background: #0D0D0D; padding: 100px 40px; }
+  .faq-inner { max-width: 780px; margin: 0 auto; }
+  .faq-item { border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .faq-q {
+    padding: 22px 0; font-size: 15px; font-weight: 600;
+    color: rgba(255,255,255,0.85); cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    transition: color 0.2s;
+  }
+  .faq-q:hover { color: var(--gold); }
+  .faq-icon { flex-shrink: 0; font-size: 20px; color: rgba(255,255,255,0.3); transition: transform 0.3s, color 0.2s; }
+  .faq-item.open .faq-icon { transform: rotate(45deg); color: var(--gold); }
+  .faq-a { display: none; padding: 0 0 22px; font-size: 14px; color: rgba(255,255,255,0.45); line-height: 1.9; }
+  .faq-item.open .faq-a { display: block; }
+
+  @media (max-width: 900px) {
+    .why-grid { grid-template-columns: repeat(2, 1fr); }
+    .diff-grid { grid-template-columns: repeat(2, 1fr); }
+    .intro-section { flex-direction: column; padding: 60px 24px; gap: 40px; }
+    .intro-img { flex: unset; width: 100%; }
+    .chum-ba { grid-template-columns: 1fr; }
+    .chum-points { grid-template-columns: 1fr; }
+    .member-grid { grid-template-columns: 1fr; }
+    .faq-section { padding: 80px 24px; }
+  }
+  @media (max-width: 560px) {
+    .why-grid { grid-template-columns: 1fr; }
+    .diff-grid { grid-template-columns: 1fr; }
+    .member-grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
@@ -1880,36 +2005,39 @@
   <!-- 1. Hero -->
   <section class="hero">
     <h1 class="hero-title">
-      압도적 결과로 증명하는<br>
-      프리미엄 <span class="gold">편입 논술</span>
+      연고대 편입논술,<br>
+      이제 온라인에서도 <span class="gold">독편사 시스템 그대로</span>
     </h1>
     <p class="hero-sub">
-      상위 1%를 위한 철저한 분석과 맞춤형 커리큘럼.<br>
-      당신의 잠재력을 깨우고 가장 확실한 합격의 길로 안내합니다.
+      지방 거주자, 군인, 직장인, 늦게 시작한 수험생까지.<br>
+      현강 수강이 어려운 학생들을 위해 독편사편입논술학원의<br>
+      강의와 첨삭 시스템을 온라인 과정으로 구현했습니다.
     </p>
     <div class="hero-btns">
-      <button class="btn-primary" onclick="showPage('lecture')">강의 소개</button>
+      <button class="btn-primary" onclick="showPage('lecture')">강의 소개 보기</button>
+      <button class="btn-secondary" onclick="document.getElementById('chumSection').scrollIntoView({behavior:'smooth'})">첨삭 시스템 보기</button>
     </div>
-
   </section>
 
   <!-- 2. Philosophy -->
   <section class="philosophy reveal">
     <div class="section-label">PHILOSOPHY</div>
     <h2 class="philosophy-title">
-      "완벽한 결과는<br>
-      타협하지 않는 과정에서 나옵니다."
+      "합격은 운이 아니라,<br>
+      <span class="dim">반복 가능한 시스템에서 나옵니다.</span>"
     </h2>
     <p class="philosophy-sub">
-      단순히 지식을 전달하지 않습니다. 편입의 본질을 꿰뚫는 통찰력,<br>
-      흔들림 없는 멘탈 관리, 최적화된 학습 전략까지.<br>
-      당신의 대학 간판을 바꿀 가장 확실한 길을 제시합니다.
+      독편사는 단순히 논술 지식을 전달하지 않습니다.<br>
+      제시문 독해, 논제 분석, 답안 구성, 첨삭과 재작성까지<br>
+      합격에 필요한 사고 과정을 온라인으로도 구현했습니다.
     </p>
   </section>
 
   <!-- 2-1. 합격 성과 -->
   <section class="results-section reveal">
     <div class="results-inner">
+      <div class="section-label" style="margin-bottom:28px;">RESULTS</div>
+      <h2 style="font-family:'Noto Serif KR',serif;font-size:clamp(26px,3.5vw,48px);font-weight:900;margin-bottom:40px;">결과는 말보다 정확합니다.</h2>
       <div class="results-years">
         <div class="results-year-item">
           <span class="results-year">2023</span>
@@ -1932,49 +2060,88 @@
           <span class="results-count gold">88명</span>
         </div>
       </div>
-      <p class="results-sub">홍보성 말이 아닌 실제 합격증과 합격 수기로 증명합니다.</p>
+      <p class="results-sub">홍보성 문구가 아니라, 실제 합격증과 합격 수기로 증명해온 결과입니다.<br>이제 그 결과를 만들어온 독편사의 핵심 커리큘럼을 온라인에서도 수강할 수 있습니다.</p>
+      <p style="font-size:11px;color:rgba(255,255,255,0.2);margin-top:12px;">※ 내부 집계 기준 / 중복합격 여부 별도 표기</p>
     </div>
   </section>
 
-  <!-- 2-2. 특징 4가지 -->
-  <section class="features-section reveal">
-    <div class="features-inner">
-      <div class="feature-item-card">
-        <div class="feature-num-badge">1</div>
-        <div class="feature-card-title">수업 방식 자유 선택</div>
-        <div class="feature-card-desc">현강 · 라이브 · 녹화영상 中<br><strong>자유롭게 선택하여 수강 가능</strong></div>
-      </div>
-      <div class="feature-item-card">
-        <div class="feature-num-badge">2</div>
-        <div class="feature-card-title">무한 첨삭 시스템</div>
-        <div class="feature-card-desc">좋은 글이 될 때까지!<br><strong>무한 1:1 첨삭 &amp; 재작성</strong></div>
-      </div>
-      <div class="feature-item-card">
-        <div class="feature-num-badge">3</div>
-        <div class="feature-card-title">배경지식 특강 &amp; 자료 배부</div>
-        <div class="feature-card-desc">논술에 필수적인 특강 무료 제공<br><strong>정의란 무엇인가 · 연대 영어제시문 · 민주주의 · 자료해석 특강</strong></div>
-      </div>
-      <div class="feature-item-card">
-        <div class="feature-num-badge">4</div>
-        <div class="feature-card-title">평균 주 3회 이상 수업</div>
-        <div class="feature-card-desc">주 1회로는 실력 향상이 어렵습니다!<br><strong>오직 논술만을 위한 주 3회 이상 커리큘럼</strong></div>
+  <!-- 2-2. 왜 만들었는가 -->
+  <section class="why-section reveal">
+    <div class="why-inner">
+      <div class="section-label">WHY WE BUILT THIS</div>
+      <h2 style="font-family:'Noto Serif KR',serif;font-size:clamp(26px,3.5vw,48px);font-weight:900;margin-bottom:16px;">왜 독편사 온라인 강의를 만들었을까요?</h2>
+      <p style="font-size:15px;color:rgba(255,255,255,0.45);">이 학생들에게 필요한 것은 단순한 영상 인강이 아니라<br>강의, 자료, 첨삭, 편입 정보가 함께 제공되는 완성형 온라인 시스템이었습니다.</p>
+      <div class="why-grid">
+        <div class="why-card">
+          <div class="why-card-icon">🗺️</div>
+          <div class="why-card-title">지방 거주자</div>
+          <div class="why-card-desc">서울에 오지 않아도 독편사의 강의와 첨삭 시스템을 그대로 경험할 수 있습니다.</div>
+        </div>
+        <div class="why-card">
+          <div class="why-card-icon">🪖</div>
+          <div class="why-card-title">군인</div>
+          <div class="why-card-desc">복무 중에도 학습을 이어갈 수 있도록 시간과 장소의 제약 없이 수강할 수 있습니다.</div>
+        </div>
+        <div class="why-card">
+          <div class="why-card-icon">💼</div>
+          <div class="why-card-title">직장인</div>
+          <div class="why-card-desc">바쁜 일정 속에서도 원하는 시간에 강의를 선택해 편입을 준비할 수 있습니다.</div>
+        </div>
+        <div class="why-card">
+          <div class="why-card-icon">📅</div>
+          <div class="why-card-title">늦게 시작한 수험생</div>
+          <div class="why-card-desc">지금 당장 필요한 영역부터 선택해 빠르게 따라올 수 있는 과정으로 설계했습니다.</div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- 2-3. 학원 소개 배너 -->
-  <section class="academy-banner reveal">
-    <div class="academy-banner-inner">
-      <div class="academy-logos">
-        <div class="academy-logo-item">연<br>세</div>
-        <span class="academy-logo-dot">·</span>
-        <div class="academy-logo-item">고<br>려</div>
-        <span class="academy-logo-dot">·</span>
-        <div class="academy-logo-item">경<br>찰</div>
+  <!-- 2-3. 일반 인강과의 차이 -->
+  <section class="diff-section reveal">
+    <div class="diff-inner">
+      <div class="section-label">DIFFERENCE</div>
+      <h2 style="font-family:'Noto Serif KR',serif;font-size:clamp(26px,3.5vw,48px);font-weight:900;margin-bottom:16px;">일반 편입논술 인강과 무엇이 다를까요?</h2>
+      <p style="font-size:15px;color:rgba(255,255,255,0.45);">독편사 온라인 과정은 단순한 영상 강의가 아닙니다.</p>
+      <div class="diff-grid">
+        <div class="diff-card">
+          <div class="diff-card-num">1</div>
+          <div class="diff-card-title">기출 해설만 하지 않습니다</div>
+          <div class="diff-card-desc">기출 분석을 넘어 제시문 독해력과 논제 분석력을 키우는 사고 훈련 중심의 강의입니다.</div>
+        </div>
+        <div class="diff-card">
+          <div class="diff-card-num">2</div>
+          <div class="diff-card-title">첨삭까지 가능한 논술 인강</div>
+          <div class="diff-card-desc">영상만 보는 인강이 아닙니다. 직접 쓴 답안을 첨삭받고 다시 고쳐 쓰는 피드백 루프가 작동합니다.</div>
+        </div>
+        <div class="diff-card">
+          <div class="diff-card-num">3</div>
+          <div class="diff-card-title">필요한 영역만 선택 수강</div>
+          <div class="diff-card-desc">독해, 배경지식, 기출분석, 예상문제, 첨삭 패키지 중 현재 부족한 영역만 골라 수강할 수 있습니다.</div>
+        </div>
+        <div class="diff-card">
+          <div class="diff-card-num">4</div>
+          <div class="diff-card-title">독편사 정회원 혜택 제공</div>
+          <div class="diff-card-desc">자소서 첨삭, 원서상담, 모의고사 참여 등 독편사의 주요 프로그램을 온라인 수강생도 이용할 수 있습니다.</div>
+        </div>
       </div>
-      <p class="academy-banner-sub">연고대, 경찰대 편입은</p>
-      <h2 class="academy-banner-title">독편사편입논술학원</h2>
-      <div class="academy-banner-tag">1:1 대면 첨삭 · 인문 사회계열 분리 · 수준별 분반</div>
+    </div>
+  </section>
+
+  <!-- 2-4. 독편사 소개 -->
+  <section class="intro-section reveal">
+    <div class="intro-img">🏫</div>
+    <div class="intro-text">
+      <div class="section-label" style="color:var(--gold-dark);margin-bottom:20px;">ABOUT 독편사</div>
+      <h2 class="intro-title">
+        연고대 편입논술 전문학원의 시스템을<br>
+        <span class="gold">온라인으로 옮겼습니다.</span>
+      </h2>
+      <p class="intro-desc">
+        독편사편입논술학원은 연고대 편입논술을 전문적으로 연구하고 강의해온 학원입니다.<br><br>
+        온라인 과정은 단순히 현장 강의를 녹화한 상품이 아니라,<br>
+        현강 수강이 어려운 학생들도 독편사의 핵심 커리큘럼을<br>
+        체계적으로 따라올 수 있도록 설계한 과정입니다.
+      </p>
     </div>
   </section>
 
@@ -1995,8 +2162,9 @@
           <span class="gold">황성찬</span>
         </h2>
         <p class="teacher-desc">
-          정확한 방향성 제시가 합격의 차이를 만듭니다.<br>
-          수년간의 합격 데이터와 검증된 커리큘럼으로 최상위권 합격을 이끕니다.
+          연고대 편입논술은 단순한 글쓰기 시험이 아니라<br>
+          제시문을 읽고, 논제를 분석하고, 답안을 설계하는 사고력 시험입니다.<br><br>
+          정확한 방향성 제시가 합격의 차이를 만듭니다.
         </p>
         <ul class="feature-list">
           <li>
@@ -2027,8 +2195,8 @@
   <section class="classes-section reveal">
     <div class="classes-header">
       <div>
-        <h2 class="classes-title">현재 모집중인 클래스</h2>
-        <p class="classes-sub">목표 대학과 현재 수준에 맞는 최적의 강의를 선택하세요.</p>
+        <h2 class="classes-title">지금 필요한 강의부터 선택하세요.</h2>
+        <p class="classes-sub">현재 실력과 부족한 영역에 따라 독해, 배경지식, 기출분석, 예상문제, 첨삭 과정을 선택해 수강할 수 있습니다.</p>
       </div>
       <div class="filter-tabs">
         <button class="filter-tab active" onclick="filterTab(this,'all')">전체</button>
@@ -2118,14 +2286,117 @@
     </div>
   </section>
 
-  <!-- 5. CTA -->
+  <!-- 5. 첨삭 시스템 -->
+  <section class="chum-section reveal" id="chumSection">
+    <div class="chum-inner">
+      <div class="section-label">FEEDBACK SYSTEM</div>
+      <h2 style="font-family:'Noto Serif KR',serif;font-size:clamp(26px,3.5vw,48px);font-weight:900;margin-bottom:16px;">
+        영상만 보는 인강이 아니라,<br><span style="color:var(--gold)">답안이 바뀌는 첨삭까지.</span>
+      </h2>
+      <p style="font-size:15px;color:rgba(255,255,255,0.45);">논술은 직접 쓰고, 피드백을 받고, 다시 고쳐 쓰는 과정에서 완성됩니다.</p>
+      <div class="chum-ba">
+        <div class="chum-card">
+          <span class="chum-label chum-label-before">BEFORE 첨삭 전</span>
+          <div class="chum-card-text">
+            논제의 핵심어를 파악하지 못한 채 방향 없이 서술. 제시문 내용을 단순 요약하거나 본인의 생각만을 나열함. 논리적 구조 없이 문단이 흐름 없이 이어짐. 핵심 주장과 근거의 연결이 모호하여 채점자가 의도를 파악하기 어려움.
+          </div>
+        </div>
+        <div class="chum-card">
+          <span class="chum-label chum-label-after">AFTER 첨삭 후</span>
+          <div class="chum-card-text">
+            논제의 요구 사항을 정확히 파악하고 서론에서 핵심 주장을 명확히 제시. 제시문을 비교·분석하여 본론에서 근거를 논리적으로 전개. 문단 간 연결이 자연스럽고 결론에서 주장을 정리하며 설득력 있게 마무리.
+          </div>
+        </div>
+      </div>
+      <div class="chum-points">
+        <div class="chum-point">논제 이해 및 제시문 해석</div>
+        <div class="chum-point">답안 구조 설계 피드백</div>
+        <div class="chum-point">문장 표현 및 논리 교정</div>
+        <div class="chum-point">재작성 후 재첨삭 가능</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. 정회원 혜택 -->
+  <section class="member-section reveal">
+    <div class="member-inner">
+      <div class="section-label">MEMBERSHIP BENEFITS</div>
+      <h2 style="font-family:'Noto Serif KR',serif;font-size:clamp(26px,3.5vw,48px);font-weight:900;margin-bottom:16px;">온라인 수강생에게도<br><span style="color:var(--gold)">독편사 정회원 혜택을 제공합니다.</span></h2>
+      <p style="font-size:15px;color:rgba(255,255,255,0.45);">온라인이어도 소외되지 않습니다. 독편사의 주요 프로그램에 동등하게 참여할 수 있습니다.</p>
+      <div class="member-grid">
+        <div class="member-card">
+          <div class="member-card-icon">📝</div>
+          <div class="member-card-title">자소서 첨삭</div>
+          <div class="member-card-desc">다년간의 합격 데이터가 축적된 전문 컨설턴트의 1:1 자기소개서 첨삭을 정회원 전원에게 제공합니다.</div>
+        </div>
+        <div class="member-card">
+          <div class="member-card-icon">🎯</div>
+          <div class="member-card-title">원서 상담</div>
+          <div class="member-card-desc">목표 대학 설정, 원서 전략 수립 등 개인별 맞춤 입시 상담을 정회원 혜택으로 지원합니다.</div>
+        </div>
+        <div class="member-card">
+          <div class="member-card-icon">📋</div>
+          <div class="member-card-title">실전 모의고사</div>
+          <div class="member-card-desc">실제 대학별 고사와 동일한 조건의 모의고사에 참여하고 성적 통계로 내 위치를 파악할 수 있습니다.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. FAQ -->
+  <section class="faq-section reveal">
+    <div class="faq-inner">
+      <div class="section-label" style="text-align:center;margin-bottom:20px;">FAQ</div>
+      <h2 style="font-family:'Noto Serif KR',serif;font-size:clamp(24px,3vw,40px);font-weight:900;text-align:center;margin-bottom:48px;color:var(--white);">자주 묻는 질문</h2>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          현강과 온라인 인강은 어떤 차이가 있나요?
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-a">온라인 과정은 현강 수강이 어려운 학생들을 위해 동일한 커리큘럼을 온라인 환경에 최적화한 과정입니다. 강의 영상, 자료, 첨삭, 편입 정보가 모두 제공되며, 정회원 혜택도 동일하게 적용됩니다.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          일반 편입논술 인강과 무엇이 다른가요?
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-a">기출 해설 위주의 일반 인강과 달리, 독편사 온라인 과정은 제시문 독해부터 답안 작성, 첨삭과 재작성까지 합격에 필요한 전 과정을 제공합니다. 필요한 영역만 선택 수강도 가능합니다.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          첨삭도 받을 수 있나요?
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-a">네, 온라인 과정에서도 첨삭 서비스를 제공합니다. 직접 쓴 답안을 제출하면 논제 이해, 제시문 해석, 답안 구조, 문장 표현까지 점검 후 상세한 피드백을 받을 수 있습니다.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          늦게 시작한 학생도 들을 수 있나요?
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-a">물론입니다. 현재 실력과 시작 시점에 맞춰 독해 기초부터 파이널 대비까지 필요한 과정을 선택할 수 있습니다. 지금 당장 필요한 강의부터 시작하세요.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          독편사 정회원 혜택이 있나요?
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-a">온라인 과정 수강생에게는 자소서 첨삭, 원서 상담, 모의고사 참여 등 독편사의 주요 프로그램에 참여할 수 있는 정회원 자격이 부여됩니다.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. 마지막 CTA -->
   <section class="cta-section reveal" style="margin-top:0;">
-    <h2 class="cta-title">합격을 향한 첫 걸음</h2>
+    <h2 class="cta-title">현강을 듣지 못한다고,<br>연고대 편입논술 준비를 포기할 필요는 없습니다.</h2>
     <p class="cta-sub">
-      지금 바로 독편사와 함께 당신의 한계를 뛰어넘으세요.<br>
-      결과가 증명하는 프리미엄 강의가 기다립니다.
+      독편사 온라인 과정에서 지금 필요한 강의부터 선택해 시작하세요.
     </p>
-    <button class="btn-cta">무료 체험하기</button>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn-cta" onclick="showPage('classes')">온라인 강의 보기</button>
+      <button class="btn-cta" style="background:transparent;border:2px solid var(--gold);color:var(--gold);" onclick="showPage('lecture')">수강 신청하기</button>
+    </div>
   </section>
 
   <!-- Footer -->
@@ -3172,6 +3443,14 @@
     document.getElementById('hamburgerBtn').classList.remove('open');
     document.getElementById('mobileMenu').classList.remove('open');
     document.getElementById('mobileMenuOverlay').classList.remove('open');
+  }
+
+  // FAQ toggle
+  function toggleFaq(el) {
+    const item = el.parentElement;
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!isOpen) item.classList.add('open');
   }
 
   initReveal();
