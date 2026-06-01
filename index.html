@@ -97,6 +97,65 @@
   }
   .btn-login:hover { background: var(--gold-light); }
 
+  /* User menu (logged-in state) */
+  .user-menu {
+    position: relative;
+    display: none;
+  }
+  .btn-mypage {
+    background: none;
+    border: 1px solid rgba(201,168,76,0.6);
+    color: var(--gold);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    padding: 7px 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 2px;
+    letter-spacing: 0.02em;
+  }
+  .btn-mypage:hover {
+    background: rgba(201,168,76,0.1);
+    border-color: var(--gold);
+  }
+  .user-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: #181818;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 3px;
+    min-width: 140px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    z-index: 200;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .user-menu:hover .user-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+  .user-dropdown a {
+    display: block;
+    padding: 13px 18px;
+    font-size: 13px;
+    font-family: 'Noto Sans KR', sans-serif;
+    color: rgba(255,255,255,0.75);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .user-dropdown a:last-child { border-bottom: none; }
+  .user-dropdown a:hover { background: rgba(255,255,255,0.05); color: var(--gold); }
+  .user-dropdown .dropdown-logout { color: rgba(255,255,255,0.45); }
+  .user-dropdown .dropdown-logout:hover { color: #e05252; background: rgba(224,82,82,0.06); }
+
   /* Hamburger */
   .nav-hamburger {
     display: none;
@@ -1040,6 +1099,644 @@
   @media (max-width: 560px) {
     .results-years { grid-template-columns: 1fr 1fr; }
     .features-inner { grid-template-columns: 1fr; }
+  }
+
+  /* ── LECTURE PLAYER PAGE ── */
+  #lecturePlayer {
+    background: #0a0a0a;
+    min-height: 100vh;
+  }
+
+  /* Top bar */
+  .lp-topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    background: rgba(10,10,10,0.97);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    z-index: 1001;
+    backdrop-filter: blur(8px);
+  }
+  .lp-back {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    transition: color 0.2s;
+    background: none;
+    border: none;
+    font-family: 'Noto Sans KR', sans-serif;
+    padding: 0;
+  }
+  .lp-back:hover { color: var(--gold); }
+  .lp-back svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .lp-topbar-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    pointer-events: none;
+  }
+  .lp-topbar-lecture-num {
+    font-size: 11px;
+    color: var(--gold);
+    letter-spacing: 0.1em;
+    font-weight: 600;
+  }
+  .lp-topbar-lecture-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+  .lp-course-name {
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 0.01em;
+  }
+  .lp-course-name strong { color: rgba(255,255,255,0.55); font-weight: 600; }
+
+  @media (max-width: 700px) {
+    .lp-topbar-center { display: none; }
+  }
+
+  /* Layout */
+  .lp-body {
+    padding-top: 56px;
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    grid-template-rows: auto 1fr;
+    min-height: 100vh;
+  }
+
+  /* Video area */
+  .lp-video-col {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    display: flex;
+    flex-direction: column;
+  }
+  .lp-video-wrap {
+    background: #000;
+    position: relative;
+    aspect-ratio: 16/9;
+    width: 100%;
+    overflow: hidden;
+  }
+  .lp-video-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 40%, #1a1505 0%, #050505 80%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+  .lp-lecture-num {
+    font-size: 13px;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 0.08em;
+  }
+  .lp-play-btn {
+    width: 68px; height: 68px;
+    border-radius: 50%;
+    background: rgba(201,168,76,0.15);
+    border: 2px solid rgba(201,168,76,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+  .lp-play-btn:hover {
+    background: rgba(201,168,76,0.25);
+    border-color: var(--gold);
+    transform: scale(1.07);
+  }
+  .lp-play-btn svg { width: 28px; height: 28px; fill: var(--gold); margin-left: 4px; }
+  .lp-video-title-overlay {
+    font-size: 14px;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.01em;
+  }
+
+  /* Player controls */
+  .lp-controls {
+    background: #111;
+    padding: 0 20px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .lp-ctrl-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: rgba(255,255,255,0.6);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+  }
+  .lp-ctrl-btn:hover { color: var(--gold); }
+  .lp-ctrl-btn svg { width: 18px; height: 18px; }
+  .lp-progress-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .lp-progress-bar {
+    flex: 1;
+    height: 4px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .lp-progress-fill {
+    height: 100%;
+    width: 38%;
+    background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+    border-radius: 2px;
+  }
+  .lp-time {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .lp-vol-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: rgba(255,255,255,0.4);
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+  }
+  .lp-vol-btn:hover { color: var(--gold); }
+  .lp-vol-btn svg { width: 16px; height: 16px; }
+
+  /* Lecture info */
+  .lp-info {
+    padding: 28px 32px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .lp-info-num {
+    font-size: 12px;
+    color: var(--gold);
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .lp-info-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(18px, 2vw, 24px);
+    font-weight: 900;
+    color: var(--white);
+    margin-bottom: 10px;
+    line-height: 1.35;
+  }
+  .lp-info-desc {
+    font-size: 14px;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.8;
+    max-width: 640px;
+  }
+
+  /* Curriculum list */
+  .lp-curriculum {
+    padding: 24px 32px 40px;
+    flex: 1;
+  }
+  .lp-curriculum-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+  .lp-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-bottom: 2px;
+  }
+  .lp-item:hover { background: rgba(255,255,255,0.04); }
+  .lp-item.current {
+    background: rgba(201,168,76,0.08);
+    border: 1px solid rgba(201,168,76,0.2);
+  }
+  .lp-item.done .lp-item-num { color: rgba(255,255,255,0.25); }
+  .lp-item.current .lp-item-num { color: var(--gold); font-weight: 700; }
+  .lp-item.locked { opacity: 0.4; cursor: default; }
+  .lp-item-num {
+    font-size: 12px;
+    color: rgba(255,255,255,0.3);
+    min-width: 28px;
+    flex-shrink: 0;
+  }
+  .lp-item-check {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.15);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .lp-item.done .lp-item-check {
+    background: rgba(201,168,76,0.15);
+    border-color: rgba(201,168,76,0.35);
+  }
+  .lp-item.done .lp-item-check svg { display: block; }
+  .lp-item.current .lp-item-check {
+    background: var(--gold);
+    border-color: var(--gold);
+  }
+  .lp-item.current .lp-item-check svg { display: block; filter: brightness(0); }
+  .lp-item-check svg {
+    display: none;
+    width: 10px; height: 10px;
+    fill: var(--gold);
+  }
+  .lp-item-info { flex: 1; min-width: 0; }
+  .lp-item-name {
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lp-item.current .lp-item-name { color: var(--white); font-weight: 600; }
+  .lp-item.done .lp-item-name { color: rgba(255,255,255,0.4); }
+  .lp-item-dur {
+    font-size: 11px;
+    color: rgba(255,255,255,0.25);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .lp-item.current .lp-item-dur { color: var(--gold); font-weight: 600; }
+
+  /* Right sidebar */
+  .lp-sidebar {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    background: #111;
+    border-left: 1px solid rgba(255,255,255,0.07);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    position: sticky;
+    top: 52px;
+    max-height: calc(100vh - 56px);
+  }
+  .lp-sidebar-section {
+    padding: 24px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .lp-sidebar-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.12em;
+    margin-bottom: 16px;
+  }
+  .lp-file-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    margin-bottom: 8px;
+  }
+  .lp-file-item:hover { border-color: rgba(201,168,76,0.3); background: rgba(201,168,76,0.04); }
+  .lp-file-icon {
+    width: 32px; height: 32px;
+    background: rgba(201,168,76,0.1);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 13px;
+    color: var(--gold);
+    font-weight: 700;
+  }
+  .lp-file-name {
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.4;
+  }
+  .lp-file-size {
+    font-size: 11px;
+    color: rgba(255,255,255,0.25);
+  }
+  .lp-progress-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .lp-progress-label { font-size: 13px; color: rgba(255,255,255,0.55); }
+  .lp-progress-count { font-size: 13px; font-weight: 700; color: var(--gold); }
+  .lp-sidebar-bar-bg {
+    height: 5px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .lp-sidebar-bar-fill {
+    height: 100%;
+    width: 38%;
+    background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+    border-radius: 3px;
+  }
+  .lp-qna-input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 13px;
+    font-family: 'Noto Sans KR', sans-serif;
+    color: var(--white);
+    resize: none;
+    outline: none;
+    min-height: 80px;
+    margin-bottom: 10px;
+    transition: border-color 0.2s;
+  }
+  .lp-qna-input::placeholder { color: rgba(255,255,255,0.2); }
+  .lp-qna-input:focus { border-color: rgba(201,168,76,0.4); }
+  .lp-qna-btn {
+    width: 100%;
+    background: var(--gold);
+    border: none;
+    color: var(--black);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    padding: 11px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .lp-qna-btn:hover { background: var(--gold-light); }
+  .lp-next-btn {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Noto Sans KR', sans-serif;
+    padding: 11px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .lp-next-btn:hover { background: rgba(255,255,255,0.09); color: var(--white); }
+
+  @media (max-width: 900px) {
+    .lp-body { grid-template-columns: 1fr; grid-template-rows: auto; }
+    .lp-video-col { grid-column: 1; grid-row: 1; }
+    .lp-sidebar { grid-column: 1; grid-row: 2; position: static; max-height: none; border-left: none; border-top: 1px solid rgba(255,255,255,0.07); }
+    .lp-info { padding: 20px; }
+    .lp-curriculum { padding: 16px 20px 32px; }
+  }
+
+  /* ── MY LECTURES PAGE ── */
+  #myLectures {
+    background: var(--black);
+    min-height: 100vh;
+  }
+  .my-lec-hero {
+    background: var(--black);
+    padding: 88px 0 0;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .my-lec-hero-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 40px;
+  }
+  .my-lec-hero-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 0 18px;
+  }
+  .my-lec-hero-left {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .my-lec-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: 0.01em;
+  }
+  .my-lec-title-en {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gold);
+    letter-spacing: 0.15em;
+  }
+  .my-lec-greeting {
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+  }
+  .my-lec-greeting strong {
+    color: var(--gold);
+    font-weight: 700;
+  }
+  .my-lec-tabs {
+    display: flex;
+    gap: 0;
+    margin-top: 2px;
+  }
+  .my-lec-tab {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.4);
+    padding: 10px 20px 12px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+    letter-spacing: 0.01em;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  .my-lec-tab:first-child { padding-left: 0; }
+  .my-lec-tab.active {
+    color: var(--white);
+    font-weight: 700;
+    border-bottom-color: var(--gold);
+  }
+  .my-lec-tab:hover:not(.active) { color: rgba(255,255,255,0.75); }
+
+  .my-lec-section {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 60px 40px 100px;
+  }
+  .my-lec-section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+  .my-lec-section-label {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--white);
+  }
+  .my-lec-section-count {
+    font-size: 13px;
+    color: rgba(255,255,255,0.35);
+  }
+
+  .my-lec-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .my-lec-card {
+    background: #161616;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.22s, box-shadow 0.22s, border-color 0.22s;
+    cursor: pointer;
+  }
+  .my-lec-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    border-color: rgba(201,168,76,0.25);
+  }
+
+  .my-lec-thumb {
+    aspect-ratio: 16/10;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .my-lec-body {
+    padding: 18px 18px 20px;
+  }
+  .my-lec-teacher {
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 5px;
+  }
+  .my-lec-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--white);
+    line-height: 1.45;
+    margin-bottom: 18px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .my-lec-progress-wrap { margin-bottom: 16px; }
+  .my-lec-count-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .my-lec-count-label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+  }
+  .my-lec-count {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.03em;
+  }
+  .my-lec-bar-bg {
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .my-lec-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+    border-radius: 2px;
+    transition: width 0.6s ease;
+  }
+
+  .my-lec-btn {
+    width: 100%;
+    background: none;
+    border: 1px solid rgba(201,168,76,0.4);
+    color: var(--gold);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .my-lec-btn:hover {
+    background: var(--gold);
+    color: var(--black);
+    border-color: var(--gold);
+  }
+
+  @media (max-width: 900px) {
+    .my-lec-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .my-lec-section { padding: 40px 20px 80px; }
+    .my-lec-hero { padding: 80px 0 0; }
+    .my-lec-hero-inner { padding: 0 20px; }
+    .my-lec-greeting { display: none; }
+  }
+  @media (max-width: 560px) {
+    .my-lec-grid { grid-template-columns: 1fr; }
   }
 
   /* ── ANIMATIONS ── */
@@ -2214,7 +2911,14 @@
       <li><a onclick="showPage('textbook');closeMobileMenu()" style="cursor:pointer">교재 구매</a></li>
     </ul>
     <div class="nav-actions">
-      <button class="btn-login">로그인</button>
+      <button class="btn-login" onclick="doLogin()">로그인</button>
+      <div class="user-menu" id="userMenu">
+        <button class="btn-mypage">마이페이지</button>
+        <div class="user-dropdown">
+          <a onclick="showPage('myLectures')">내 강의</a>
+          <a class="dropdown-logout" onclick="doLogout()">로그아웃</a>
+        </div>
+      </div>
       <button class="nav-hamburger" id="hamburgerBtn" onclick="toggleMobileMenu()" aria-label="메뉴">
         <span></span><span></span><span></span>
       </button>
@@ -3604,6 +4308,313 @@
 </div><!-- /#lecture -->
 
 
+<!-- ══ MY LECTURES PAGE ══ -->
+<div id="myLectures" class="page">
+
+  <div class="my-lec-hero">
+    <div class="my-lec-hero-inner">
+      <div class="my-lec-hero-top">
+        <div class="my-lec-hero-left">
+          <h1 class="my-lec-title">내 강의실</h1>
+          <span class="my-lec-title-en">MY LECTURES</span>
+        </div>
+        <span class="my-lec-greeting">수강생님, <strong>환영합니다</strong></span>
+      </div>
+      <div class="my-lec-tabs">
+        <button class="my-lec-tab active">수강 중</button>
+        <button class="my-lec-tab">수강 완료</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="my-lec-section">
+    <div class="my-lec-section-head">
+      <span class="my-lec-section-label">수강 중인 강의</span>
+      <span class="my-lec-section-count">3개</span>
+    </div>
+
+    <div class="my-lec-grid">
+
+      <!-- Card 1 -->
+      <div class="my-lec-card" onclick="showPage('lecturePlayer')" style="cursor:pointer;">
+        <div class="my-lec-thumb" style="background:linear-gradient(135deg,#0d1b2a,#1a2d40);">
+          <span class="class-badge badge-humane">경찰대</span>
+          <div style="position:absolute;bottom:12px;left:14px;right:14px;">
+            <div style="font-family:'Noto Serif KR',serif;font-size:15px;font-weight:900;color:#fff;line-height:1.3;">경찰대 언어논리<br>5월 신규반</div>
+          </div>
+        </div>
+        <div class="my-lec-body">
+          <div class="my-lec-teacher">황성찬 강사</div>
+          <div class="my-lec-name">[경찰대 편입] 2027년 대비 황성찬T 경찰대 언어논리 5월 신규반</div>
+          <div class="my-lec-progress-wrap">
+            <div class="my-lec-count-row">
+              <span class="my-lec-count-label">수강 진도</span>
+              <span class="my-lec-count">10 / 26강</span>
+            </div>
+            <div class="my-lec-bar-bg">
+              <div class="my-lec-bar-fill" style="width:38%;"></div>
+            </div>
+          </div>
+          <button class="my-lec-btn">이어 수강하기</button>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="my-lec-card" onclick="showPage('lecturePlayer')" style="cursor:pointer;">
+        <div class="my-lec-thumb" style="background:linear-gradient(135deg,#1a0d2a,#2d1a40);">
+          <span class="class-badge badge-humane">연고대</span>
+          <div style="position:absolute;bottom:12px;left:14px;right:14px;">
+            <div style="font-family:'Noto Serif KR',serif;font-size:15px;font-weight:900;color:#fff;line-height:1.3;">연고대 편입논술<br>6월 개강반</div>
+          </div>
+        </div>
+        <div class="my-lec-body">
+          <div class="my-lec-teacher">황성찬 강사</div>
+          <div class="my-lec-name">연고대 편입논술반 6월 개강반 등록 신청</div>
+          <div class="my-lec-progress-wrap">
+            <div class="my-lec-count-row">
+              <span class="my-lec-count-label">수강 진도</span>
+              <span class="my-lec-count">5 / 32강</span>
+            </div>
+            <div class="my-lec-bar-bg">
+              <div class="my-lec-bar-fill" style="width:16%;"></div>
+            </div>
+          </div>
+          <button class="my-lec-btn">이어 수강하기</button>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="my-lec-card" onclick="showPage('lecturePlayer')" style="cursor:pointer;">
+        <div class="my-lec-thumb" style="background:linear-gradient(135deg,#0d1b2a,#162535);">
+          <span class="class-badge badge-math">파이널</span>
+          <div style="position:absolute;bottom:12px;left:14px;right:14px;">
+            <div style="font-family:'Noto Serif KR',serif;font-size:15px;font-weight:900;color:#fff;line-height:1.3;">언어논리&amp;자소서<br>100일 완성반</div>
+          </div>
+        </div>
+        <div class="my-lec-body">
+          <div class="my-lec-teacher">황성찬 강사</div>
+          <div class="my-lec-name">[경찰대 편입] 언어논리&amp;자소서 100일 완성반 8월 대개강</div>
+          <div class="my-lec-progress-wrap">
+            <div class="my-lec-count-row">
+              <span class="my-lec-count-label">수강 진도</span>
+              <span class="my-lec-count">18 / 40강</span>
+            </div>
+            <div class="my-lec-bar-bg">
+              <div class="my-lec-bar-fill" style="width:45%;"></div>
+            </div>
+          </div>
+          <button class="my-lec-btn">이어 수강하기</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /#myLectures -->
+
+
+<!-- ══ LECTURE PLAYER PAGE ══ -->
+<div id="lecturePlayer" class="page">
+
+  <!-- Top bar -->
+  <div class="lp-topbar">
+    <button class="lp-back" onclick="showPage('myLectures')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      목록으로 돌아가기
+    </button>
+    <div class="lp-topbar-center">
+      <span class="lp-topbar-lecture-num">제 10강</span>
+      <span class="lp-topbar-lecture-title">대조적 관점에서의 비판적 읽기</span>
+    </div>
+    <span class="lp-course-name"><strong>경찰대 편입</strong> · 언어논리 5월 신규반</span>
+  </div>
+
+  <div class="lp-body">
+
+    <!-- Left: Video + Info + Curriculum -->
+    <div class="lp-video-col">
+
+      <!-- Video player -->
+      <div class="lp-video-wrap">
+        <div class="lp-video-bg">
+          <span class="lp-lecture-num">제 10강</span>
+          <div class="lp-play-btn">
+            <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+          </div>
+          <span class="lp-video-title-overlay">대조적 관점에서의 비판적 읽기</span>
+        </div>
+      </div>
+
+      <!-- Playback controls -->
+      <div class="lp-controls">
+        <button class="lp-ctrl-btn" title="재생">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+        </button>
+        <button class="lp-ctrl-btn" title="다음 강의">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 15,12 5,21"/><line x1="19" y1="3" x2="19" y2="21" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+        <div class="lp-progress-wrap">
+          <div class="lp-progress-bar">
+            <div class="lp-progress-fill"></div>
+          </div>
+          <span class="lp-time">22:04 / 58:00</span>
+        </div>
+        <button class="lp-vol-btn" title="볼륨">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/><path d="M15.54,8.46a5,5,0,0,1,0,7.07"/><path d="M19.07,4.93a10,10,0,0,1,0,14.14"/></svg>
+        </button>
+      </div>
+
+      <!-- Lecture info -->
+      <div class="lp-info">
+        <div class="lp-info-num">10강 · 경찰대 언어논리 5월 신규반</div>
+        <h2 class="lp-info-title">대조적 관점에서의 비판적 읽기</h2>
+        <p class="lp-info-desc">논술의 핵심인 다각도 분석 능력을 기르기 위해, 서로 대립하는 두 제시문을 어떻게 대조하고 자신만의 논거를 구축하는지 핵심을 학습합니다.</p>
+      </div>
+
+      <!-- Curriculum list -->
+      <div class="lp-curriculum">
+        <div class="lp-curriculum-title">커리큘럼 &amp; 챕터 리스트</div>
+
+        <div class="lp-item done">
+          <span class="lp-item-num">01</span>
+          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
+          <div class="lp-item-info"><div class="lp-item-name">개강 OT · 편입 논술의 전략적 접근</div></div>
+          <span class="lp-item-dur">45:00</span>
+        </div>
+        <div class="lp-item done">
+          <span class="lp-item-num">02</span>
+          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
+          <div class="lp-item-info"><div class="lp-item-name">제시문 독해의 기초 · 핵심 키워드 추출</div></div>
+          <span class="lp-item-dur">48:00</span>
+        </div>
+        <div class="lp-item done">
+          <span class="lp-item-num">03</span>
+          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
+          <div class="lp-item-info"><div class="lp-item-name">논리적 연결 · 단락 간 유기적 구성법</div></div>
+          <span class="lp-item-dur">52:20</span>
+        </div>
+        <div class="lp-item done">
+          <span class="lp-item-num">04</span>
+          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
+          <div class="lp-item-info"><div class="lp-item-name">요약 훈련 · 300자 압축 기법</div></div>
+          <span class="lp-item-dur">55:10</span>
+        </div>
+        <div class="lp-item done">
+          <span class="lp-item-num">05</span>
+          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
+          <div class="lp-item-info"><div class="lp-item-name">주장 구성 · 논거의 타당성 판별</div></div>
+          <span class="lp-item-dur">49:30</span>
+        </div>
+        <div class="lp-item done">
+          <span class="lp-item-num">06</span>
+          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
+          <div class="lp-item-info"><div class="lp-item-name">실전 연습 · 2024 경찰대 기출 분석 ①</div></div>
+          <span class="lp-item-dur">62:00</span>
+        </div>
+        <div class="lp-item done">
+          <span class="lp-item-num">07</span>
+          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
+          <div class="lp-item-info"><div class="lp-item-name">실전 연습 · 2024 경찰대 기출 분석 ②</div></div>
+          <span class="lp-item-dur">58:40</span>
+        </div>
+        <div class="lp-item done">
+          <span class="lp-item-num">08</span>
+          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
+          <div class="lp-item-info"><div class="lp-item-name">심화 독해 · 인문·사회 복합 제시문 읽기</div></div>
+          <span class="lp-item-dur">54:15</span>
+        </div>
+        <div class="lp-item done">
+          <span class="lp-item-num">09</span>
+          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
+          <div class="lp-item-info"><div class="lp-item-name">비교·대조 · 유사 개념 간 경계 설정법</div></div>
+          <span class="lp-item-dur">51:00</span>
+        </div>
+        <div class="lp-item current">
+          <span class="lp-item-num">10</span>
+          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polygon points="3,2 9,6 3,10" fill="#000"/></svg></span>
+          <div class="lp-item-info"><div class="lp-item-name">대조적 관점에서의 비판적 읽기</div></div>
+          <span class="lp-item-dur">58:00</span>
+        </div>
+        <div class="lp-item locked">
+          <span class="lp-item-num">11</span>
+          <span class="lp-item-check"></span>
+          <div class="lp-item-info"><div class="lp-item-name">논증 심화 · 반론 수용과 재반박 구조</div></div>
+          <span class="lp-item-dur">56:30</span>
+        </div>
+        <div class="lp-item locked">
+          <span class="lp-item-num">12</span>
+          <span class="lp-item-check"></span>
+          <div class="lp-item-info"><div class="lp-item-name">자기소개서 연계 · 학업역량 서술법</div></div>
+          <span class="lp-item-dur">44:00</span>
+        </div>
+        <div class="lp-item locked">
+          <span class="lp-item-num">13 – 26</span>
+          <span class="lp-item-check"></span>
+          <div class="lp-item-info"><div class="lp-item-name">이후 강의 (16강 남음)</div></div>
+          <span class="lp-item-dur">—</span>
+        </div>
+
+      </div>
+    </div><!-- /.lp-video-col -->
+
+    <!-- Right sidebar -->
+    <div class="lp-sidebar">
+
+      <!-- Progress -->
+      <div class="lp-sidebar-section">
+        <div class="lp-sidebar-title">수강 진도</div>
+        <div class="lp-progress-summary">
+          <span class="lp-progress-label">전체 강의</span>
+          <span class="lp-progress-count">10 / 26강</span>
+        </div>
+        <div class="lp-sidebar-bar-bg">
+          <div class="lp-sidebar-bar-fill"></div>
+        </div>
+        <button class="lp-next-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="5,3 15,12 5,21" fill="currentColor"/><line x1="19" y1="3" x2="19" y2="21"/></svg>
+          다음 강의로
+        </button>
+      </div>
+
+      <!-- Learning materials -->
+      <div class="lp-sidebar-section">
+        <div class="lp-sidebar-title">학습 자료실</div>
+        <div class="lp-file-item">
+          <div class="lp-file-icon">PDF</div>
+          <div>
+            <div class="lp-file-name">10강 강의 노트</div>
+            <div class="lp-file-size">1.2 MB · PDF</div>
+          </div>
+        </div>
+        <div class="lp-file-item">
+          <div class="lp-file-icon">HW</div>
+          <div>
+            <div class="lp-file-name">실전 연습 문제지</div>
+            <div class="lp-file-size">842 KB · PDF</div>
+          </div>
+        </div>
+        <div class="lp-file-item">
+          <div class="lp-file-icon">PPT</div>
+          <div>
+            <div class="lp-file-name">강의 슬라이드</div>
+            <div class="lp-file-size">3.8 MB · PPTX</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q&A -->
+      <div class="lp-sidebar-section">
+        <div class="lp-sidebar-title">질문하기</div>
+        <textarea class="lp-qna-input" placeholder="강의 내용에 대해 질문을 남겨주세요."></textarea>
+        <button class="lp-qna-btn">질문 등록하기</button>
+      </div>
+
+    </div><!-- /.lp-sidebar -->
+
+  </div><!-- /.lp-body -->
+
+</div><!-- /#lecturePlayer -->
+
 
 <script>
   // Page switching
@@ -3616,6 +4627,8 @@
     // body 배경색 동적 변경
     const whiteBg = ['notice', 'textbook', 'classes', 'classDetail'];
     document.body.style.background = whiteBg.includes(id) ? '#f5f3ef' : '#0D0D0D';
+    // 강의 플레이어에서는 메인 nav 숨김
+    document.querySelector('nav').style.display = id === 'lecturePlayer' ? 'none' : '';
     if (id === 'home') { initReveal(); initResultsAnimation(); }
   }
 
@@ -3714,6 +4727,16 @@
   function tbFilter(el) {
     document.querySelectorAll('.tb-filter-tab').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
+  }
+
+  // Login / Logout
+  function doLogin() {
+    document.querySelector('.btn-login').style.display = 'none';
+    document.getElementById('userMenu').style.display = 'block';
+  }
+  function doLogout() {
+    document.getElementById('userMenu').style.display = 'none';
+    document.querySelector('.btn-login').style.display = '';
   }
 
   // Mobile menu
