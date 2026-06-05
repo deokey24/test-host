@@ -12,8 +12,8 @@
     --gray-400: #999999;
     --gray-600: #666666;
     --gray-800: #333333;
-    --font-kr: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
-    --font-en: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-kr: 'SUIT', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+    --font-en: 'SUIT', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-brush: 'Nanum Brush Script', cursive;
     --nav-height: 60px;
 }

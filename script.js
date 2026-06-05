@@ -1,3 +1,37 @@
+// 강의 영상 URL 목록 — MP4 주소를 여기에 입력
+const lectureVideos = [
+    { id: 1,  title: '개강 OT · 편입 논술의 전략적 접근',    url: 'https://img.wecandoeat.com/uploads/1780639259428-2026-05-13_compressed.mp4' },
+    { id: 2,  title: '제시문 독해의 기초 · 핵심 키워드 추출', url: 'https://img.wecandoeat.com/uploads/1780639259428-2026-05-13_compressed.mp4' },
+    { id: 3,  title: '논리적 연결 · 단락 간 유기적 구성법',  url: 'https://img.wecandoeat.com/uploads/1780639259428-2026-05-13_compressed.mp4' },
+    { id: 4,  title: '요약 훈련 · 300자 압축 기법',          url: 'https://img.wecandoeat.com/uploads/1780639259428-2026-05-13_compressed.mp4' },
+    { id: 5,  title: '주장 구성 · 논거의 타당성 판별',       url: 'https://img.wecandoeat.com/uploads/1780639259428-2026-05-13_compressed.mp4' },
+    { id: 6,  title: '실전 연습 · 2024 경찰대 기출 분석 ①', url: 'https://img.wecandoeat.com/uploads/1780639259428-2026-05-13_compressed.mp4' },
+    { id: 7,  title: '실전 연습 · 2024 경찰대 기출 분석 ②', url: 'https://img.wecandoeat.com/uploads/1780639259428-2026-05-13_compressed.mp4' },
+    { id: 8,  title: '심화 독해 · 인문·사회 복합 제시문 읽기', url: 'https://img.wecandoeat.com/uploads/1780639259428-2026-05-13_compressed.mp4' },
+    { id: 9,  title: '비교·대조 · 유사 개념 간 경계 설정법', url: 'https://img.wecandoeat.com/uploads/1780639259428-2026-05-13_compressed.mp4' },
+    { id: 10, title: '대조적 관점에서의 비판적 읽기',         url: 'https://img.wecandoeat.com/uploads/1780639259428-2026-05-13_compressed.mp4' },
+];
+
+function loadLectureVideo(lectureNum) {
+    const lecture = lectureVideos.find(v => v.id === lectureNum);
+    if (!lecture) return;
+
+    const videoEl   = document.getElementById('lectureVideo');
+    const srcEl     = document.getElementById('lectureVideoSrc');
+    const extWrap   = document.getElementById('lectureExtWrap');
+    const extLink   = document.getElementById('lectureExtLink');
+
+    const DEFAULT_VIDEO = 'https://img.wecandoeat.com/uploads/1780639259428-2026-05-13_compressed.mp4';
+    const isMp4 = lecture.url && /\.(mp4|webm|ogg)(\?|$)/i.test(lecture.url);
+    const videoUrl = isMp4 ? lecture.url : DEFAULT_VIDEO;
+
+    extWrap.style.display = 'none';
+    videoEl.style.display = 'block';
+    srcEl.src = videoUrl;
+    videoEl.load();
+    videoEl.play().catch(() => {});
+}
+
 const images = ['images/11.png', 'images/12.png', 'images/13.png'];
 
 const reviews = [

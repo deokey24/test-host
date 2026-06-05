@@ -19,7 +19,8 @@
     <meta name="twitter:image" content="https://img.wecandoeat.com/hsc/3.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700;900&family=Inter:wght@300;400;500;600&family=Nanum+Brush+Script&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/suit@v1.0.6/packages/suit/dist/suit.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Nanum+Brush+Script&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
       :root {
@@ -488,71 +489,55 @@
   }
   .lp-video-wrap {
     background: #000;
-    position: relative;
-    aspect-ratio: 16/9;
     width: 100%;
+    aspect-ratio: 16/9;
     overflow: hidden;
+    position: relative;
   }
-  .lp-video-bg {
+  .lp-video-el {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: #000;
+  }
+  .lp-ext-wrap {
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at 50% 40%, #1a1505 0%, #050505 80%);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 16px;
-  }
-  .lp-lecture-num {
-    font-size: 13px;
-    color: rgba(255,255,255,0.3);
-    letter-spacing: 0.08em;
-  }
-  .lp-play-btn {
-    width: 68px; height: 68px;
-    border-radius: 50%;
-    background: rgba(201,168,76,0.15);
-    border: 2px solid rgba(201,168,76,0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.25s;
-  }
-  .lp-play-btn:hover {
-    background: rgba(201,168,76,0.25);
-    border-color: var(--gold);
-    transform: scale(1.07);
-  }
-  .lp-play-btn svg { width: 28px; height: 28px; fill: var(--gold); margin-left: 4px; }
-  .lp-video-title-overlay {
-    font-size: 14px;
-    color: rgba(255,255,255,0.45);
-    letter-spacing: 0.01em;
-  }
-
-  /* Player controls */
-  .lp-controls {
-    background: #111;
-    padding: 0 20px;
-    height: 48px;
-    display: flex;
-    align-items: center;
     gap: 14px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: radial-gradient(ellipse at 50% 40%, #1a1505 0%, #050505 80%);
   }
-  .lp-ctrl-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: rgba(255,255,255,0.6);
-    padding: 4px;
-    display: flex;
+  .lp-ext-icon {
+    font-size: 48px;
+    color: rgba(201,168,76,0.7);
+    line-height: 1;
+  }
+  .lp-ext-label {
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.02em;
+  }
+  .lp-ext-btn {
+    display: inline-flex;
     align-items: center;
-    transition: color 0.2s;
+    gap: 8px;
+    background: var(--gold);
+    color: #000;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 10px 28px;
+    border-radius: 4px;
+    text-decoration: none;
+    letter-spacing: 0.03em;
+    transition: background 0.2s, transform 0.2s;
   }
-  .lp-ctrl-btn:hover { color: var(--gold); }
-  .lp-ctrl-btn svg { width: 18px; height: 18px; }
+  .lp-ext-btn:hover {
+    background: var(--gold-light);
+    transform: translateY(-2px);
+  }
   .lp-progress-wrap {
     flex: 1;
     display: flex;
@@ -3417,32 +3402,16 @@
 
       <!-- Video player -->
       <div class="lp-video-wrap">
-        <div class="lp-video-bg">
-          <span class="lp-lecture-num">제 10강</span>
-          <div class="lp-play-btn">
-            <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
-          </div>
-          <span class="lp-video-title-overlay">대조적 관점에서의 비판적 읽기</span>
+        <!-- MP4 직접 재생 (url이 .mp4인 경우) -->
+        <video id="lectureVideo" class="lp-video-el" controls controlsList="nodownload" preload="metadata" style="display:block;">
+          <source id="lectureVideoSrc" src="https://img.wecandoeat.com/uploads/1780639259428-2026-05-13_compressed.mp4" type="video/mp4">
+        </video>
+        <!-- 외부 링크 플레이어 (MyBox, 네이버 TV 등) -->
+        <div id="lectureExtWrap" class="lp-ext-wrap" style="display:none;">
+          <div class="lp-ext-icon">▶</div>
+          <p class="lp-ext-label">클릭하면 영상이 새 탭에서 열립니다</p>
+          <a id="lectureExtLink" href="https://naver.me/xJcqS363" target="_blank" rel="noopener" class="lp-ext-btn">영상 보기</a>
         </div>
-      </div>
-
-      <!-- Playback controls -->
-      <div class="lp-controls">
-        <button class="lp-ctrl-btn" title="재생">
-          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
-        </button>
-        <button class="lp-ctrl-btn" title="다음 강의">
-          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 15,12 5,21"/><line x1="19" y1="3" x2="19" y2="21" stroke="currentColor" stroke-width="2"/></svg>
-        </button>
-        <div class="lp-progress-wrap">
-          <div class="lp-progress-bar">
-            <div class="lp-progress-fill"></div>
-          </div>
-          <span class="lp-time">22:04 / 58:00</span>
-        </div>
-        <button class="lp-vol-btn" title="볼륨">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/><path d="M15.54,8.46a5,5,0,0,1,0,7.07"/><path d="M19.07,4.93a10,10,0,0,1,0,14.14"/></svg>
-        </button>
       </div>
 
       <!-- Lecture info -->
