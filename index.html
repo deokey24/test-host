@@ -2181,6 +2181,142 @@
     .diff-grid { grid-template-columns: 1fr; }
     .member-grid { grid-template-columns: 1fr; }
   }
+
+  /* ── CATEGORY PAGE ── */
+  #category {
+    background: var(--black);
+    min-height: 100vh;
+    color: var(--white);
+  }
+  .cat-hero {
+    padding: 140px 40px 70px;
+    text-align: center;
+    background: radial-gradient(ellipse at 50% 30%, #1a1200 0%, var(--black) 65%);
+  }
+  .cat-hero-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(32px, 5vw, 60px);
+    font-weight: 900;
+    color: var(--white);
+    margin-bottom: 16px;
+    letter-spacing: -0.01em;
+  }
+  .cat-hero-sub {
+    font-size: 15px;
+    color: rgba(255,255,255,0.45);
+  }
+
+  /* Mockup 1: 컬러 필 카드 */
+  .cat-pills-section {
+    padding: 48px 60px 56px;
+    max-width: 860px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .cat-pill {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 36px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: transform 0.18s, box-shadow 0.18s;
+  }
+  .cat-pill:hover { transform: scale(1.025); box-shadow: 0 10px 36px rgba(0,0,0,0.45); }
+  .cat-pill-name { font-size: 19px; font-weight: 800; color: #000; letter-spacing: -0.01em; }
+  .cat-pill-right { text-align: right; }
+  .cat-pill-count { font-size: 20px; font-weight: 900; color: #000; line-height: 1; }
+  .cat-pill-unit { font-size: 10px; font-weight: 700; color: rgba(0,0,0,0.55); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 2px; }
+
+  /* Mockup 2: 에디토리얼 로우 */
+  .cat-rows-section {
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .cat-row {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    padding: 44px 60px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+    transition: background 0.18s;
+  }
+  .cat-row:nth-child(odd) { background: #090909; }
+  .cat-row:nth-child(even) { background: #101010; }
+  .cat-row:hover { background: #1a1a1a; }
+  .cat-row-num {
+    font-size: 11px;
+    color: rgba(255,255,255,0.28);
+    letter-spacing: 0.12em;
+    font-weight: 600;
+    min-width: 68px;
+    flex-shrink: 0;
+    font-family: 'Inter', sans-serif;
+  }
+  .cat-row-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(20px, 2.2vw, 32px);
+    font-weight: 900;
+    color: var(--white);
+    min-width: 200px;
+    flex-shrink: 0;
+    line-height: 1.2;
+  }
+  .cat-row-meta {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+  .cat-row-meta-label {
+    font-size: 10px;
+    color: var(--gold);
+    letter-spacing: 0.15em;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    font-family: 'Inter', sans-serif;
+  }
+  .cat-row-meta-value {
+    font-size: 13px;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.55;
+  }
+  .cat-row-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--white);
+    color: var(--black);
+    border: none;
+    padding: 12px 22px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.18s, color 0.18s;
+    font-family: 'Inter', sans-serif;
+  }
+  .cat-row-btn:hover { background: var(--gold); color: var(--black); }
+
+  @media (max-width: 900px) {
+    .cat-hero { padding: 110px 24px 50px; }
+    .cat-pills-section { padding: 36px 24px 44px; }
+    .cat-row { flex-wrap: wrap; padding: 36px 24px; gap: 20px; }
+    .cat-row-title { min-width: unset; font-size: clamp(18px, 4vw, 26px); }
+    .cat-row-meta { grid-template-columns: 1fr; gap: 16px; }
+    .cat-row-num { min-width: unset; }
+  }
+  @media (max-width: 560px) {
+    .cat-pill { padding: 18px 24px; }
+    .cat-pill-name { font-size: 16px; }
+    .cat-row-btn { width: 100%; justify-content: center; }
+  }
 </style>
 </head>
 <body>
@@ -2198,7 +2334,7 @@
             <nav class="nav-links">
                 <a onclick="showPage('notice'); return false;" style="cursor:pointer">공지사항</a>
                 <a onclick="showPage('lecture'); return false;" style="cursor:pointer">강의 소개</a>
-                <a onclick="showPage('classes'); return false;" style="cursor:pointer">클래스</a>
+                <a onclick="showPage('category'); return false;" style="cursor:pointer">클래스</a>
                 <a onclick="showPage('textbook'); return false;" style="cursor:pointer">교재 구매</a>
             </nav>
             <div class="nav-actions">
@@ -2218,7 +2354,7 @@
         <div class="nav-mobile-menu" id="mobileMenu">
             <a onclick="showPage('notice'); return false;" style="cursor:pointer">공지사항</a>
             <a onclick="showPage('lecture'); return false;" style="cursor:pointer">강의 소개</a>
-            <a onclick="showPage('classes'); return false;" style="cursor:pointer">클래스</a>
+            <a onclick="showPage('category'); return false;" style="cursor:pointer">클래스</a>
             <a onclick="showPage('textbook'); return false;" style="cursor:pointer">교재 구매</a>
         </div>
     </header>
@@ -2442,7 +2578,7 @@
         <div class="site-container">
             <h2 class="cta-title">현강을 듣지 못해도<br>독편논 시스템으로<br>준비할 수 있습니다.</h2>
             <p class="cta-sub">연고대 편입논술 전문학원의 관리 시스템을 온라인으로</p>
-            <a onclick="showPage('classes'); return false;" class="cta-btn" style="cursor:pointer">클래스 바로가기</a>
+            <a onclick="showPage('category'); return false;" class="cta-btn" style="cursor:pointer">클래스 바로가기</a>
         </div>
     </section>
 
@@ -2465,7 +2601,7 @@
                 <ul class="footer-links">
                     <li><a onclick="showPage('notice'); return false;" style="cursor:pointer">공지사항</a></li>
                     <li><a onclick="showPage('lecture'); return false;" style="cursor:pointer">강의 소개</a></li>
-                    <li><a onclick="showPage('classes'); return false;" style="cursor:pointer">클래스</a></li>
+                    <li><a onclick="showPage('category'); return false;" style="cursor:pointer">클래스</a></li>
                     <li><a onclick="showPage('textbook'); return false;" style="cursor:pointer">교재 구매</a></li>
                 </ul>
             </div>
@@ -2580,6 +2716,136 @@
   </div>
 
 </div><!-- /#notice -->
+<!-- ══ CATEGORY PAGE ══ -->
+<div id="category" class="page">
+
+  <!-- 히어로 -->
+  <div class="cat-hero">
+    <span class="section-label">CLASSES</span>
+    <h1 class="cat-hero-title">강의 카테고리</h1>
+    <p class="cat-hero-sub">수강하고 싶은 클래스를 선택하세요</p>
+  </div>
+
+  <!-- Mockup 1: 컬러 필 카드 -->
+  <div class="cat-pills-section">
+    <div class="cat-pill" style="background:#DBFF4E;" onclick="showPage('classes')">
+      <span class="cat-pill-name">프리미엄 VOD</span>
+      <div class="cat-pill-right">
+        <div class="cat-pill-count">120</div>
+        <div class="cat-pill-unit">Lessons</div>
+      </div>
+    </div>
+    <div class="cat-pill" style="background:#4DC851;" onclick="showPage('classes')">
+      <span class="cat-pill-name">진도보강</span>
+      <div class="cat-pill-right">
+        <div class="cat-pill-count">32</div>
+        <div class="cat-pill-unit">Tasks</div>
+      </div>
+    </div>
+    <div class="cat-pill" style="background:#4B5FD6;" onclick="showPage('classes')">
+      <span class="cat-pill-name">경찰대</span>
+      <div class="cat-pill-right">
+        <div class="cat-pill-count">24</div>
+        <div class="cat-pill-unit">Courses</div>
+      </div>
+    </div>
+    <div class="cat-pill" style="background:#E85E50;" onclick="showPage('classes')">
+      <span class="cat-pill-name">연고대 기출풀이</span>
+      <div class="cat-pill-right">
+        <div class="cat-pill-count">800+</div>
+        <div class="cat-pill-unit">Exams</div>
+      </div>
+    </div>
+    <div class="cat-pill" style="background:#FF8B3D;" onclick="showPage('classes')">
+      <span class="cat-pill-name">한예종</span>
+      <div class="cat-pill-right">
+        <div class="cat-pill-count">14</div>
+        <div class="cat-pill-unit">Specialties</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mockup 2: 에디토리얼 로우 -->
+  <div class="cat-rows-section">
+    <div class="cat-row" onclick="showPage('classes')">
+      <span class="cat-row-num">01 / VOD</span>
+      <div class="cat-row-title">프리미엄<br>VOD</div>
+      <div class="cat-row-meta">
+        <div>
+          <div class="cat-row-meta-label">형식</div>
+          <div class="cat-row-meta-value">고화질 MP4 스트리밍 강의</div>
+        </div>
+        <div>
+          <div class="cat-row-meta-label">콘텐츠</div>
+          <div class="cat-row-meta-value">전 커리큘럼 VOD 수강 가능</div>
+        </div>
+      </div>
+      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 수강하기</button>
+    </div>
+    <div class="cat-row" onclick="showPage('classes')">
+      <span class="cat-row-num">02 / PRG</span>
+      <div class="cat-row-title">진도<br>보강</div>
+      <div class="cat-row-meta">
+        <div>
+          <div class="cat-row-meta-label">방식</div>
+          <div class="cat-row-meta-value">단계별 반복 학습 시스템</div>
+        </div>
+        <div>
+          <div class="cat-row-meta-label">관리</div>
+          <div class="cat-row-meta-value">학습 진도 실시간 관리</div>
+        </div>
+      </div>
+      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 진도 확인</button>
+    </div>
+    <div class="cat-row" onclick="showPage('classes')">
+      <span class="cat-row-num">03 / POL</span>
+      <div class="cat-row-title">경찰대</div>
+      <div class="cat-row-meta">
+        <div>
+          <div class="cat-row-meta-label">과정</div>
+          <div class="cat-row-meta-value">경찰대 논술 전문 대비</div>
+        </div>
+        <div>
+          <div class="cat-row-meta-label">커리큘럼</div>
+          <div class="cat-row-meta-value">기출 분석 + 실전 훈련</div>
+        </div>
+      </div>
+      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 강의 보기</button>
+    </div>
+    <div class="cat-row" onclick="showPage('classes')">
+      <span class="cat-row-num">04 / SKY</span>
+      <div class="cat-row-title">연고대<br>기출풀이</div>
+      <div class="cat-row-meta">
+        <div>
+          <div class="cat-row-meta-label">자료</div>
+          <div class="cat-row-meta-value">2010—2024 기출 해설 DB</div>
+        </div>
+        <div>
+          <div class="cat-row-meta-label">분석</div>
+          <div class="cat-row-meta-value">출제 패턴 및 빈출 유형 분석</div>
+        </div>
+      </div>
+      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 기출 열기</button>
+    </div>
+    <div class="cat-row" onclick="showPage('classes')">
+      <span class="cat-row-num">05 / ART</span>
+      <div class="cat-row-title">한예종</div>
+      <div class="cat-row-meta">
+        <div>
+          <div class="cat-row-meta-label">특화</div>
+          <div class="cat-row-meta-value">한예종 논술 전용 과정</div>
+        </div>
+        <div>
+          <div class="cat-row-meta-label">특징</div>
+          <div class="cat-row-meta-value">예술·인문 융합 논제 집중</div>
+        </div>
+      </div>
+      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 강의 보기</button>
+    </div>
+  </div>
+
+</div><!-- /#category -->
+
 <!-- ══ CLASSES PAGE ══ -->
 <div id="classes" class="page">
   <div class="classes-page-body">

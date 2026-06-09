@@ -863,7 +863,7 @@ body {
 }
 
 .test-modal-divider {
-    width: 40px;
+    width: 120px;
     height: 1px;
     background: rgba(201, 168, 76, 0.5);
     margin: 0 0 28px;
