@@ -366,7 +366,7 @@ body {
     display: flex;
     gap: 18px;
     width: max-content;
-    animation: scrollLeft 32s linear infinite;
+    animation: scrollLeft 120s linear infinite;
 }
 
 .cards-track:hover {
@@ -379,8 +379,8 @@ body {
 }
 
 .card {
-    width: 605px;
-    aspect-ratio: 1 / 1;
+    height: 605px;
+    aspect-ratio: 17 / 9;
     flex-shrink: 0;
     overflow: hidden;
     cursor: default;
@@ -1072,6 +1072,6 @@ body {
     }
 
     .card {
-        width: 280px;
+        height: 280px;
     }
 }

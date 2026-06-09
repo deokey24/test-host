@@ -32,7 +32,7 @@ function loadLectureVideo(lectureNum) {
     videoEl.play().catch(() => {});
 }
 
-const images = ['images/11.png', 'images/12.png', 'images/13.png'];
+const images = Array.from({ length: 32 }, (_, i) => `https://img.wecandoeat.com/dock/${i + 1}.png`);
 
 const reviews = [
     {
@@ -77,11 +77,10 @@ const reviews = [
     },
 ];
 
-function cardHTML(r, index) {
-    const img = images[index % images.length];
+function cardHTML(src, index) {
     return `
         <div class="card">
-            <img class="card-image" src="${img}" alt="${r.title}">
+            <img class="card-image" src="${src}" alt="합격자 ${index + 1}">
         </div>`;
 }
 
@@ -143,7 +142,7 @@ function renderReviews() {
 function renderCards() {
     const track = document.getElementById('cardsTrack');
     if (!track) return;
-    const html = reviews.map((r, i) => cardHTML(r, i)).join('');
+    const html = images.map((src, i) => cardHTML(src, i)).join('');
     track.innerHTML = html + html;
 }
 
