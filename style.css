@@ -697,7 +697,7 @@ body {
     display: inline-block;
     margin-top: 36px;
     background: #1a5c2a;
-    color: #000;
+    color: #fff;
     font-family: var(--font-kr);
     font-size: clamp(22px, 2.8vw, 36px);
     font-weight: 700;
