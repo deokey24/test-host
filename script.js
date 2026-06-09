@@ -222,7 +222,11 @@ function renderFaq() {
 }
 
 function openTestModal() {
+    document.getElementById('testModalContent').style.display = '';
+    document.getElementById('testModalSuccess').style.display = 'none';
+    document.getElementById('testForm').reset();
     document.getElementById('testModal').classList.add('open');
+    document.getElementById('testModal').scrollTop = 0;
     document.body.style.overflow = 'hidden';
 }
 
@@ -230,6 +234,13 @@ function closeTestModal(e) {
     if (e && e.target !== document.getElementById('testModal')) return;
     document.getElementById('testModal').classList.remove('open');
     document.body.style.overflow = '';
+}
+
+function submitTestForm(e) {
+    e.preventDefault();
+    document.getElementById('testModalContent').style.display = 'none';
+    document.getElementById('testModalSuccess').style.display = '';
+    document.getElementById('testModal').scrollTop = 0;
 }
 
 function doLogin() {
