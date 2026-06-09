@@ -380,7 +380,7 @@ body {
 
 .card {
     height: 605px;
-    aspect-ratio: 17 / 9;
+    aspect-ratio: 9 / 17;
     flex-shrink: 0;
     overflow: hidden;
     cursor: default;
