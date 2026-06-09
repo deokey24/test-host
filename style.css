@@ -405,7 +405,7 @@ body {
    REVIEWS
 ═══════════════════════════ */
 .reviews {
-    background: var(--black);
+    background: var(--white);
     padding: 80px 0 90px;
 }
 
@@ -413,7 +413,7 @@ body {
     font-family: var(--font-kr);
     font-size: clamp(22px, 2.8vw, 36px);
     font-weight: 800;
-    color: var(--white);
+    color: var(--black);
     letter-spacing: -0.025em;
     margin-top: 12px;
     margin-bottom: 48px;
@@ -509,7 +509,7 @@ body {
    RESULTS PROOF
 ═══════════════════════════ */
 .results-proof {
-    background: #151b2e;
+    background: var(--black);
     padding: 80px 0 72px;
 }
 
@@ -573,7 +573,7 @@ body {
 }
 
 .rp-footer {
-    font-size: 13px;
+    font-size: 19px;
     color: rgba(255, 255, 255, 0.35);
     letter-spacing: 0.01em;
     line-height: 1.7;
@@ -587,7 +587,7 @@ body {
    COURSES
 ═══════════════════════════ */
 .courses {
-    background: #0d0d14;
+    background: var(--white);
     padding: 90px 0 100px;
 }
 
@@ -595,7 +595,7 @@ body {
     font-family: var(--font-kr);
     font-size: clamp(22px, 2.8vw, 36px);
     font-weight: 700;
-    color: var(--white);
+    color: var(--black);
     text-align: center;
     letter-spacing: -0.02em;
     margin-bottom: 56px;
@@ -753,7 +753,7 @@ body {
    COURSES NOTICE + TEST BTN
 ═══════════════════════════ */
 .courses-notice-section {
-    background: var(--white);
+    background: var(--black);
     padding: 90px 0 100px;
 }
 
@@ -762,7 +762,7 @@ body {
 }
 
 .courses-notice p {
-    color: var(--black);
+    color: var(--white);
     font-size: clamp(22px, 2.8vw, 36px);
     font-weight: 700;
     line-height: 1.4;
@@ -870,7 +870,7 @@ body {
    FAQ
 ═══════════════════════════ */
 .faq {
-    background: var(--white);
+    background: var(--black);
     padding: 90px 0 100px;
 }
 
@@ -878,7 +878,7 @@ body {
     font-family: var(--font-kr);
     font-size: clamp(22px, 2.8vw, 36px);
     font-weight: 800;
-    color: var(--black);
+    color: var(--white);
     letter-spacing: -0.025em;
     margin-bottom: 52px;
     word-break: keep-all;
@@ -891,7 +891,7 @@ body {
 }
 
 .faq-item {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .faq-question {
@@ -911,7 +911,7 @@ body {
     font-family: var(--font-kr);
     font-size: clamp(14px, 1.4vw, 17px);
     font-weight: 600;
-    color: var(--black);
+    color: var(--white);
     line-height: 1.5;
     word-break: keep-all;
 }
@@ -920,7 +920,7 @@ body {
     flex-shrink: 0;
     width: 24px;
     height: 24px;
-    border: 1px solid rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -932,7 +932,7 @@ body {
 .faq-icon::after {
     content: '';
     position: absolute;
-    background: var(--black);
+    background: var(--white);
     border-radius: 2px;
     transition: transform 0.3s ease, opacity 0.3s ease;
 }
@@ -952,8 +952,8 @@ body {
 }
 
 .faq-item.open .faq-icon {
-    background: rgba(0, 0, 0, 0.08);
-    border-color: rgba(0, 0, 0, 0.4);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
 }
 
 .faq-item.open .faq-icon::after {
@@ -979,7 +979,7 @@ body {
     font-family: var(--font-kr);
     font-size: 14px;
     font-weight: 400;
-    color: rgba(0, 0, 0, 0.6);
+    color: rgba(255, 255, 255, 0.6);
     line-height: 1.9;
     word-break: keep-all;
 }
@@ -988,7 +988,7 @@ body {
    CTA
 ═══════════════════════════ */
 .cta {
-    background: var(--black);
+    background: var(--white);
     padding: 120px 0;
 }
 
@@ -1003,7 +1003,7 @@ body {
     font-family: var(--font-kr);
     font-size: clamp(28px, 3.8vw, 54px);
     font-weight: 900;
-    color: var(--white);
+    color: var(--black);
     letter-spacing: -0.03em;
     line-height: 1.2;
     word-break: keep-all;
@@ -1014,7 +1014,7 @@ body {
     font-family: var(--font-kr);
     font-size: clamp(13px, 1.2vw, 16px);
     font-weight: 400;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--gray-400);
     letter-spacing: 0.01em;
     margin-bottom: 44px;
 }
@@ -1026,8 +1026,8 @@ body {
     font-family: var(--font-kr);
     font-size: 15px;
     font-weight: 600;
-    color: var(--black);
-    background: var(--white);
+    color: var(--white);
+    background: var(--black);
     text-decoration: none;
     padding: 16px 48px;
     border-radius: 4px;
@@ -1036,7 +1036,7 @@ body {
 }
 
 .cta-btn:hover {
-    background: #e8e8e8;
+    background: #222222;
     transform: translateY(-2px);
 }
 
