@@ -221,6 +221,17 @@ function renderFaq() {
     });
 }
 
+function openTestModal() {
+    document.getElementById('testModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeTestModal(e) {
+    if (e && e.target !== document.getElementById('testModal')) return;
+    document.getElementById('testModal').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
 function doLogin() {
     document.querySelector('.btn-login').style.display = 'none';
     document.getElementById('userMenu').style.display = 'block';
