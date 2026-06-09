@@ -506,6 +506,84 @@ body {
 }
 
 /* ═══════════════════════════
+   RESULTS PROOF
+═══════════════════════════ */
+.results-proof {
+    background: #151b2e;
+    padding: 80px 0 72px;
+}
+
+.rp-title {
+    font-family: var(--font-kr);
+    font-size: clamp(28px, 4vw, 52px);
+    font-weight: 900;
+    line-height: 1.25;
+    letter-spacing: -0.03em;
+    margin-bottom: 40px;
+    word-break: keep-all;
+}
+
+.rp-white { color: #fff; }
+.rp-green { color: #22c55e; }
+
+.rp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 40px;
+}
+
+.rp-card {
+    background: #1e2540;
+    border-radius: 12px;
+    padding: 28px 32px;
+    position: relative;
+    overflow: hidden;
+}
+
+.rp-label {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.45);
+    margin-bottom: 10px;
+    letter-spacing: 0.01em;
+}
+
+.rp-stat {
+    font-size: clamp(20px, 2.5vw, 30px);
+    font-weight: 700;
+    color: #fff;
+}
+
+.rp-stat strong { font-weight: 900; }
+
+.rp-card-highlight .rp-label { color: rgba(34, 197, 94, 0.75); }
+.rp-card-highlight .rp-stat  { color: #22c55e; }
+
+.rp-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: #ef4444;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 0 12px 0 8px;
+    letter-spacing: 0.05em;
+}
+
+.rp-footer {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.35);
+    letter-spacing: 0.01em;
+    line-height: 1.7;
+}
+
+@media (max-width: 600px) {
+    .rp-grid { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════
    COURSES
 ═══════════════════════════ */
 .courses {
