@@ -2184,26 +2184,26 @@
 
   /* ── CATEGORY PAGE ── */
   #category {
-    background: var(--black);
+    background: var(--white);
     min-height: 100vh;
-    color: var(--white);
+    color: var(--dark);
   }
   .cat-hero {
     padding: 140px 40px 70px;
     text-align: center;
-    background: radial-gradient(ellipse at 50% 30%, #1a1200 0%, var(--black) 65%);
+    background: var(--white);
   }
   .cat-hero-title {
     font-family: 'Noto Serif KR', serif;
     font-size: clamp(32px, 5vw, 60px);
     font-weight: 900;
-    color: var(--white);
+    color: var(--dark);
     margin-bottom: 16px;
     letter-spacing: -0.01em;
   }
   .cat-hero-sub {
     font-size: 15px;
-    color: rgba(255,255,255,0.45);
+    color: rgba(0,0,0,0.4);
   }
 
   /* Mockup 1: 컬러 필 카드 */
@@ -2232,23 +2232,23 @@
 
   /* Mockup 2: 에디토리얼 로우 */
   .cat-rows-section {
-    border-top: 1px solid rgba(255,255,255,0.06);
+    border-top: 1px solid rgba(0,0,0,0.08);
   }
   .cat-row {
     display: flex;
     align-items: center;
     gap: 40px;
     padding: 44px 60px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(0,0,0,0.06);
     cursor: pointer;
     transition: background 0.18s;
   }
-  .cat-row:nth-child(odd) { background: #090909; }
-  .cat-row:nth-child(even) { background: #101010; }
-  .cat-row:hover { background: #1a1a1a; }
+  .cat-row:nth-child(odd) { background: #ffffff; }
+  .cat-row:nth-child(even) { background: #f7f6f4; }
+  .cat-row:hover { background: #f0ede8; }
   .cat-row-num {
     font-size: 11px;
-    color: rgba(255,255,255,0.28);
+    color: rgba(0,0,0,0.25);
     letter-spacing: 0.12em;
     font-weight: 600;
     min-width: 68px;
@@ -2259,7 +2259,7 @@
     font-family: 'Noto Serif KR', serif;
     font-size: clamp(20px, 2.2vw, 32px);
     font-weight: 900;
-    color: var(--white);
+    color: var(--dark);
     min-width: 200px;
     flex-shrink: 0;
     line-height: 1.2;
@@ -2272,7 +2272,7 @@
   }
   .cat-row-meta-label {
     font-size: 10px;
-    color: var(--gold);
+    color: var(--gold-dark);
     letter-spacing: 0.15em;
     font-weight: 600;
     text-transform: uppercase;
@@ -2281,7 +2281,7 @@
   }
   .cat-row-meta-value {
     font-size: 13px;
-    color: rgba(255,255,255,0.55);
+    color: rgba(0,0,0,0.5);
     line-height: 1.55;
   }
   .cat-row-btn {
@@ -2289,8 +2289,8 @@
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    background: var(--white);
-    color: var(--black);
+    background: var(--dark);
+    color: var(--white);
     border: none;
     padding: 12px 22px;
     font-size: 12px;
@@ -2413,6 +2413,39 @@
                 </div>
             </div>
             <p class="rp-footer">독편논의 결과는 강의, 기출 분석, 모의고사, 첨삭, 피드백 시스템이 함께 작동했을 때만 만들어집니다.</p>
+
+            <div class="rp-chart">
+                <div class="rp-chart-bottom">
+                    <h2 class="rp-title" style="margin-bottom:16px;">
+                        <span class="rp-white">강사가 아니라,</span><br>
+                        <span class="rp-green">결과로 먼저 증명합니다.</span>
+                    </h2>
+                    <div class="rp-chart-label">연도별 연고대 편입 합격자</div>
+                </div>
+                <div class="rp-chart-area">
+                    <div class="rp-bar-col">
+                        <span class="rp-bar-val">47명</span>
+                        <div class="rp-bar-fill" style="height:55px"></div>
+                        <span class="rp-bar-yr">2023</span>
+                    </div>
+                    <div class="rp-bar-col">
+                        <span class="rp-bar-val">74명</span>
+                        <div class="rp-bar-fill" style="height:140px"></div>
+                        <span class="rp-bar-yr">2024</span>
+                    </div>
+                    <div class="rp-bar-col">
+                        <span class="rp-bar-val">80명</span>
+                        <div class="rp-bar-fill" style="height:182px"></div>
+                        <span class="rp-bar-yr">2025</span>
+                    </div>
+                    <div class="rp-bar-col">
+                        <span class="rp-bar-val rp-bar-val--on">88명</span>
+                        <div class="rp-bar-fill rp-bar-fill--on" style="height:220px"></div>
+                        <span class="rp-bar-yr rp-bar-yr--on">2026</span>
+                    </div>
+                </div>
+                <p class="rp-footer" style="margin-top:32px;">독편논의 결과는 강의, 기출 분석, 모의고사, 첨삭, 피드백 시스템이 함께 작동했을 때만 만들어집니다.</p>
+            </div>
         </div>
     </section>
 
@@ -2795,7 +2828,7 @@
           <div class="cat-row-meta-value">학습 진도 실시간 관리</div>
         </div>
       </div>
-      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 진도 확인</button>
+      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 수강하기</button>
     </div>
     <div class="cat-row" onclick="showPage('classes')">
       <span class="cat-row-num">03 / POL</span>
@@ -2810,7 +2843,7 @@
           <div class="cat-row-meta-value">기출 분석 + 실전 훈련</div>
         </div>
       </div>
-      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 강의 보기</button>
+      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 수강하기</button>
     </div>
     <div class="cat-row" onclick="showPage('classes')">
       <span class="cat-row-num">04 / SKY</span>
@@ -2825,7 +2858,7 @@
           <div class="cat-row-meta-value">출제 패턴 및 빈출 유형 분석</div>
         </div>
       </div>
-      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 기출 열기</button>
+      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 수강하기</button>
     </div>
     <div class="cat-row" onclick="showPage('classes')">
       <span class="cat-row-num">05 / ART</span>
@@ -2840,7 +2873,7 @@
           <div class="cat-row-meta-value">예술·인문 융합 논제 집중</div>
         </div>
       </div>
-      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 강의 보기</button>
+      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 수강하기</button>
     </div>
   </div>
 
@@ -3969,7 +4002,7 @@
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
         window.scrollTo({ top: 0, behavior: 'instant' });
-        const whiteBg = ['notice', 'textbook', 'classes', 'classDetail'];
+        const whiteBg = ['notice', 'textbook', 'classes', 'classDetail', 'category'];
         if (id === 'home') {
           document.body.style.background = '';
         } else {
