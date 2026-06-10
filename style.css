@@ -661,6 +661,105 @@ body {
     to   { transform: scaleY(1); }
 }
 
+/* ── 시안 3: SVG 선형 그래프 ── */
+.rp-linechart-wrap {
+    width: 100%;
+    overflow: hidden;
+}
+.rp-linechart-wrap svg { width: 100%; height: auto; display: block; }
+.rp-line-path {
+    fill: none;
+    stroke: #C9A84C;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 540;
+    stroke-dashoffset: 540;
+    animation: rp-line-draw 1.4s ease forwards 0.2s;
+}
+.rp-line-area { animation: rp-fade-in 1s ease forwards 0.4s; opacity: 0; }
+.rp-line-dot  { animation: rp-fade-in 0.4s ease forwards; opacity: 0; }
+.rp-line-dot:nth-child(1) { animation-delay: 0.6s; }
+.rp-line-dot:nth-child(2) { animation-delay: 0.85s; }
+.rp-line-dot:nth-child(3) { animation-delay: 1.05s; }
+.rp-line-dot:nth-child(4) { animation-delay: 1.25s; }
+.rp-line-label { font-family: 'Inter', sans-serif; }
+@keyframes rp-line-draw { to { stroke-dashoffset: 0; } }
+@keyframes rp-fade-in   { to { opacity: 1; } }
+
+/* ── 시안 4: 수평 막대 ── */
+.rp-hbar-list { display: flex; flex-direction: column; gap: 22px; }
+.rp-hbar-row  { display: flex; align-items: center; gap: 18px; }
+.rp-hbar-yr   { font-size: 12px; color: rgba(255,255,255,0.3); font-weight: 700; min-width: 36px; letter-spacing: 0.05em; }
+.rp-hbar-track {
+    flex: 1;
+    height: 5px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.rp-hbar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.18);
+    transform-origin: left;
+    animation: rp-hbar-grow 0.9s cubic-bezier(.22,.68,0,1.2) both;
+}
+.rp-hbar-fill--on { background: #F97316; }
+.rp-hbar-row:nth-child(1) .rp-hbar-fill { animation-delay: 0s; }
+.rp-hbar-row:nth-child(2) .rp-hbar-fill { animation-delay: 0.12s; }
+.rp-hbar-row:nth-child(3) .rp-hbar-fill { animation-delay: 0.24s; }
+.rp-hbar-row:nth-child(4) .rp-hbar-fill { animation-delay: 0.36s; }
+.rp-hbar-val     { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.4); min-width: 36px; text-align: right; }
+.rp-hbar-val--on { color: #F97316; }
+@keyframes rp-hbar-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* ── 시안 5: 카운터 애니메이션 ── */
+.rp-counter-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.rp-counter-item {
+    padding: 36px 16px;
+    text-align: center;
+    border-right: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+    transition: background 0.2s;
+}
+.rp-counter-item:last-child { border-right: none; }
+.rp-counter-item--on { background: rgba(249,115,22,0.06); }
+.rp-counter-yr  { font-size: 11px; color: rgba(255,255,255,0.28); letter-spacing: 0.12em; font-weight: 700; margin-bottom: 14px; }
+.rp-counter-num {
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(32px, 3.5vw, 52px);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 10px;
+}
+.rp-counter-num--on { color: #F97316; }
+.rp-counter-sub { font-size: 11px; color: rgba(255,255,255,0.22); letter-spacing: 0.05em; }
+.rp-counter-arrow {
+    position: absolute;
+    right: -1px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-left: 8px solid rgba(255,255,255,0.04);
+    z-index: 1;
+}
+.rp-counter-item:last-child .rp-counter-arrow { display: none; }
+
+@media (max-width: 600px) {
+    .rp-counter-grid { grid-template-columns: 1fr 1fr; }
+    .rp-counter-item:nth-child(2) { border-right: none; }
+    .rp-counter-arrow { display: none; }
+    .rp-hbar-list { gap: 16px; }
+}
+
 /* ═══════════════════════════
    COURSES
 ═══════════════════════════ */

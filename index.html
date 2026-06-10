@@ -227,7 +227,7 @@
   .tb-card.featured { border-color: #ccc; background: #f0eeea; }
   .tb-thumb {
     position: relative;
-    aspect-ratio: 3/4;
+    aspect-ratio: 210/297;
     background: linear-gradient(160deg, #1a1510 0%, #2d2318 60%, #1a1008 100%);
     display: flex;
     flex-direction: column;
@@ -2194,12 +2194,12 @@
     background: var(--white);
   }
   .cat-hero-title {
-    font-family: 'Noto Serif KR', serif;
+    font-family: 'SUIT', sans-serif;
     font-size: clamp(32px, 5vw, 60px);
-    font-weight: 900;
+    font-weight: 800;
     color: var(--dark);
     margin-bottom: 16px;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
   }
   .cat-hero-sub {
     font-size: 15px;
@@ -2304,19 +2304,311 @@
   }
   .cat-row-btn:hover { background: var(--gold); color: var(--black); }
 
+  /* 시안 구분선 */
+  .cat-design-sep {
+    padding: 56px 60px 28px;
+    border-top: 1px solid rgba(0,0,0,0.07);
+  }
+  .cat-design-sep-label {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: rgba(0,0,0,0.18);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* ── 시안 3: 2열 카드 그리드 ── */
+  .cat-grid-section {
+    padding: 0 60px 60px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: rgba(0,0,0,0.07);
+    border: 1px solid rgba(0,0,0,0.07);
+    margin: 0 60px;
+  }
+  .cat-grid-card {
+    background: #fff;
+    padding: 40px 36px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    cursor: pointer;
+    transition: background 0.18s;
+  }
+  .cat-grid-card:hover { background: #f7f6f3; }
+  .cat-grid-card-num {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    font-weight: 700;
+    color: var(--gold-dark);
+    font-family: 'Inter', sans-serif;
+  }
+  .cat-grid-card-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(22px, 2.2vw, 30px);
+    font-weight: 900;
+    color: var(--dark);
+    line-height: 1.2;
+    flex: 1;
+  }
+  .cat-grid-card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .cat-grid-card-meta-item {
+    font-size: 12px;
+    color: rgba(0,0,0,0.38);
+    line-height: 1.5;
+  }
+  .cat-grid-card-meta-item strong {
+    color: rgba(0,0,0,0.55);
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .cat-grid-card-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--dark);
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    font-family: 'Inter', sans-serif;
+    align-self: flex-start;
+    margin-top: 6px;
+    transition: background 0.18s;
+  }
+  .cat-grid-card-btn:hover { background: var(--gold-dark); }
+  .cat-grid-card--span { grid-column: 1 / -1; }
+
+  /* ── 시안 4: 빅 넘버 타이포그래피 ── */
+  .cat-typo-section { padding: 0 60px 60px; }
+  .cat-typo-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 36px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+    cursor: pointer;
+    position: relative;
+    transition: padding-left 0.2s;
+  }
+  .cat-typo-row:first-child { border-top: 1px solid rgba(0,0,0,0.07); }
+  .cat-typo-row:hover { padding-left: 8px; }
+  .cat-typo-num {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(52px, 7vw, 96px);
+    font-weight: 900;
+    color: rgba(0,0,0,0.05);
+    line-height: 1;
+    min-width: 140px;
+    flex-shrink: 0;
+    letter-spacing: -0.04em;
+    user-select: none;
+  }
+  .cat-typo-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(28px, 3.5vw, 48px);
+    font-weight: 900;
+    color: var(--dark);
+    flex: 1;
+    line-height: 1.15;
+  }
+  .cat-typo-desc {
+    font-size: 13px;
+    color: rgba(0,0,0,0.38);
+    min-width: 200px;
+    text-align: right;
+    line-height: 1.6;
+    flex-shrink: 0;
+    margin-right: 32px;
+  }
+  .cat-typo-btn {
+    flex-shrink: 0;
+    font-size: 18px;
+    color: rgba(0,0,0,0.2);
+    font-weight: 300;
+    transition: color 0.18s, transform 0.18s;
+  }
+  .cat-typo-row:hover .cat-typo-btn { color: var(--dark); transform: translateX(4px); }
+
+  /* ── 시안 5: 컴팩트 테이블형 ── */
+  .cat-table-section { padding: 0 60px 80px; }
+  .cat-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  .cat-table thead tr {
+    background: var(--dark);
+  }
+  .cat-table th {
+    padding: 14px 20px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: rgba(255,255,255,0.5);
+    text-align: left;
+    text-transform: uppercase;
+    font-family: 'Inter', sans-serif;
+  }
+  .cat-table th:last-child { text-align: right; }
+  .cat-table tbody tr {
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .cat-table tbody tr:last-child { border-bottom: none; }
+  .cat-table tbody tr:hover { background: #f5f3ef; }
+  .cat-table td {
+    padding: 20px 20px;
+    font-size: 14px;
+    color: var(--dark);
+    vertical-align: middle;
+  }
+  .cat-table td:first-child {
+    font-size: 11px;
+    color: rgba(0,0,0,0.25);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    font-family: 'Inter', sans-serif;
+    width: 80px;
+  }
+  .cat-table-name {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 17px;
+    font-weight: 900;
+    color: var(--dark);
+  }
+  .cat-table-desc {
+    font-size: 12px;
+    color: rgba(0,0,0,0.38);
+    margin-top: 3px;
+  }
+  .cat-table td:last-child { text-align: right; width: 120px; }
+  .cat-table-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: 1px solid rgba(0,0,0,0.18);
+    color: var(--dark);
+    padding: 7px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 2px;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.18s;
+  }
+  .cat-table-btn:hover { background: var(--dark); color: #fff; border-color: var(--dark); }
+
+  /* 시안 E */
+  .cat-ne-section { padding: 100px 10% 100px; }
+  .cat-ne-row {
+    display: grid;
+    grid-template-columns: 160px 1fr 1.5fr auto;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    cursor: pointer; overflow: hidden;
+    position: relative;
+    transition: background 0.4s;
+  }
+  .cat-ne-row:first-child { border-top: 1px solid rgba(0,0,0,0.08); }
+  .cat-ne-row::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 0;
+    background: var(--gold);
+    transition: width 0.35s cubic-bezier(.4,0,.2,1);
+  }
+  .cat-ne-row:hover { background: #faf9f4; }
+  .cat-ne-row:hover::after { width: 2px; }
+  .cat-ne-idx {
+    background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    padding: 44px 16px; align-self: stretch;
+  }
+  .cat-ne-cls { display: none; }
+  .cat-ne-num {
+    font-family: 'SUIT', sans-serif;
+    font-size: clamp(80px, 8vw, 120px); font-weight: 900;
+    color: rgba(0,0,0,0.05); letter-spacing: -0.05em; line-height: 1;
+    transition: color 0.4s, transform 0.4s cubic-bezier(.4,0,.2,1);
+    user-select: none;
+  }
+  .cat-ne-row:hover .cat-ne-num { color: rgba(201,168,76,0.18); transform: scale(1.08); }
+  .cat-ne-title {
+    font-family: 'SUIT', sans-serif;
+    font-size: clamp(22px, 2.2vw, 34px);
+    font-weight: 900; color: #0a0a0a;
+    letter-spacing: -0.03em; line-height: 1.15;
+    display: flex; align-items: center;
+    padding: 44px 48px;
+    transition: transform 0.35s cubic-bezier(.4,0,.2,1), color 0.2s;
+  }
+  .cat-ne-row:hover .cat-ne-title { transform: translateX(8px); }
+  .cat-ne-desc {
+    font-family: 'SUIT', sans-serif;
+    font-size: 13.5px; color: rgba(0,0,0,0.38);
+    letter-spacing: 0.01em; line-height: 1.9;
+    display: flex; align-items: center;
+    padding: 44px 52px;
+  }
+  .cat-ne-btn-wrap {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 32px;
+  }
+  .cat-ne-btn-outer {
+    border: 1px solid rgba(0,0,0,0.12);
+    padding: 3px;
+    transition: border-color 0.3s;
+  }
+  .cat-ne-row:hover .cat-ne-btn-outer { border-color: var(--gold); }
+  .cat-ne-btn {
+    font-family: 'SUIT', sans-serif;
+    background: transparent; color: #0a0a0a;
+    border: 1px solid rgba(0,0,0,0.12);
+    font-size: 13px; font-weight: 600;
+    letter-spacing: 0.06em; white-space: nowrap;
+    cursor: pointer; border-radius: 0;
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 22px; margin: 0;
+    transition: border-color 0.3s, color 0.3s, gap 0.3s;
+  }
+  .cat-ne-row:hover .cat-ne-btn { border-color: var(--gold); color: var(--gold); gap: 16px; }
+  .cat-ne-btn-arrow {
+    font-size: 16px; font-weight: 300;
+    transition: transform 0.3s;
+  }
+  .cat-ne-row:hover .cat-ne-btn-arrow { transform: translateX(4px); }
+
   @media (max-width: 900px) {
     .cat-hero { padding: 110px 24px 50px; }
-    .cat-pills-section { padding: 36px 24px 44px; }
-    .cat-row { flex-wrap: wrap; padding: 36px 24px; gap: 20px; }
-    .cat-row-title { min-width: unset; font-size: clamp(18px, 4vw, 26px); }
-    .cat-row-meta { grid-template-columns: 1fr; gap: 16px; }
-    .cat-row-num { min-width: unset; }
+    .cat-design-sep, .cat-ne-section { padding-left: 24px; padding-right: 24px; }
+    .cat-ne-row { grid-template-columns: 90px 1fr auto; }
+    .cat-ne-desc { display: none; }
+    .cat-ne-title { padding: 36px 28px; border-right: none; }
+    .cat-ne-btn { padding: 0 18px; margin: 0 16px 0 0; }
   }
   @media (max-width: 560px) {
-    .cat-pill { padding: 18px 24px; }
-    .cat-pill-name { font-size: 16px; }
-    .cat-row-btn { width: 100%; justify-content: center; }
+    .cat-ne-section { padding-left: 0; padding-right: 0; }
+    .cat-ne-idx { padding: 32px 12px; }
   }
+
 </style>
 </head>
 <body>
@@ -2389,31 +2681,8 @@
 
     <section class="results-proof">
         <div class="site-container">
-            <h2 class="rp-title">
-                <span class="rp-white">강사가 아니라,</span><br>
-                <span class="rp-green">결과로 먼저 증명합니다.</span>
-            </h2>
-            <div class="rp-grid">
-                <div class="rp-card">
-                    <div class="rp-label">2023 연고대 문과 편입</div>
-                    <div class="rp-stat">최종합격자 <strong>47명</strong></div>
-                </div>
-                <div class="rp-card">
-                    <div class="rp-label">2024 연고대 문과 편입</div>
-                    <div class="rp-stat">최종합격자 <strong>74명</strong></div>
-                </div>
-                <div class="rp-card">
-                    <div class="rp-label">2025 연고대 문과 편입</div>
-                    <div class="rp-stat">최초합격자 <strong>80명</strong></div>
-                </div>
-                <div class="rp-card rp-card-highlight">
-                    <span class="rp-badge">NEW RECORD</span>
-                    <div class="rp-label rp-green">2026 연고대 편입</div>
-                    <div class="rp-stat rp-green">최초합격자 <strong>88명</strong></div>
-                </div>
-            </div>
-            <p class="rp-footer">독편논의 결과는 강의, 기출 분석, 모의고사, 첨삭, 피드백 시스템이 함께 작동했을 때만 만들어집니다.</p>
 
+            <!-- 시안 3: SVG 선형 그래프 -->
             <div class="rp-chart">
                 <div class="rp-chart-bottom">
                     <h2 class="rp-title" style="margin-bottom:16px;">
@@ -2422,30 +2691,56 @@
                     </h2>
                     <div class="rp-chart-label">연도별 연고대 편입 합격자</div>
                 </div>
-                <div class="rp-chart-area">
-                    <div class="rp-bar-col">
-                        <span class="rp-bar-val">47명</span>
-                        <div class="rp-bar-fill" style="height:55px"></div>
-                        <span class="rp-bar-yr">2023</span>
-                    </div>
-                    <div class="rp-bar-col">
-                        <span class="rp-bar-val">74명</span>
-                        <div class="rp-bar-fill" style="height:140px"></div>
-                        <span class="rp-bar-yr">2024</span>
-                    </div>
-                    <div class="rp-bar-col">
-                        <span class="rp-bar-val">80명</span>
-                        <div class="rp-bar-fill" style="height:182px"></div>
-                        <span class="rp-bar-yr">2025</span>
-                    </div>
-                    <div class="rp-bar-col">
-                        <span class="rp-bar-val rp-bar-val--on">88명</span>
-                        <div class="rp-bar-fill rp-bar-fill--on" style="height:220px"></div>
-                        <span class="rp-bar-yr rp-bar-yr--on">2026</span>
-                    </div>
+                <div class="rp-linechart-wrap">
+                    <svg viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="lineAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#C9A84C" stop-opacity="0.25"/>
+                                <stop offset="100%" stop-color="#C9A84C" stop-opacity="0"/>
+                            </linearGradient>
+                        </defs>
+                        <!-- 그리드 라인 -->
+                        <line x1="60" y1="20" x2="650" y2="20"  stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                        <line x1="60" y1="70" x2="650" y2="70"  stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                        <line x1="60" y1="120" x2="650" y2="120" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                        <line x1="60" y1="170" x2="650" y2="170" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+                        <!-- 영역 채우기 -->
+                        <path class="rp-line-area" d="M 110,158 L 290,72 L 460,50 L 620,20 L 620,170 L 110,170 Z" fill="url(#lineAreaGrad)"/>
+                        <!-- 선 -->
+                        <path class="rp-line-path" d="M 110,158 L 290,72 L 460,50 L 620,20"/>
+                        <!-- 점 + 레이블 (2023) -->
+                        <g class="rp-line-dot">
+                            <circle cx="110" cy="158" r="5" fill="#C9A84C"/>
+                            <circle cx="110" cy="158" r="9" fill="none" stroke="#C9A84C" stroke-opacity="0.3" stroke-width="1.5"/>
+                            <text x="110" y="148" text-anchor="middle" font-size="12" fill="rgba(255,255,255,0.55)" class="rp-line-label">47명</text>
+                            <text x="110" y="190" text-anchor="middle" font-size="11" fill="rgba(255,255,255,0.28)" class="rp-line-label">2023</text>
+                        </g>
+                        <!-- 점 + 레이블 (2024) -->
+                        <g class="rp-line-dot">
+                            <circle cx="290" cy="72" r="5" fill="#C9A84C"/>
+                            <circle cx="290" cy="72" r="9" fill="none" stroke="#C9A84C" stroke-opacity="0.3" stroke-width="1.5"/>
+                            <text x="290" y="62" text-anchor="middle" font-size="12" fill="rgba(255,255,255,0.55)" class="rp-line-label">74명</text>
+                            <text x="290" y="190" text-anchor="middle" font-size="11" fill="rgba(255,255,255,0.28)" class="rp-line-label">2024</text>
+                        </g>
+                        <!-- 점 + 레이블 (2025) -->
+                        <g class="rp-line-dot">
+                            <circle cx="460" cy="50" r="5" fill="#C9A84C"/>
+                            <circle cx="460" cy="50" r="9" fill="none" stroke="#C9A84C" stroke-opacity="0.3" stroke-width="1.5"/>
+                            <text x="460" y="40" text-anchor="middle" font-size="12" fill="rgba(255,255,255,0.55)" class="rp-line-label">80명</text>
+                            <text x="460" y="190" text-anchor="middle" font-size="11" fill="rgba(255,255,255,0.28)" class="rp-line-label">2025</text>
+                        </g>
+                        <!-- 점 + 레이블 (2026) -->
+                        <g class="rp-line-dot">
+                            <circle cx="620" cy="20" r="6" fill="#F97316"/>
+                            <circle cx="620" cy="20" r="11" fill="none" stroke="#F97316" stroke-opacity="0.35" stroke-width="1.5"/>
+                            <text x="620" y="10" text-anchor="middle" font-size="12" font-weight="700" fill="#F97316" class="rp-line-label">88명</text>
+                            <text x="620" y="190" text-anchor="middle" font-size="11" fill="#F97316" class="rp-line-label">2026</text>
+                        </g>
+                    </svg>
                 </div>
                 <p class="rp-footer" style="margin-top:32px;">독편논의 결과는 강의, 기출 분석, 모의고사, 첨삭, 피드백 시스템이 함께 작동했을 때만 만들어집니다.</p>
             </div>
+
         </div>
     </section>
 
@@ -2752,130 +3047,41 @@
 <!-- ══ CATEGORY PAGE ══ -->
 <div id="category" class="page">
 
-  <!-- 히어로 -->
-  <div class="cat-hero">
-    <span class="section-label">CLASSES</span>
-    <h1 class="cat-hero-title">강의 카테고리</h1>
-    <p class="cat-hero-sub">수강하고 싶은 클래스를 선택하세요</p>
-  </div>
 
-  <!-- Mockup 1: 컬러 필 카드 -->
-  <div class="cat-pills-section">
-    <div class="cat-pill" style="background:#DBFF4E;" onclick="showPage('classes')">
-      <span class="cat-pill-name">프리미엄 VOD</span>
-      <div class="cat-pill-right">
-        <div class="cat-pill-count">120</div>
-        <div class="cat-pill-unit">Lessons</div>
-      </div>
+
+  <div class="cat-ne-section">
+    <div class="cat-ne-row" onclick="showPage('classes')">
+      <div class="cat-ne-idx"><span class="cat-ne-cls">CLASS</span><span class="cat-ne-num">01</span></div>
+      <div class="cat-ne-title">프리미엄 VOD</div>
+      <div class="cat-ne-desc">고화질 MP4 스트리밍 강의 · 전 커리큘럼 무제한 수강 가능 · 언제 어디서나 자유롭게 학습</div>
+      <div class="cat-ne-btn-wrap"><div class="cat-ne-btn-outer"><button class="cat-ne-btn" onclick="event.stopPropagation(); showPage('classes')">과정 둘러보기<span class="cat-ne-btn-arrow">→</span></button></div></div>
     </div>
-    <div class="cat-pill" style="background:#4DC851;" onclick="showPage('classes')">
-      <span class="cat-pill-name">진도보강</span>
-      <div class="cat-pill-right">
-        <div class="cat-pill-count">32</div>
-        <div class="cat-pill-unit">Tasks</div>
-      </div>
+    <div class="cat-ne-row" onclick="showPage('classes')">
+      <div class="cat-ne-idx"><span class="cat-ne-cls">CLASS</span><span class="cat-ne-num">02</span></div>
+      <div class="cat-ne-title">진도 보강</div>
+      <div class="cat-ne-desc">단계별 반복 학습 시스템 · 실시간 학습 진도 관리 · 취약 파트 집중 훈련 제공</div>
+      <div class="cat-ne-btn-wrap"><div class="cat-ne-btn-outer"><button class="cat-ne-btn" onclick="event.stopPropagation(); showPage('classes')">과정 둘러보기<span class="cat-ne-btn-arrow">→</span></button></div></div>
     </div>
-    <div class="cat-pill" style="background:#4B5FD6;" onclick="showPage('classes')">
-      <span class="cat-pill-name">경찰대</span>
-      <div class="cat-pill-right">
-        <div class="cat-pill-count">24</div>
-        <div class="cat-pill-unit">Courses</div>
-      </div>
+    <div class="cat-ne-row" onclick="showPage('classes')">
+      <div class="cat-ne-idx"><span class="cat-ne-cls">CLASS</span><span class="cat-ne-num">03</span></div>
+      <div class="cat-ne-title">경찰대</div>
+      <div class="cat-ne-desc">경찰대 논술 전문 대비 과정 · 기출 분석 + 실전 훈련 · 합격자 배출 검증 커리큘럼</div>
+      <div class="cat-ne-btn-wrap"><div class="cat-ne-btn-outer"><button class="cat-ne-btn" onclick="event.stopPropagation(); showPage('classes')">과정 둘러보기<span class="cat-ne-btn-arrow">→</span></button></div></div>
     </div>
-    <div class="cat-pill" style="background:#E85E50;" onclick="showPage('classes')">
-      <span class="cat-pill-name">연고대 기출풀이</span>
-      <div class="cat-pill-right">
-        <div class="cat-pill-count">800+</div>
-        <div class="cat-pill-unit">Exams</div>
-      </div>
+    <div class="cat-ne-row" onclick="showPage('classes')">
+      <div class="cat-ne-idx"><span class="cat-ne-cls">CLASS</span><span class="cat-ne-num">04</span></div>
+      <div class="cat-ne-title">연고대<br>기출풀이</div>
+      <div class="cat-ne-desc">2010—2024 기출 해설 DB · 출제 패턴 및 빈출 유형 분석 · 15개년 완전 정복</div>
+      <div class="cat-ne-btn-wrap"><div class="cat-ne-btn-outer"><button class="cat-ne-btn" onclick="event.stopPropagation(); showPage('classes')">과정 둘러보기<span class="cat-ne-btn-arrow">→</span></button></div></div>
     </div>
-    <div class="cat-pill" style="background:#FF8B3D;" onclick="showPage('classes')">
-      <span class="cat-pill-name">한예종</span>
-      <div class="cat-pill-right">
-        <div class="cat-pill-count">14</div>
-        <div class="cat-pill-unit">Specialties</div>
-      </div>
+    <div class="cat-ne-row" onclick="showPage('classes')">
+      <div class="cat-ne-idx"><span class="cat-ne-cls">CLASS</span><span class="cat-ne-num">05</span></div>
+      <div class="cat-ne-title">한예종</div>
+      <div class="cat-ne-desc">한예종 논술 전용 과정 · 예술·인문 융합 논제 집중 · 전문 강사 1:1 첨삭 지원</div>
+      <div class="cat-ne-btn-wrap"><div class="cat-ne-btn-outer"><button class="cat-ne-btn" onclick="event.stopPropagation(); showPage('classes')">과정 둘러보기<span class="cat-ne-btn-arrow">→</span></button></div></div>
     </div>
   </div>
 
-  <!-- Mockup 2: 에디토리얼 로우 -->
-  <div class="cat-rows-section">
-    <div class="cat-row" onclick="showPage('classes')">
-      <span class="cat-row-num">01 / VOD</span>
-      <div class="cat-row-title">프리미엄<br>VOD</div>
-      <div class="cat-row-meta">
-        <div>
-          <div class="cat-row-meta-label">형식</div>
-          <div class="cat-row-meta-value">고화질 MP4 스트리밍 강의</div>
-        </div>
-        <div>
-          <div class="cat-row-meta-label">콘텐츠</div>
-          <div class="cat-row-meta-value">전 커리큘럼 VOD 수강 가능</div>
-        </div>
-      </div>
-      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 수강하기</button>
-    </div>
-    <div class="cat-row" onclick="showPage('classes')">
-      <span class="cat-row-num">02 / PRG</span>
-      <div class="cat-row-title">진도<br>보강</div>
-      <div class="cat-row-meta">
-        <div>
-          <div class="cat-row-meta-label">방식</div>
-          <div class="cat-row-meta-value">단계별 반복 학습 시스템</div>
-        </div>
-        <div>
-          <div class="cat-row-meta-label">관리</div>
-          <div class="cat-row-meta-value">학습 진도 실시간 관리</div>
-        </div>
-      </div>
-      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 수강하기</button>
-    </div>
-    <div class="cat-row" onclick="showPage('classes')">
-      <span class="cat-row-num">03 / POL</span>
-      <div class="cat-row-title">경찰대</div>
-      <div class="cat-row-meta">
-        <div>
-          <div class="cat-row-meta-label">과정</div>
-          <div class="cat-row-meta-value">경찰대 논술 전문 대비</div>
-        </div>
-        <div>
-          <div class="cat-row-meta-label">커리큘럼</div>
-          <div class="cat-row-meta-value">기출 분석 + 실전 훈련</div>
-        </div>
-      </div>
-      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 수강하기</button>
-    </div>
-    <div class="cat-row" onclick="showPage('classes')">
-      <span class="cat-row-num">04 / SKY</span>
-      <div class="cat-row-title">연고대<br>기출풀이</div>
-      <div class="cat-row-meta">
-        <div>
-          <div class="cat-row-meta-label">자료</div>
-          <div class="cat-row-meta-value">2010—2024 기출 해설 DB</div>
-        </div>
-        <div>
-          <div class="cat-row-meta-label">분석</div>
-          <div class="cat-row-meta-value">출제 패턴 및 빈출 유형 분석</div>
-        </div>
-      </div>
-      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 수강하기</button>
-    </div>
-    <div class="cat-row" onclick="showPage('classes')">
-      <span class="cat-row-num">05 / ART</span>
-      <div class="cat-row-title">한예종</div>
-      <div class="cat-row-meta">
-        <div>
-          <div class="cat-row-meta-label">특화</div>
-          <div class="cat-row-meta-value">한예종 논술 전용 과정</div>
-        </div>
-        <div>
-          <div class="cat-row-meta-label">특징</div>
-          <div class="cat-row-meta-value">예술·인문 융합 논제 집중</div>
-        </div>
-      </div>
-      <button class="cat-row-btn" onclick="event.stopPropagation(); showPage('classes')">+ 수강하기</button>
-    </div>
-  </div>
 
 </div><!-- /#category -->
 
@@ -3408,41 +3614,25 @@
 
       <!-- 카드 1 -->
       <div class="tb-card">
-        <div class="tb-thumb">
-          <span class="tb-badge-sale">10% OFF</span>
-          <span class="tb-badge-new">NEW</span>
-          <div class="tb-thumb-category">HUMANITIES</div>
-          <div>
-            <div class="tb-thumb-title">2026 인문논술<br>구조화 전략</div>
-            <div class="tb-thumb-bar"></div>
-          </div>
-        </div>
+        <div class="tb-thumb" style="background: linear-gradient(160deg, #0f1318 0%, #1a2230 60%, #080d12 100%);"></div>
         <div class="tb-body">
-          <div class="tb-meta">인문논술 · 김논술 저</div>
-          <div class="tb-name">2026학년도 대비 인문논술 구조화 전략</div>
+          <div class="tb-meta">인문논술 · 독편논 저</div>
+          <div class="tb-name">독해학개론</div>
           <div class="tb-price-row">
-            <span class="tb-price">25,200원</span>
-            <span class="tb-original">28,000원</span>
+            <span class="tb-price">65,000원</span>
           </div>
           <button class="btn-cart">장바구니 담기</button>
         </div>
       </div>
 
-      <!-- 카드 2 (BEST) -->
+      <!-- 카드 2 -->
       <div class="tb-card featured">
-        <div class="tb-thumb math-bg">
-          <span class="tb-badge-best">BEST</span>
-          <div class="tb-thumb-category">MATHEMATICS</div>
-          <div>
-            <div class="tb-thumb-title">수리논술<br>개념 총정리</div>
-            <div class="tb-thumb-bar"></div>
-          </div>
-        </div>
+        <div class="tb-thumb" style="background: linear-gradient(160deg, #110f0a 0%, #221d12 60%, #0c0a06 100%);"></div>
         <div class="tb-body">
-          <div class="tb-meta">수리논술 · 박수리 저</div>
-          <div class="tb-name">단기완성 수리논술 필수 개념 100선</div>
+          <div class="tb-meta">인문논술 · 독편논 저</div>
+          <div class="tb-name">논술루션(기본편)</div>
           <div class="tb-price-row">
-            <span class="tb-price">32,000원</span>
+            <span class="tb-price">65,000원</span>
           </div>
           <button class="btn-cart">장바구니 담기</button>
         </div>
@@ -3450,18 +3640,12 @@
 
       <!-- 카드 3 -->
       <div class="tb-card">
-        <div class="tb-thumb medical-bg">
-          <div class="tb-thumb-category">MEDICAL</div>
-          <div>
-            <div class="tb-thumb-title">메디컬 논술<br>기출 5개년</div>
-            <div class="tb-thumb-bar"></div>
-          </div>
-        </div>
+        <div class="tb-thumb" style="background: linear-gradient(160deg, #0e1310 0%, #182818 60%, #080f0a 100%);"></div>
         <div class="tb-body">
-          <div class="tb-meta">기출 · 통합 강사진</div>
-          <div class="tb-name">의치한약수 합격권 기출 해설집 (...</div>
+          <div class="tb-meta">인문논술 · 독편논 저</div>
+          <div class="tb-name">사회과학자의 눈</div>
           <div class="tb-price-row">
-            <span class="tb-price">45,000원</span>
+            <span class="tb-price">65,000원</span>
           </div>
           <button class="btn-cart">장바구니 담기</button>
         </div>
@@ -3469,18 +3653,12 @@
 
       <!-- 카드 4 -->
       <div class="tb-card">
-        <div class="tb-thumb" style="background: linear-gradient(160deg, #12181a 0%, #1a2830 60%, #0a1015 100%);">
-          <div class="tb-thumb-category">ESSAY</div>
-          <div>
-            <div class="tb-thumb-title">연세·고려대<br>인문 기출집</div>
-            <div class="tb-thumb-bar"></div>
-          </div>
-        </div>
+        <div class="tb-thumb" style="background-image: url('https://img.wecandoeat.com/dock/book/1781075965093.png'); background-size: cover; background-position: center;"></div>
         <div class="tb-body">
-          <div class="tb-meta">기출 · 이국어 저</div>
-          <div class="tb-name">연세대·고려대 10개년 인문논술 기출 완전분석</div>
+          <div class="tb-meta">기출문제집 · 독편논 출판</div>
+          <div class="tb-name">자체제작 문제 (연세대 편)</div>
           <div class="tb-price-row">
-            <span class="tb-price">38,000원</span>
+            <span class="tb-price">65,000원</span>
           </div>
           <button class="btn-cart">장바구니 담기</button>
         </div>
@@ -3488,39 +3666,12 @@
 
       <!-- 카드 5 -->
       <div class="tb-card">
-        <div class="tb-thumb" style="background: linear-gradient(160deg, #181218 0%, #2a1a28 60%, #100810 100%);">
-          <span class="tb-badge-sale">15% OFF</span>
-          <div class="tb-thumb-category">MOCK EXAM</div>
-          <div>
-            <div class="tb-thumb-title">실전 모의고사<br>시즌 1</div>
-            <div class="tb-thumb-bar"></div>
-          </div>
-        </div>
+        <div class="tb-thumb" style="background-image: url('https://img.wecandoeat.com/dock/book/1781075965027.png'); background-size: cover; background-position: center;"></div>
         <div class="tb-body">
-          <div class="tb-meta">모의고사 · 독편논 출판</div>
-          <div class="tb-name">2026 편입 논술 실전 모의고사 시즌 1</div>
+          <div class="tb-meta">기출문제집 · 독편논 출판</div>
+          <div class="tb-name">자체제작 문제 (고려대 편)</div>
           <div class="tb-price-row">
-            <span class="tb-price">17,000원</span>
-            <span class="tb-original">20,000원</span>
-          </div>
-          <button class="btn-cart">장바구니 담기</button>
-        </div>
-      </div>
-
-      <!-- 카드 6 -->
-      <div class="tb-card">
-        <div class="tb-thumb" style="background: linear-gradient(160deg, #181510 0%, #2a2218 60%, #141008 100%);">
-          <div class="tb-thumb-category">MATHEMATICS</div>
-          <div>
-            <div class="tb-thumb-title">수리논술<br>심화 문제집</div>
-            <div class="tb-thumb-bar"></div>
-          </div>
-        </div>
-        <div class="tb-body">
-          <div class="tb-meta">수리논술 · 박수리 저</div>
-          <div class="tb-name">최상위권을 위한 수리논술 고난도 심화 150제</div>
-          <div class="tb-price-row">
-            <span class="tb-price">29,000원</span>
+            <span class="tb-price">65,000원</span>
           </div>
           <button class="btn-cart">장바구니 담기</button>
         </div>
