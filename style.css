@@ -590,12 +590,13 @@ body {
 }
 
 .rp-chart-label {
-    font-size: 11px;
-    color: rgba(255,255,255,0.25);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
+    font-size: 18px;
+    color: rgba(255,255,255,0.65);
+    letter-spacing: 0.01em;
+    text-transform: none;
     margin-bottom: 24px;
     font-weight: 600;
+    line-height: 1.7;
 }
 
 .rp-chart-area {
