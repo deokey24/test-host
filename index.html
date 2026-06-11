@@ -254,6 +254,17 @@
   .tb-original { font-size: 13px; color: #bbb; text-decoration: line-through; }
   .btn-cart { width: 100%; background: none; border: 1px solid #ccc; padding: 11px; font-size: 14px; font-weight: 500; font-family: 'Noto Sans KR', sans-serif; color: var(--dark); cursor: pointer; border-radius: 3px; transition: all 0.2s; }
   .btn-cart:hover { background: var(--dark); border-color: var(--dark); color: var(--white); }
+  .tb-card.coming-soon { opacity: 0.6; pointer-events: none; }
+  .tb-card.coming-soon .tb-thumb { position: relative; filter: grayscale(30%); }
+  .tb-card.coming-soon .tb-thumb::after {
+    content: 'COMING SOON';
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; font-weight: 700;
+    letter-spacing: 0.2em;
+  }
+  .tb-card.coming-soon .btn-cart { color: #aaa; border-color: #ddd; cursor: not-allowed; }
   @media (max-width: 900px) { .tb-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; } }
   @media (max-width: 560px) { .tb-grid { grid-template-columns: 1fr; } .textbook-body { padding: 90px 20px 60px; } }
 
@@ -3652,28 +3663,28 @@
       </div>
 
       <!-- 카드 4 -->
-      <div class="tb-card">
+      <div class="tb-card coming-soon">
         <div class="tb-thumb" style="background-image: url('https://img.wecandoeat.com/dock/book/1781075965093.png'); background-size: cover; background-position: center;"></div>
         <div class="tb-body">
           <div class="tb-meta">기출문제집 · 독편논 출판</div>
           <div class="tb-name">자체제작 문제 (연세대 편)</div>
           <div class="tb-price-row">
-            <span class="tb-price">65,000원</span>
+            <span class="tb-price">가격 문의</span>
           </div>
-          <button class="btn-cart">장바구니 담기</button>
+          <button class="btn-cart" disabled>출시 예정</button>
         </div>
       </div>
 
       <!-- 카드 5 -->
-      <div class="tb-card">
+      <div class="tb-card coming-soon">
         <div class="tb-thumb" style="background-image: url('https://img.wecandoeat.com/dock/book/1781075965027.png'); background-size: cover; background-position: center;"></div>
         <div class="tb-body">
           <div class="tb-meta">기출문제집 · 독편논 출판</div>
           <div class="tb-name">자체제작 문제 (고려대 편)</div>
           <div class="tb-price-row">
-            <span class="tb-price">65,000원</span>
+            <span class="tb-price">가격 문의</span>
           </div>
-          <button class="btn-cart">장바구니 담기</button>
+          <button class="btn-cart" disabled>출시 예정</button>
         </div>
       </div>
 
