@@ -67,3 +67,14 @@ CSS 변수가 두 곳에 선언되어 있어 주의 필요:
 - 폰트: SUIT (CDN), Noto Serif KR, Nanum Brush Script (Google Fonts)
 - 영상/이미지 CDN: `img.wecandoeat.com`
 - OG 이미지: `https://img.wecandoeat.com/uploads/logo_resize.png`
+
+## 실서버 (Production)
+
+**원격 서버 작업은 사용자가 명시적으로 요청한 경우에만 수행한다. 코드 수정, 배포, 테스트 등 어떤 작업도 요청 없이 실서버에 적용하지 않는다.**
+
+- **도메인**: `https://dockteacher.co.kr`
+- **IP**: `54.116.171.96`
+- **서버**: AWS EC2 Ubuntu, nginx
+- **웹 루트**: `/home/ubuntu/test-host/`
+- **SSH**: `ssh -i dockteacher-web.pem ubuntu@54.116.171.96`
+- **HTTPS**: Let's Encrypt 인증서 적용 (만료 2026-09-21, 자동 갱신)
