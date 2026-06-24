@@ -36,13 +36,28 @@ const images = Array.from({ length: 32 }, (_, i) => `https://img.wecandoeat.com/
 
 const reviews = [
     {
+        title: '연세대 파이널 수시 특강 수강 후기',
+        text: '독편사 논술학원에서 편입을 준비하며 황성찬 선생님의 파이널 수시 특강을 수강했습니다. 논술의 기초부터 강사답안, 자체 모의고사, 시험 행동 강령까지 연세대 수시논술 전반에 필요한 모든 것을 배울 수 있었습니다.',
+        reviewer: 'REVIEW BY 연세대 편입 합격생'
+    },
+    {
+        title: '7~9월 집중 수시 특별반 수강 후기',
+        text: '연세대 수시 특별반으로 집중 준비한 기간 동안, 논술이란 무엇인지 개념부터 지문을 독해하는 방법, 강사답안 분석, 행동강령 풀이법까지 순서대로 배웠습니다. 덕분에 시험장에서 전혀 당황하지 않을 수 있었습니다.',
+        reviewer: 'REVIEW BY 연세대 수시 합격생'
+    },
+    {
+        title: '이과 논술 노베이스였던 제가 합격했습니다',
+        text: '인터넷에서 황 선생님 제자가 쓴 합격 수기를 읽고 수강을 결심했습니다. 독해학개론부터 논술 작문의 기본 form, 도표·그래프 분석, 강사답안, 체화노트까지 단계적으로 훈련하니 실제 시험에서 원하는 결과를 낼 수 있었습니다.',
+        reviewer: 'REVIEW BY 이과 출신 합격생'
+    },
+    {
         title: '소수정예 관리의 정석',
         text: 'VOD 강의라고 해서 방치되지 않습니다. 주기적인 피드백과 과제 관리가 대면 강의 이상의 긴장감을 줍니다. 연고대 편입을 원한다면 유일한 선택지입니다.',
         reviewer: 'REVIEW BY 정*아 수강생'
     },
     {
         title: '연세대학교 사회학과 최종 합격',
-        text: '논술의 기초부터 심화까지 도크티처만의 체계적인 커리큘럼 덕분에 비전공자임에도 불구하고 당당히 합격할 수 있었습니다. 특히 1:1 VOD 관리 시스템이 큰 도움이 되었습니다.',
+        text: '논술의 기초부터 심화까지 도크티처만의 체계적인 커리큘럼 덕분에 비전공자임에도 당당히 합격할 수 있었습니다. 특히 1:1 VOD 관리 시스템이 큰 도움이 되었습니다.',
         reviewer: 'REVIEW BY 김*현 수강생'
     },
     {
@@ -59,21 +74,6 @@ const reviews = [
         title: '한양대학교 법학과 편입 합격',
         text: '처음에는 반신반의했지만 합격 후 확신이 생겼습니다. 논술의 구조화 방법이 명확하고 실전 연습량이 탄탄합니다. 시험장에서 당황하지 않을 수 있었던 건 순전히 도크티처 덕분입니다.',
         reviewer: 'REVIEW BY 최*준 수강생'
-    },
-    {
-        title: '성균관대학교 경제학과 편입 합격',
-        text: '관리형 시스템이 정말 강점입니다. 스스로 공부하다 보면 놓치기 쉬운 부분을 코치가 짚어주고 교정해줍니다. 혼자였다면 절대 합격하지 못했을 것 같습니다.',
-        reviewer: 'REVIEW BY 오*진 수강생'
-    },
-    {
-        title: '고려대학교 미디어학부 편입 합격',
-        text: '논술이 두려웠던 저도 도크티처와 함께하니 자신감이 생겼습니다. 단계별 커리큘럼이 체계적이라 기초부터 탄탄하게 쌓을 수 있었습니다.',
-        reviewer: 'REVIEW BY 황*서 수강생'
-    },
-    {
-        title: '연세대학교 심리학과 편입 합격',
-        text: '1:1 피드백 시스템이 정말 효과적입니다. 제 글의 약점을 정확히 파악하고 개선 방향을 제시해주셨습니다. 합격 후에도 배운 논리 사고방식이 큰 자산이 되고 있습니다.',
-        reviewer: 'REVIEW BY 장*유 수강생'
     },
 ];
 
@@ -133,10 +133,11 @@ function reviewCardHTML(r) {
 }
 
 function renderReviews() {
-    const track = document.getElementById('reviewsTrack');
-    if (!track) return;
     const html = reviewData.map(reviewCardHTML).join('');
-    track.innerHTML = html + html;
+    ['reviewsTrack', 'reviewsTrack2'].forEach(id => {
+        const track = document.getElementById(id);
+        if (track) track.innerHTML = html + html;
+    });
 }
 
 function renderCards() {

@@ -1,0 +1,938 @@
+/* ═══════════════════════════════════════════════════════
+   lecture.css — 강의소개 페이지 전용 스타일
+   style.css(원본)를 베이스로, 아이보리/블루 테마 오버라이드 + 신규 섹션 스타일
+════════════════════════════════════════════════════════ */
+
+/* ── 네비게이션 오버라이드 (아이보리/블루 테마) ── */
+.navbar {
+    background: #F7F4EE;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+.nav-logo {
+    font-weight: 700;
+    color: #1A1A1A;
+}
+.nav-links a {
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.65);
+}
+.nav-links a::after {
+    height: 1.5px;
+    background: #1B4FA8;
+}
+.nav-links a:hover {
+    color: #1B4FA8;
+}
+.nav-right a {
+    color: rgba(0, 0, 0, 0.45);
+}
+.nav-right a:hover {
+    color: #1A1A1A;
+}
+.nav-email {
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+.nav-email:hover {
+    border-color: rgba(0, 0, 0, 0.6) !important;
+    color: #1A1A1A !important;
+}
+.nav-hamburger span {
+    background: #1A1A1A;
+}
+.nav-mobile-menu {
+    background: #F7F4EE;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+.nav-mobile-menu a {
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.7);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+.nav-mobile-menu a:hover {
+    color: #1B4FA8;
+}
+
+/* ── 히어로 오버라이드 ── */
+.hero {
+    background-color: #081A44;
+    height: 60vh;
+    min-height: unset;
+}
+.hero-slides {
+    left: 0;
+}
+.hero-slide {
+    filter: none;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: 75% center;
+}
+.hero-overlay {
+    display: none;
+}
+.hero-text-overlay {
+    position: absolute;
+    left: 14%;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    pointer-events: none;
+    display: grid;
+    grid-template-columns: auto auto;
+    column-gap: 1.5rem;
+    row-gap: 0.4rem;
+    align-items: center;
+}
+.hto-top-left,
+.hto-top-right,
+.hto-mid-left,
+.hto-mid-right {
+    color: #ffffff;
+    font-weight: 900;
+    font-size: 4.5rem;
+    line-height: 1;
+    letter-spacing: -0.02em;
+}
+.hero-btn {
+    font-weight: 600;
+    background: #1D45FF;
+    border: 1px solid #1D45FF;
+}
+.hero-btn:hover {
+    background: #4A78FF;
+    border-color: #4A78FF;
+    gap: 14px;
+}
+
+/* ── 소셜 프루프 오버라이드 ── */
+.social-proof {
+    padding: 48px 0;
+    background: #1D45FF;
+}
+@media (max-width: 900px) {
+    .social-proof {
+        padding: 36px 0;
+    }
+}
+
+/* ── 로그인/마이페이지 버튼 오버라이드 ── */
+.btn-login {
+    border: 1px solid rgba(27, 79, 168, 0.45);
+    color: #1B4FA8;
+    font-weight: 600;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.btn-login:hover {
+    border-color: #1B4FA8;
+    background: #1B4FA8;
+    color: #fff;
+}
+.btn-mypage {
+    border: 1px solid rgba(27, 79, 168, 0.45);
+    color: #1B4FA8;
+    font-weight: 600;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.btn-mypage:hover {
+    border-color: #1B4FA8;
+    background: #1B4FA8;
+    color: #fff;
+}
+
+/* ── 드롭다운 오버라이드 ── */
+.user-dropdown {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+.user-dropdown a {
+    color: rgba(0, 0, 0, 0.7);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+.user-dropdown a:hover { background: rgba(27, 79, 168, 0.05); color: #1B4FA8; }
+.user-dropdown .dropdown-logout { color: rgba(0, 0, 0, 0.4); }
+.user-dropdown .dropdown-logout:hover { color: #e05252; background: rgba(224, 82, 82, 0.05); }
+
+/* ── 푸터 오버라이드 ── */
+.footer {
+    background: #081A44;
+}
+.footer-top {
+    border-color: rgba(168, 184, 204, 0.2);
+}
+.footer-info,
+.footer-links a,
+.footer-copy {
+    color: #a8b8cc;
+}
+.footer-col-title {
+    color: #c8d4e0;
+}
+.footer-links a.bold { color: #c8d4e0; }
+.footer-socials a {
+    color: #a8b8cc;
+    border-color: rgba(168, 184, 204, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════
+   강의소개 신규 섹션 스타일
+════════════════════════════════════════════════════════ */
+
+/* 수강 후기 (아이보리 배경) */
+.reviews-sp {
+    background: #F7F5F0;
+}
+
+/* ── 영상 섹션 ── */
+.lp-vid-section {
+    background: #081A44;
+    padding: 80px 0;
+    position: relative;
+    overflow: hidden;
+}
+.lp-vid-bg-left,
+.lp-vid-bg-right {
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    opacity: 0.12;
+    pointer-events: none;
+    object-fit: cover;
+}
+.lp-vid-bg-left  { left: 0; }
+.lp-vid-bg-right { right: 0; }
+.lp-vid-player {
+    max-width: 800px;
+    margin: 0 auto;
+}
+.lp-vid-thumbnail {
+    position: relative;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.lp-vid-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 56px 40px 40px;
+    text-align: center;
+}
+.lp-vid-sub {
+    color: #aaa;
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+}
+.lp-vid-main {
+    color: #fff;
+    font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+    font-weight: 800;
+    line-height: 1.4;
+    margin: 0;
+}
+.lp-vid-divider {
+    width: 60%;
+    height: 1px;
+    background: rgba(168, 184, 204, 0.5);
+    margin: 4px auto;
+}
+.lp-vid-course {
+    color: #ccc;
+    font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+    font-weight: 800;
+    margin-top: 4px;
+}
+.lp-vid-proof {
+    color: #fff;
+    font-size: 0.95rem;
+}
+.lp-vid-blue {
+    color: #1D45FF;
+    font-weight: 700;
+}
+.lp-vid-play {
+    position: static;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #1D45FF;
+    border: 2px solid #1D45FF;
+    color: #fff;
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: background 0.2s;
+    align-self: center;
+    margin-top: 4px;
+}
+.lp-vid-play:hover {
+    background: rgba(29,69,255,0.6);
+}
+
+/* ── SP-INFO 섹션 (답안작성구조도) ── */
+.sp-info {
+    background: #F7F5F0;
+    padding: 80px 0;
+    color: #1F2430;
+}
+.sp-info-title {
+    color: #1D45FF;
+    font-size: clamp(1.3rem, 2.4vw, 1.9rem);
+    font-weight: 800;
+    line-height: 1.5;
+    margin-bottom: 56px;
+    text-align: left;
+}
+.sp-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+    align-items: center;
+}
+.sp-book-stack {
+    position: relative;
+    height: 280px;
+}
+.sp-book {
+    position: absolute;
+    width: 39.6%;
+    border-radius: 6px;
+    box-shadow: 0 10px 36px rgba(0,0,0,0.18);
+}
+.sp-book-1 {
+    top: -10%;
+    left: 50%;
+    transform: translateX(-105%) rotate(-5deg);
+    z-index: 1;
+}
+.sp-book-2 {
+    top: -2%;
+    left: 50%;
+    transform: translateX(-15%) rotate(4deg);
+    z-index: 2;
+}
+.sp-features-wrap {
+    position: relative;
+}
+.sp-features {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+.sp-side-box {
+    position: absolute;
+    right: -140px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100px;
+    height: 100px;
+    background: #1D45FF;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.5;
+}
+.sp-feature-title {
+    color: #1D45FF;
+    font-size: clamp(1rem, 1.6vw, 1.5rem);
+    font-weight: 700;
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+.sp-feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.sp-feature-list li {
+    position: relative;
+    padding-left: 18px;
+    font-size: clamp(0.85rem, 1.3vw, 1.1rem);
+    line-height: 1.75;
+    color: #1F2430;
+}
+.sp-feature-list li::before {
+    content: '-';
+    position: absolute;
+    left: 0;
+    color: #888;
+}
+@media (max-width: 900px) {
+    .sp-info-grid {
+        grid-template-columns: 1fr;
+    }
+    .sp-book-stack {
+        height: 340px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════
+   LP 랜딩 섹션 (추후 확장용)
+════════════════════════════════════════════════════════ */
+
+/* ① 히어로 LP */
+.hero-lp {
+    height: auto;
+    min-height: calc(100vh - var(--nav-height));
+    padding: 80px 0 70px;
+}
+.hero-lp .hero-slides,
+.hero-lp .hero-overlay { display: none !important; }
+.hero-lp-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+}
+.hero-lp-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: #4A78FF;
+    background: rgba(74,120,255,0.1);
+    border: 1px solid rgba(74,120,255,0.22);
+    padding: 6px 16px;
+    border-radius: 100px;
+    margin-bottom: 26px;
+}
+.hero-lp .hero-title {
+    font-size: clamp(28px, 3.4vw, 50px);
+    margin-bottom: 22px;
+}
+.hero-lp-desc {
+    font-size: clamp(14px, 1.3vw, 17px);
+    color: rgba(255,255,255,0.6);
+    line-height: 1.85;
+    margin-bottom: 36px;
+    word-break: keep-all;
+}
+.hero-lp-photo { display: flex; justify-content: center; }
+.hero-photo-holder {
+    width: 100%;
+    max-width: 360px;
+    aspect-ratio: 3/4;
+    background: rgba(255,255,255,0.03);
+    border: 2px dashed rgba(255,255,255,0.1);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.22);
+    font-size: 13px;
+    text-align: center;
+    line-height: 1.8;
+}
+
+/* ② 문제 제기 */
+.lp-problem {
+    background: #1D45FF;
+    padding: 80px 0 70px;
+    text-align: center;
+}
+.lp-problem-title {
+    font-size: clamp(20px, 2.5vw, 36px);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.4;
+    letter-spacing: -0.025em;
+    margin-bottom: 10px;
+    word-break: keep-all;
+}
+.lp-problem-sub {
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 52px;
+    letter-spacing: 0.03em;
+}
+.cert-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    max-width: 840px;
+    margin: 0 auto;
+}
+.cert-card {
+    aspect-ratio: 3/4;
+    background: rgba(255,255,255,0.07);
+    border: 2px dashed rgba(255,255,255,0.18);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.35);
+    font-size: 13px;
+    text-align: center;
+    line-height: 1.8;
+}
+
+/* ③ 영상 미리보기 */
+.lp-video {
+    background: #081A44;
+    padding: 80px 0;
+}
+.lp-video-inner {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+}
+.lp-video-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: #4A78FF;
+    margin-bottom: 14px;
+}
+.lp-video-title {
+    font-size: clamp(22px, 2.6vw, 38px);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -0.025em;
+    line-height: 1.25;
+    margin-bottom: 12px;
+}
+.lp-video-course {
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 6px;
+}
+.lp-video-proof {
+    font-size: 14px;
+    color: rgba(255,255,255,0.38);
+    margin-bottom: 44px;
+}
+.lp-video-wrap {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.lp-play-btn {
+    width: 72px;
+    height: 72px;
+    background: #1D45FF;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, transform 0.2s;
+}
+.lp-play-btn::after {
+    content: '';
+    width: 0;
+    height: 0;
+    border-top: 13px solid transparent;
+    border-bottom: 13px solid transparent;
+    border-left: 20px solid #fff;
+    margin-left: 5px;
+}
+.lp-play-btn:hover { background: #4A78FF; transform: scale(1.08); }
+
+/* ④ 강의 정보 */
+.lp-info {
+    background: #F7F5F0;
+    padding: 90px 0;
+}
+.lp-info-header {
+    text-align: center;
+    margin-bottom: 60px;
+}
+.lp-info-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    color: #1D45FF;
+    margin-bottom: 14px;
+}
+.lp-info-title {
+    font-size: clamp(20px, 2.4vw, 34px);
+    font-weight: 900;
+    color: #1F2430;
+    letter-spacing: -0.025em;
+    line-height: 1.4;
+    word-break: keep-all;
+}
+.lp-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.1fr;
+    gap: 40px;
+    align-items: start;
+}
+.lp-price-card {
+    background: #fff;
+    border: 1px solid #E4E8F2;
+    border-radius: 12px;
+    padding: 40px 36px;
+    box-shadow: 0 4px 24px rgba(8,26,68,0.07);
+}
+.lp-price-badge {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #1D45FF;
+    margin-bottom: 12px;
+}
+.lp-price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 22px 0;
+    border-top: 1px solid #EEF1F6;
+    border-bottom: 1px solid #EEF1F6;
+    margin-bottom: 24px;
+}
+.lp-price-label {
+    font-size: 13px;
+    color: rgba(31,36,48,0.45);
+    white-space: nowrap;
+}
+.lp-price-val {
+    font-size: clamp(26px, 3vw, 38px);
+    font-weight: 900;
+    color: #1F2430;
+    letter-spacing: -0.025em;
+}
+.lp-include-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: rgba(31,36,48,0.38);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+}
+.lp-include-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 28px;
+}
+.lp-include-list li {
+    font-size: 14px;
+    color: rgba(31,36,48,0.7);
+    padding-left: 20px;
+    position: relative;
+    line-height: 1.6;
+}
+.lp-include-list li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #1D45FF;
+    font-weight: 700;
+    font-size: 13px;
+}
+.lp-free-box {
+    background: #1D45FF;
+    border-radius: 8px;
+    padding: 20px 22px;
+    text-align: center;
+    color: rgba(255,255,255,0.72);
+    font-size: 14px;
+    line-height: 1.7;
+}
+.lp-free-box strong {
+    display: block;
+    font-size: clamp(16px, 1.8vw, 20px);
+    color: #fff;
+    font-weight: 800;
+    margin-top: 2px;
+}
+.lp-features {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+.lp-feature {
+    background: #fff;
+    border: 1px solid #E4E8F2;
+    border-left: 3px solid #1D45FF;
+    border-radius: 0 10px 10px 0;
+    padding: 22px 22px 22px 20px;
+}
+.lp-feature-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #1F2430;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    line-height: 1.4;
+}
+.lp-check {
+    color: #1D45FF;
+    font-size: 15px;
+    font-weight: 900;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+.lp-feature-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+.lp-feature-list li {
+    font-size: 13px;
+    color: rgba(31,36,48,0.58);
+    padding-left: 14px;
+    position: relative;
+    line-height: 1.7;
+}
+.lp-feature-list li::before {
+    content: '–';
+    position: absolute;
+    left: 0;
+    color: rgba(31,36,48,0.3);
+}
+
+/* ⑤ 수강 후기 */
+.lp-reviews {
+    background: #F7F5F0;
+    padding: 80px 0 0;
+    overflow: hidden;
+}
+.lp-reviews .site-container {
+    text-align: center;
+    margin-bottom: 48px;
+}
+.lp-review-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    color: #1D45FF;
+    margin-bottom: 14px;
+}
+.lp-review-title {
+    font-size: clamp(20px, 2.4vw, 34px);
+    font-weight: 900;
+    color: #1F2430;
+    letter-spacing: -0.025em;
+    line-height: 1.4;
+    word-break: keep-all;
+}
+
+/* ⑥ 수강신청 CTA */
+.lp-enroll {
+    background: #102B68;
+    padding: 90px 0;
+    text-align: center;
+}
+.lp-enroll-inner {
+    max-width: 640px;
+    margin: 0 auto;
+}
+.lp-enroll-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: #C9A84C;
+    border: 1px solid rgba(201,168,76,0.35);
+    padding: 5px 16px;
+    border-radius: 100px;
+    margin-bottom: 22px;
+}
+.lp-enroll-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: clamp(22px, 2.8vw, 38px);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+    margin-bottom: 28px;
+    word-break: keep-all;
+}
+.lp-enroll-price {
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+}
+.lp-enroll-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.38);
+    margin-bottom: 40px;
+}
+.lp-enroll-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #1D45FF;
+    color: #fff;
+    font-family: var(--font-kr);
+    font-size: 17px;
+    font-weight: 700;
+    padding: 18px 60px;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    letter-spacing: -0.01em;
+    transition: background 0.2s, transform 0.15s;
+    text-decoration: none;
+}
+.lp-enroll-btn:hover { background: #4A78FF; transform: translateY(-2px); }
+
+/* ── 반응형 ── */
+@media (max-width: 900px) {
+    .hero-lp-inner { grid-template-columns: 1fr; gap: 36px; }
+    .hero-lp-photo { display: none; }
+    .lp-info-grid { grid-template-columns: 1fr; }
+    .cert-grid { grid-template-columns: repeat(2, 1fr); max-width: 560px; }
+}
+@media (max-width: 600px) {
+    .hero-lp { padding: 60px 0 50px; }
+    .lp-problem { padding: 60px 0 50px; }
+    .lp-video { padding: 60px 0; }
+    .lp-info { padding: 60px 0; }
+    .lp-enroll { padding: 70px 0; }
+    .cert-grid { grid-template-columns: 1fr; max-width: 260px; }
+    .lp-price-card { padding: 28px 20px; }
+    .lp-feature { padding: 18px 16px 18px 14px; }
+}
+
+/* ── 수강신청 섹션 ── */
+.enroll-section {
+    background: #102B68;
+    padding: 64px 0;
+}
+.enroll-inner {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 48px;
+}
+.enroll-info {
+    flex: 1;
+}
+.enroll-tag {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: #C9A84C;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+}
+.enroll-title {
+    font-size: clamp(1.4rem, 2.5vw, 2rem);
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.3;
+    margin-bottom: 28px;
+}
+.enroll-gold {
+    color: #C9A84C;
+}
+.enroll-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.enroll-list li {
+    color: rgba(255,255,255,0.88);
+    font-size: 1rem;
+    font-weight: 500;
+    padding-left: 1.2em;
+    position: relative;
+    line-height: 1.6;
+}
+.enroll-list li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: #C9A84C;
+    font-weight: 700;
+}
+.enroll-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    flex-shrink: 0;
+    padding-left: 48px;
+    border-left: 1px solid rgba(168, 184, 204, 0.3);
+}
+.enroll-price {
+    color: rgba(255,255,255,0.75);
+    font-size: 1rem;
+    font-weight: 500;
+}
+.enroll-price strong {
+    color: #ffffff;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-left: 8px;
+}
+.enroll-btn {
+    display: inline-block;
+    padding: 14px 36px;
+    background: #C9A84C;
+    color: #081A44;
+    font-size: 1rem;
+    font-weight: 800;
+    border-radius: 4px;
+    text-decoration: none;
+    letter-spacing: 0.04em;
+    transition: background 0.2s, transform 0.2s;
+    white-space: nowrap;
+}
+.enroll-btn:hover {
+    background: #E2C97E;
+    transform: translateY(-2px);
+}
+@media (max-width: 700px) {
+    .enroll-inner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .enroll-bottom {
+        flex-direction: row;
+        align-items: center;
+        border-left: none;
+        border-top: 1px solid rgba(168, 184, 204, 0.3);
+        padding-left: 0;
+        padding-top: 24px;
+        width: 100%;
+        justify-content: space-between;
+    }
+    .enroll-btn {
+        white-space: nowrap;
+    }
+}
