@@ -22,7 +22,6 @@
     <link href="https://cdn.jsdelivr.net/gh/orioncactus/suit@v1.0.6/packages/suit/dist/suit.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Nanum+Brush+Script&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="lecture.css">
     <style>
       :root {
         --gold: #C9A84C;
@@ -306,14 +305,13 @@
   }
   .cert-track {
     display: flex;
-    gap: 0;
+    gap: 16px;
     width: max-content;
     animation: certScroll 28s linear infinite;
   }
   .cert-track:hover { animation-play-state: paused; }
   .cert-card {
-    flex: 0 0 264px;
-    margin-right: 16px;
+    flex: 0 0 220px;
     border-radius: 10px;
     overflow: hidden;
     aspect-ratio: 3 / 4;
@@ -332,7 +330,7 @@
   }
   @media (max-width: 600px) {
     .cert-slider { margin: 32px -20px; }
-    .cert-card { flex: 0 0 192px; }
+    .cert-card { flex: 0 0 160px; }
   }
 
   /* ── 특징 4가지 ── */
@@ -2635,10 +2633,10 @@
     <!-- Navigation -->
     <header class="navbar" id="navbar">
         <div class="nav-container">
-            <a href="index.html" class="nav-logo">DOCKTEACHER</a>
+            <a href="#" class="nav-logo" onclick="showPage('home'); return false;">DOCKTEACHER</a>
             <nav class="nav-links">
                 <a onclick="showPage('notice'); return false;" style="cursor:pointer">공지사항</a>
-                <a href="lecture.html" style="cursor:pointer">강의 소개</a>
+                <a onclick="showPage('lecture'); return false;" style="cursor:pointer">강의 소개</a>
                 <a onclick="showPage('category'); return false;" style="cursor:pointer">클래스</a>
                 <a onclick="showPage('textbook'); return false;" style="cursor:pointer">교재 구매</a>
             </nav>
@@ -2658,7 +2656,7 @@
         </div>
         <div class="nav-mobile-menu" id="mobileMenu">
             <a onclick="showPage('notice'); return false;" style="cursor:pointer">공지사항</a>
-            <a href="lecture.html" style="cursor:pointer">강의 소개</a>
+            <a onclick="showPage('lecture'); return false;" style="cursor:pointer">강의 소개</a>
             <a onclick="showPage('category'); return false;" style="cursor:pointer">클래스</a>
             <a onclick="showPage('textbook'); return false;" style="cursor:pointer">교재 구매</a>
         </div>
@@ -2667,112 +2665,102 @@
     <!-- HOME PAGE -->
     <div id="home" class="page active">
 
-    <section class="hero">
-        <div class="hero-slides">
-            <div class="hero-slide" style="background-image: url('images/hsc.jpg')"></div>
-        </div>
-        <div class="hero-text-overlay">
-            <div class="hto-left">
-                <span class="hto-year">황성찬T의 2027</span>
-                <span class="hto-subtitle"><span class="hto-blue">연세대 수시논술 특강</span></span>
-            </div>
-            <div class="hto-vline"></div>
-            <div class="hto-right">
-                <p class="hto-point"><span class="hto-bullet">-</span>연세대 수시논술만의 특화된 분석법</p>
-                <p class="hto-point"><span class="hto-bullet">-</span>강사 + 합격자 답안작성구조도 제공</p>
-                <p class="hto-point"><span class="hto-bullet">-</span>연고대 편입논술과 연결되는 수시논술 학습 방향 제시</p>
-            </div>
-        </div>
-        <img class="hero-photo-right" src="images/hsc.jpg" alt="황성찬 선생님">
-    </section>
-
-    <section class="social-proof" id="social-proof">
-        <div class="site-container" style="text-align:center; margin-bottom:8px;">
-            <h1 style="color:#fff; font-size:clamp(1.6rem,3.5vw,2.6rem); font-weight:800; line-height:1.4; text-align:center;">연고대 편입 준비생이라면,<br>연세대 수시논술도 전략입니다</h1>
-        </div>
-        <div class="cert-slider" style="margin: 32px 0;">
-            <div class="cert-track">
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/1.png" alt="합격증 1"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/2.png" alt="합격증 2"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/3.png" alt="합격증 3"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/4.png" alt="합격증 4"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/5.png" alt="합격증 5"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/1.png" alt="합격증 1"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/2.png" alt="합격증 2"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/3.png" alt="합격증 3"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/4.png" alt="합격증 4"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/5.png" alt="합격증 5"></div>
-            </div>
-        </div>
-        <div class="site-container" style="text-align:center; margin-top:8px;">
-            <h1 style="color:#fff; font-size:clamp(1.4rem,3vw,2.2rem); font-weight:700; line-height:1.5; text-align:center;">편입논술로 훈련한 독해력과 사고력을<br>연세대 수시논술 답안 구조로 연결해드립니다.</h1>
-        </div>
-    </section>
-
-    <!-- 답안작성구조도 섹션 -->
-    <section class="sp-info">
+    <!-- ① 메인 히어로 (Deep Navy) -->
+    <section class="hero hero-lp">
         <div class="site-container">
-            <h1 class="sp-info-title">황성찬T가 설계한 답안작성구조도 하나로<br>합격 답안의 방향을 잡습니다.</h1>
-            <div class="sp-info-grid">
-                <div class="sp-book-stack">
-                    <img src="https://cdn.dockteacher.co.kr/courses/001/%EB%8B%B5%EC%95%88%EC%9E%91%EC%84%B1%EA%B5%AC%EC%A1%B0%EB%8F%84%20%ED%91%9C%EC%A7%80.png" class="sp-book sp-book-1" alt="답안작성구조도 표지">
-                    <img src="https://cdn.dockteacher.co.kr/courses/001/%EB%8B%B5%EC%95%88%EC%9E%91%EC%84%B1%EA%B5%AC%EC%A1%B0%EB%8F%84%20%EB%82%B4%EC%A7%801.png" class="sp-book sp-book-2" alt="답안작성구조도 내지1">
-                    <img src="https://cdn.dockteacher.co.kr/courses/001/%EB%8B%B5%EC%95%88%EC%9E%91%EC%84%B1%EA%B5%AC%EC%A1%B0%EB%8F%84%20%EB%82%B4%EC%A7%802.png" class="sp-book sp-book-3" alt="답안작성구조도 내지2">
+            <div class="hero-lp-inner">
+                <div class="hero-lp-text">
+                    <span class="hero-lp-badge">2027 황성찬 연세대 수시 특강</span>
+                    <h1 class="hero-title">연고대 편입 준비생이라면,<br>연세대 수시논술도<br><span style="color:#4A78FF;">전략입니다</span></h1>
+                    <p class="hero-lp-desc">편입논술로 훈련한 독해력과 사고력을<br>연세대 수시논술 답안 구조로 연결해드립니다.</p>
+                    <button class="hero-btn" onclick="document.querySelector('.lp-enroll').scrollIntoView({behavior:'smooth'})">수강신청 바로가기 <span>→</span></button>
                 </div>
-                <div class="sp-features-wrap">
-                <div class="sp-features">
-                    <div class="sp-feature">
-                        <h3 class="sp-feature-title">✔ 연세대 수시논술만의 특화된 분석법</h3>
-                        <ul class="sp-feature-list">
+                <div class="hero-lp-photo">
+                    <div class="hero-photo-holder">강사 사진<br>준비 중</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ② 문제 제기 (Royal Blue) -->
+    <section class="lp-problem">
+        <div class="site-container">
+            <h2 class="lp-problem-title">연세대 수시논술의 출제 메커니즘을 읽고,<br><strong>합격 답안의 구조</strong>로 완성합니다.</h2>
+            <p class="lp-problem-sub">"황성찬T의 2027 연세대 수시논술 특강"</p>
+            <div class="cert-grid">
+                <div class="cert-card">합격증<br>사진 준비 중</div>
+                <div class="cert-card">합격증<br>사진 준비 중</div>
+                <div class="cert-card">합격증<br>사진 준비 중</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ③ 영상 미리보기 (Deep Navy) -->
+    <section class="lp-video">
+        <div class="site-container">
+            <div class="lp-video-inner">
+                <p class="lp-video-label">합격자가 나올 수밖에 없는 연세대 수시논술 강의</p>
+                <h2 class="lp-video-title">출제 메커니즘을<br>완벽히 분석했습니다.</h2>
+                <p class="lp-video-course">"황성찬T의 2027 연세대 수시논술 특강"</p>
+                <p class="lp-video-proof">실제 합격후기와 수업후기가 증명합니다.</p>
+                <div class="lp-video-wrap">
+                    <!-- 영상 링크 추후 삽입 -->
+                    <div class="lp-play-btn"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ④ 강의 정보 (Ivory) -->
+    <section class="lp-info">
+        <div class="site-container">
+            <div class="lp-info-header">
+                <span class="lp-info-label">COURSE DETAIL</span>
+                <h2 class="lp-info-title">황성찬T가 설계한 답안작성구조도 하나로<br>합격 답안의 방향을 잡습니다.</h2>
+            </div>
+            <div class="lp-info-grid">
+                <div class="lp-price-card">
+                    <p class="lp-price-badge">[2027] 황성찬T 연세대 수시 특강</p>
+                    <div class="lp-price-row">
+                        <span class="lp-price-label">수업료</span>
+                        <span class="lp-price-val">600,000원</span>
+                    </div>
+                    <p class="lp-include-title">제공 내용</p>
+                    <ul class="lp-include-list">
+                        <li>연세대 수시논술 특강 강의</li>
+                        <li>강사+합격자 답안작성구조도 제공</li>
+                        <li>연고대 편입논술과 연결되는 수시논술 학습 방향 제시</li>
+                    </ul>
+                    <div class="lp-free-box">
+                        특강 수강 시,<br><strong>합격 답안 구조 무료 제공</strong>
+                    </div>
+                </div>
+                <div class="lp-features">
+                    <div class="lp-feature">
+                        <h3 class="lp-feature-title"><span class="lp-check">✔</span> 연세대 수시논술만의 특화된 분석법</h3>
+                        <ul class="lp-feature-list">
                             <li>연고대 편입논술과는 결이 다른 연세대 수시논술의 출제 구조 분석</li>
                             <li>수시논술에서 요구하는 제시문 독해, 논제 분석, 답안 구성 방식 정리</li>
                         </ul>
                     </div>
-                    <div class="sp-feature">
-                        <h3 class="sp-feature-title">✔ 황성찬T의 사고과정이 담긴 강사답안 분석서 제공</h3>
-                        <ul class="sp-feature-list">
+                    <div class="lp-feature">
+                        <h3 class="lp-feature-title"><span class="lp-check">✔</span> 황성찬T의 사고과정이 담긴 강사답안 분석서 제공</h3>
+                        <ul class="lp-feature-list">
                             <li>단순한 모범답안이 아니라, 강사가 어떻게 읽고 판단했는지까지 담은 분석서</li>
                             <li>제시문 해석부터 문단 구성, 문장 전개까지 사고 흐름을 단계별로 제시</li>
                         </ul>
                     </div>
-                    <div class="sp-feature">
-                        <h3 class="sp-feature-title">✔ 시험장에서 적용 가능한 답안작성구조도 제공</h3>
-                        <ul class="sp-feature-list">
+                    <div class="lp-feature">
+                        <h3 class="lp-feature-title"><span class="lp-check">✔</span> 시험장에서 적용 가능한 답안작성구조도 제공</h3>
+                        <ul class="lp-feature-list">
                             <li>무엇을 읽고, 어떤 기준으로 나누고, 어떤 순서로 써야 하는지 구조화</li>
                             <li>해설을 듣고 끝나는 것이 아니라, 실제 답안으로 옮길 수 있는 작성 틀 제공</li>
                         </ul>
                     </div>
                 </div>
-                <div class="sp-side-box">
-                    <span>특강 수강 시,</span>
-                    <span>합격 답안 구조</span>
-                    <span>무료 제공</span>
-                </div>
-                </div>
             </div>
         </div>
     </section>
-
-    <!-- 영상 섹션 -->
-    <section class="lp-vid-section">
-        <img src="images/banner_1.jpg" class="lp-vid-bg-left" alt="">
-        <img src="images/banner_4.jpg" class="lp-vid-bg-right" alt="">
-        <div class="site-container">
-            <div class="lp-vid-player">
-                <div class="lp-vid-thumbnail">
-                    <div class="lp-vid-text">
-                        <p class="lp-vid-sub">합격자가 나올 수밖에 없는 연세대 수시논술 강의</p>
-                        <h2 class="lp-vid-main"><span class="lp-vid-blue">출제 메커니즘</span>을 완벽히 분석했습니다.</h2>
-                        <div class="lp-vid-divider"></div>
-                        <p class="lp-vid-course">"황성찬T의 2027 연세대 수시논술 특강"</p>
-                        <p class="lp-vid-proof">실제 <span class="lp-vid-blue">합격후기</span>와 <span class="lp-vid-blue">수업후기</span>가 증명합니다.</p>
-                        <button class="lp-vid-play">&#9654;</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
 
     <!-- TEST 신청 모달 -->
     <div id="testModal" class="test-modal-overlay" onclick="closeTestModal(event)">
@@ -2864,36 +2852,31 @@
         </div>
     </div>
 
-    <!-- 수강 후기 섹션 -->
-    <section class="reviews reviews-sp">
-        <div class="site-container"><h2 class="reviews-title">수강 후기</h2></div>
+    <!-- ⑤ 수강 후기 (Ivory) -->
+    <section class="lp-reviews">
+        <div class="site-container">
+            <span class="lp-review-label">STUDENT REVIEWS</span>
+            <h2 class="lp-review-title">실제 합격후기와 수업후기가<br>증명합니다.</h2>
+        </div>
         <div class="reviews-track-wrapper">
-            <div class="reviews-track" id="reviewsTrack2"></div>
+            <div class="reviews-track" id="reviewsTrack"></div>
         </div>
     </section>
 
-    <section class="enroll-section">
+    <!-- ⑥ 수강신청 CTA (Sub Navy) -->
+    <section class="lp-enroll">
         <div class="site-container">
-            <div class="enroll-inner">
-                <div class="enroll-info">
-                    <p class="enroll-tag">수강신청</p>
-                    <h2 class="enroll-title"><span class="enroll-gold">[2027]</span> 황성찬T 연세대 수시 특강</h2>
-                    <ul class="enroll-list">
-                        <li>연세대 수시논술 특강 강의</li>
-                        <li>강사 + 합격자 답안작성구조도 제공</li>
-                        <li>연고대 편입논술과 연결되는 수시논술 학습 방향 제시</li>
-                    </ul>
-                </div>
-                <div class="enroll-bottom">
-                    <span class="enroll-price">수업료 <strong>600,000원</strong></span>
-                    <a href="#" class="enroll-btn">수강신청</a>
-                </div>
+            <div class="lp-enroll-inner">
+                <span class="lp-enroll-tag">2027 연세대 수시논술 특강</span>
+                <h2 class="lp-enroll-title">황성찬T의 2027<br>연세대 수시논술 특강</h2>
+                <div class="lp-enroll-price">600,000원</div>
+                <p class="lp-enroll-sub">수강 문의 및 신청</p>
+                <button class="lp-enroll-btn" onclick="openTestModal()">수강신청 하기</button>
             </div>
         </div>
     </section>
 
     <footer class="footer">
-        <div class="site-container">
         <div class="footer-top">
             <div>
                 <span class="footer-logo">DOCKTEACHER</span>
@@ -2911,7 +2894,7 @@
                 <div class="footer-col-title">메뉴</div>
                 <ul class="footer-links">
                     <li><a onclick="showPage('notice'); return false;" style="cursor:pointer">공지사항</a></li>
-                    <li><a href="lecture.html" style="cursor:pointer">강의 소개</a></li>
+                    <li><a onclick="showPage('lecture'); return false;" style="cursor:pointer">강의 소개</a></li>
                     <li><a onclick="showPage('category'); return false;" style="cursor:pointer">클래스</a></li>
                     <li><a onclick="showPage('textbook'); return false;" style="cursor:pointer">교재 구매</a></li>
                 </ul>
@@ -2926,7 +2909,7 @@
         </div>
         <div class="footer-bottom">
             <span class="footer-copy">Copyright ⓒ 독편사편입학원 All Right Reserved</span>
-        </div>
+            <div class="footer-socials"><a href="#">𝕏</a><a href="#">📷</a></div>
         </div>
     </footer>
 

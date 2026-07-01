@@ -1729,6 +1729,20 @@ body {
     }
 }
 
+@media (max-width: 600px) {
+    .mission-title {
+        font-size: clamp(26px, 7vw, 36px);
+        padding: 18px 20px;
+    }
+    .rp-line-label {
+        font-size: 28px;
+    }
+    .tsb-btn {
+        padding: 18px 28px;
+        outline-offset: 5px;
+        margin-top: 32px;
+    }
+}
 @media (max-width: 480px) {
     .hero-title {
         font-size: 30px;

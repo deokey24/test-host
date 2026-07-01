@@ -22,7 +22,6 @@
     <link href="https://cdn.jsdelivr.net/gh/orioncactus/suit@v1.0.6/packages/suit/dist/suit.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Nanum+Brush+Script&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="lecture.css">
     <style>
       :root {
         --gold: #C9A84C;
@@ -306,14 +305,13 @@
   }
   .cert-track {
     display: flex;
-    gap: 0;
+    gap: 16px;
     width: max-content;
     animation: certScroll 28s linear infinite;
   }
   .cert-track:hover { animation-play-state: paused; }
   .cert-card {
-    flex: 0 0 264px;
-    margin-right: 16px;
+    flex: 0 0 220px;
     border-radius: 10px;
     overflow: hidden;
     aspect-ratio: 3 / 4;
@@ -332,7 +330,7 @@
   }
   @media (max-width: 600px) {
     .cert-slider { margin: 32px -20px; }
-    .cert-card { flex: 0 0 192px; }
+    .cert-card { flex: 0 0 160px; }
   }
 
   /* ── 특징 4가지 ── */
@@ -2635,10 +2633,10 @@
     <!-- Navigation -->
     <header class="navbar" id="navbar">
         <div class="nav-container">
-            <a href="index.html" class="nav-logo">DOCKTEACHER</a>
+            <a href="#" class="nav-logo" onclick="showPage('home'); return false;">DOCKTEACHER</a>
             <nav class="nav-links">
                 <a onclick="showPage('notice'); return false;" style="cursor:pointer">공지사항</a>
-                <a href="lecture.html" style="cursor:pointer">강의 소개</a>
+                <a onclick="showPage('lecture'); return false;" style="cursor:pointer">강의 소개</a>
                 <a onclick="showPage('category'); return false;" style="cursor:pointer">클래스</a>
                 <a onclick="showPage('textbook'); return false;" style="cursor:pointer">교재 구매</a>
             </nav>
@@ -2658,7 +2656,7 @@
         </div>
         <div class="nav-mobile-menu" id="mobileMenu">
             <a onclick="showPage('notice'); return false;" style="cursor:pointer">공지사항</a>
-            <a href="lecture.html" style="cursor:pointer">강의 소개</a>
+            <a onclick="showPage('lecture'); return false;" style="cursor:pointer">강의 소개</a>
             <a onclick="showPage('category'); return false;" style="cursor:pointer">클래스</a>
             <a onclick="showPage('textbook'); return false;" style="cursor:pointer">교재 구매</a>
         </div>
@@ -2669,110 +2667,189 @@
 
     <section class="hero">
         <div class="hero-slides">
-            <div class="hero-slide" style="background-image: url('images/hsc.jpg')"></div>
+            <div class="hero-slide" style="background-image: url('https://img.wecandoeat.com/hsc/IMG_20260609_151358.png')"></div>
         </div>
-        <div class="hero-text-overlay">
-            <div class="hto-left">
-                <span class="hto-year">황성찬T의 2027</span>
-                <span class="hto-subtitle"><span class="hto-blue">연세대 수시논술 특강</span></span>
-            </div>
-            <div class="hto-vline"></div>
-            <div class="hto-right">
-                <p class="hto-point"><span class="hto-bullet">-</span>연세대 수시논술만의 특화된 분석법</p>
-                <p class="hto-point"><span class="hto-bullet">-</span>강사 + 합격자 답안작성구조도 제공</p>
-                <p class="hto-point"><span class="hto-bullet">-</span>연고대 편입논술과 연결되는 수시논술 학습 방향 제시</p>
+        <div class="hero-overlay"></div>
+        <div class="site-container">
+            <div class="hero-content">
+                <h1 class="hero-title">결과로 증명하는<br>프리미엄 편입 논술</h1>
+                <a onclick="showPage('lecture'); return false;" class="hero-btn" style="cursor:pointer">강좌 소개 살펴보기 <span>→</span></a>
             </div>
         </div>
-        <img class="hero-photo-right" src="images/hsc.jpg" alt="황성찬 선생님">
+    </section>
+
+    <section class="mission">
+        <div class="site-container">
+            <h2 class="mission-title">대한민국 최초 연고대 편입<br>소수정예 관리형 VOD</h2>
+        </div>
     </section>
 
     <section class="social-proof" id="social-proof">
-        <div class="site-container" style="text-align:center; margin-bottom:8px;">
-            <h1 style="color:#fff; font-size:clamp(1.6rem,3.5vw,2.6rem); font-weight:800; line-height:1.4; text-align:center;">연고대 편입 준비생이라면,<br>연세대 수시논술도 전략입니다</h1>
-        </div>
-        <div class="cert-slider" style="margin: 32px 0;">
-            <div class="cert-track">
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/1.png" alt="합격증 1"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/2.png" alt="합격증 2"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/3.png" alt="합격증 3"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/4.png" alt="합격증 4"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/5.png" alt="합격증 5"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/1.png" alt="합격증 1"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/2.png" alt="합격증 2"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/3.png" alt="합격증 3"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/4.png" alt="합격증 4"></div>
-                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/5.png" alt="합격증 5"></div>
-            </div>
-        </div>
-        <div class="site-container" style="text-align:center; margin-top:8px;">
-            <h1 style="color:#fff; font-size:clamp(1.4rem,3vw,2.2rem); font-weight:700; line-height:1.5; text-align:center;">편입논술로 훈련한 독해력과 사고력을<br>연세대 수시논술 답안 구조로 연결해드립니다.</h1>
+        <div class="cards-track-wrapper" id="cardsWrapper">
+            <div class="cards-track" id="cardsTrack"></div>
         </div>
     </section>
 
-    <!-- 답안작성구조도 섹션 -->
-    <section class="sp-info">
+    <section class="results-proof">
         <div class="site-container">
-            <h1 class="sp-info-title">황성찬T가 설계한 답안작성구조도 하나로<br>합격 답안의 방향을 잡습니다.</h1>
-            <div class="sp-info-grid">
-                <div class="sp-book-stack">
-                    <img src="https://cdn.dockteacher.co.kr/courses/001/%EB%8B%B5%EC%95%88%EC%9E%91%EC%84%B1%EA%B5%AC%EC%A1%B0%EB%8F%84%20%ED%91%9C%EC%A7%80.png" class="sp-book sp-book-1" alt="답안작성구조도 표지">
-                    <img src="https://cdn.dockteacher.co.kr/courses/001/%EB%8B%B5%EC%95%88%EC%9E%91%EC%84%B1%EA%B5%AC%EC%A1%B0%EB%8F%84%20%EB%82%B4%EC%A7%801.png" class="sp-book sp-book-2" alt="답안작성구조도 내지1">
-                    <img src="https://cdn.dockteacher.co.kr/courses/001/%EB%8B%B5%EC%95%88%EC%9E%91%EC%84%B1%EA%B5%AC%EC%A1%B0%EB%8F%84%20%EB%82%B4%EC%A7%802.png" class="sp-book sp-book-3" alt="답안작성구조도 내지2">
+
+            <!-- 시안 3: SVG 선형 그래프 -->
+            <div class="rp-chart">
+                <div class="rp-chart-bottom">
+                    <h2 class="rp-title" style="margin-bottom:16px;">
+                        <span class="rp-white">강사가 아니라,</span><br>
+                        <span class="rp-green">결과로 먼저 증명합니다.</span>
+                    </h2>
+                    <div class="rp-chart-label">1차 합격자가 아닌 연세대/고려대 최종합격자 수치입니다.<br>거짓없이 보여드립니다.</div>
                 </div>
-                <div class="sp-features-wrap">
-                <div class="sp-features">
-                    <div class="sp-feature">
-                        <h3 class="sp-feature-title">✔ 연세대 수시논술만의 특화된 분석법</h3>
-                        <ul class="sp-feature-list">
-                            <li>연고대 편입논술과는 결이 다른 연세대 수시논술의 출제 구조 분석</li>
-                            <li>수시논술에서 요구하는 제시문 독해, 논제 분석, 답안 구성 방식 정리</li>
-                        </ul>
-                    </div>
-                    <div class="sp-feature">
-                        <h3 class="sp-feature-title">✔ 황성찬T의 사고과정이 담긴 강사답안 분석서 제공</h3>
-                        <ul class="sp-feature-list">
-                            <li>단순한 모범답안이 아니라, 강사가 어떻게 읽고 판단했는지까지 담은 분석서</li>
-                            <li>제시문 해석부터 문단 구성, 문장 전개까지 사고 흐름을 단계별로 제시</li>
-                        </ul>
-                    </div>
-                    <div class="sp-feature">
-                        <h3 class="sp-feature-title">✔ 시험장에서 적용 가능한 답안작성구조도 제공</h3>
-                        <ul class="sp-feature-list">
-                            <li>무엇을 읽고, 어떤 기준으로 나누고, 어떤 순서로 써야 하는지 구조화</li>
-                            <li>해설을 듣고 끝나는 것이 아니라, 실제 답안으로 옮길 수 있는 작성 틀 제공</li>
-                        </ul>
-                    </div>
+                <div class="rp-linechart-wrap">
+                    <svg viewBox="0 -30 700 255" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="lineAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#C9A84C" stop-opacity="0.25"/>
+                                <stop offset="100%" stop-color="#C9A84C" stop-opacity="0"/>
+                            </linearGradient>
+                        </defs>
+                        <!-- 그리드 라인 -->
+                        <line x1="60" y1="20" x2="650" y2="20"  stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                        <line x1="60" y1="70" x2="650" y2="70"  stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                        <line x1="60" y1="120" x2="650" y2="120" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                        <line x1="60" y1="170" x2="650" y2="170" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+                        <!-- 영역 채우기 -->
+                        <path class="rp-line-area" d="M 110,158 L 290,72 L 460,50 L 620,20 L 620,170 L 110,170 Z" fill="url(#lineAreaGrad)"/>
+                        <!-- 선 -->
+                        <path class="rp-line-path" d="M 110,158 L 290,72 L 460,50 L 620,20"/>
+                        <!-- 점 + 레이블 (2023) -->
+                        <g class="rp-line-dot">
+                            <circle cx="110" cy="158" r="5" fill="#C9A84C"/>
+                            <circle cx="110" cy="158" r="9" fill="none" stroke="#C9A84C" stroke-opacity="0.3" stroke-width="1.5"/>
+                            <text x="110" y="145" text-anchor="middle" font-size="18" fill="#ffffff" class="rp-line-label">47명</text>
+                            <text x="110" y="195" text-anchor="middle" font-size="17" fill="#ffffff" class="rp-line-label">2023</text>
+                        </g>
+                        <!-- 점 + 레이블 (2024) -->
+                        <g class="rp-line-dot">
+                            <circle cx="290" cy="72" r="5" fill="#C9A84C"/>
+                            <circle cx="290" cy="72" r="9" fill="none" stroke="#C9A84C" stroke-opacity="0.3" stroke-width="1.5"/>
+                            <text x="290" y="59" text-anchor="middle" font-size="18" fill="#ffffff" class="rp-line-label">74명</text>
+                            <text x="290" y="195" text-anchor="middle" font-size="17" fill="#ffffff" class="rp-line-label">2024</text>
+                        </g>
+                        <!-- 점 + 레이블 (2025) -->
+                        <g class="rp-line-dot">
+                            <circle cx="460" cy="50" r="5" fill="#C9A84C"/>
+                            <circle cx="460" cy="50" r="9" fill="none" stroke="#C9A84C" stroke-opacity="0.3" stroke-width="1.5"/>
+                            <text x="460" y="37" text-anchor="middle" font-size="18" fill="#ffffff" class="rp-line-label">80명</text>
+                            <text x="460" y="195" text-anchor="middle" font-size="17" fill="#ffffff" class="rp-line-label">2025</text>
+                        </g>
+                        <!-- 점 + 레이블 (2026) -->
+                        <g class="rp-line-dot">
+                            <circle cx="620" cy="20" r="6" fill="#F97316"/>
+                            <circle cx="620" cy="20" r="11" fill="none" stroke="#F97316" stroke-opacity="0.35" stroke-width="1.5"/>
+                            <text x="620" y="7" text-anchor="middle" font-size="18" font-weight="700" fill="#ffffff" class="rp-line-label">88명</text>
+                            <text x="620" y="195" text-anchor="middle" font-size="17" fill="#ffffff" class="rp-line-label">2026</text>
+                        </g>
+                    </svg>
                 </div>
-                <div class="sp-side-box">
-                    <span>특강 수강 시,</span>
-                    <span>합격 답안 구조</span>
-                    <span>무료 제공</span>
-                </div>
-                </div>
+                <p class="rp-footer" style="margin-top:32px;">독편논의 결과는 강의, 기출 분석, 모의고사, 첨삭, 피드백 시스템이 함께 작동했을 때만 만들어집니다.</p>
             </div>
+
         </div>
     </section>
 
-    <!-- 영상 섹션 -->
-    <section class="lp-vid-section">
-        <img src="images/banner_1.jpg" class="lp-vid-bg-left" alt="">
-        <img src="images/banner_4.jpg" class="lp-vid-bg-right" alt="">
+    <section class="courses">
         <div class="site-container">
-            <div class="lp-vid-player">
-                <div class="lp-vid-thumbnail">
-                    <div class="lp-vid-text">
-                        <p class="lp-vid-sub">합격자가 나올 수밖에 없는 연세대 수시논술 강의</p>
-                        <h2 class="lp-vid-main"><span class="lp-vid-blue">출제 메커니즘</span>을 완벽히 분석했습니다.</h2>
-                        <div class="lp-vid-divider"></div>
-                        <p class="lp-vid-course">"황성찬T의 2027 연세대 수시논술 특강"</p>
-                        <p class="lp-vid-proof">실제 <span class="lp-vid-blue">합격후기</span>와 <span class="lp-vid-blue">수업후기</span>가 증명합니다.</p>
-                        <button class="lp-vid-play">&#9654;</button>
+            <h2 class="courses-title">연고대 편입논술 전문학원의 시스템을<br>온라인으로 옮겼습니다</h2>
+            <div class="courses-grid">
+                <div class="course-card">
+                    <div class="course-card-inner">
+                        <div class="course-tags"><span class="tag tag-vod">VOD</span></div>
+                        <p class="course-sub">진도에 맞춰 빠르게 따라오는 보강 강의</p>
+                        <h3 class="course-name">진도보강강의</h3>
+                        <p class="course-desc">놓친 개념, 한 번에 잡아드립니다</p>
+                    </div>
+                    <div class="course-card-footer">
+                        <p class="course-detail-title">진도 흐름을 유지하면서 부족한 부분을 집중 보완하는 VOD 강의</p>
+                        <div class="course-meta"><span>🕐 수강기간 무제한</span><span>👤 인원무제한</span></div>
+                        <div class="course-meta"><span>📅 모집기간 무제한</span></div>
+                        <div class="course-price-wrap"><span class="course-price">300,000원</span></div>
+                    </div>
+                </div>
+                <div class="course-card">
+                    <div class="course-card-inner">
+                        <div class="course-tags">
+                            <span class="tag tag-sale">초특가</span>
+                            <span class="tag tag-live">LIVE·VOD</span>
+                        </div>
+                        <p class="course-sub">1년 단위 올인원 · 소수정예 관리</p>
+                        <h3 class="course-name">올인원 소수정예</h3>
+                        <p class="course-desc">학원 시스템 그대로, 온라인으로</p>
+                    </div>
+                    <div class="course-card-footer">
+                        <p class="course-detail-title">라이브 + VOD + 1:1 피드백 + TEST 관리까지 1년 전 과정 포함</p>
+                        <div class="course-meta"><span>🕐 연말까지만 수강</span><span>👤 매달 10명 소수정예 모집</span></div>
+                        <div class="course-meta"><span>📅 2026년 7월 1일 ~ 2026년 8월 31일</span></div>
+                        <div class="course-price-wrap">
+                            <span class="course-price-original">6,000,000원</span>
+                            <span class="course-price">4,000,000원</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="course-card course-card-navy">
+                    <div class="course-card-inner">
+                        <div class="course-tags"><span class="tag tag-live">특강</span></div>
+                        <p class="course-sub">연세대 수시논술 실전 대비</p>
+                        <h3 class="course-name">연세대 수시논술 특강</h3>
+                        <p class="course-desc">출제 패턴 집중 분석 · 단기 완성</p>
+                    </div>
+                    <div class="course-card-footer">
+                        <p class="course-detail-title">연세대 수시논술 출제 유형 심화 분석 및 실전 답안 작성 훈련</p>
+                        <div class="course-meta"><span>🕐 수강기간 3개월</span><span>👤 소수정예 모집</span></div>
+                        <div class="course-meta"><span>📅 2026년 7월 1일 ~ 2026년 8월 31일</span></div>
+                        <div class="course-price-wrap"><span class="course-price">600,000원</span></div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
+    <section class="courses-notice-section">
+        <div class="site-container">
+            <div class="courses-notice">
+                <p>TEST를 통해 현재 실력과 학습 가능성을 확인한 뒤,</p>
+                <p>관리 가능한 학생만 선발합니다.</p>
+                <p>연고대 편입논술을 혼자 준비하기 어렵다고 느꼈다면</p>
+                <p>먼저 입학 TEST부터 신청해보시기 바랍니다.</p>
+                <button class="test-apply-btn" onclick="openTestModal()">프리미엄 소수정예반 사전 진단 TEST 신청</button>
+            </div>
+        </div>
+    </section>
+
+    <div class="tsa-gold-bar"></div>
+    <!-- 시안 A: 다크 수평 배너 (텍스트 좌 / 버튼 우) -->
+    <section class="tsa-section">
+        <div class="tsa-inner">
+            <div class="tsa-text">
+                <p>TEST를 통해 현재 실력과 학습 가능성을 확인한 뒤,<br>관리 가능한 학생만 선발합니다.<br>연고대 편입논술을 혼자 준비하기 어렵다고 느꼈다면<br>먼저 입학 TEST부터 신청해보시기 바랍니다.</p>
+            </div>
+            <div class="tsa-vline"></div>
+            <div class="tsa-cta">
+                <button class="tsa-btn" onclick="openTestModal()">프리미엄 소수정예반<br>사전 진단 TEST 신청</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 시안 B: 골드 상단 바 + 중앙 정렬 + 오프셋 아웃라인 버튼 -->
+    <div class="tsa-gold-bar"></div>
+    <section class="tsb-section">
+        <div class="tsb-inner">
+            <div class="tsb-text">
+                <p>TEST를 통해 현재 실력과 학습 가능성을 확인한 뒤,</p>
+                <p>관리 가능한 학생만 선발합니다.</p>
+                <p>연고대 편입논술을 혼자 준비하기 어렵다고 느꼈다면</p>
+                <p>먼저 입학 TEST부터 신청해보시기 바랍니다.</p>
+            </div>
+            <button class="tsb-btn" onclick="openTestModal()">프리미엄 소수정예반 사전 진단 TEST 신청</button>
+        </div>
+    </section>
 
     <!-- TEST 신청 모달 -->
     <div id="testModal" class="test-modal-overlay" onclick="closeTestModal(event)">
@@ -2864,36 +2941,29 @@
         </div>
     </div>
 
-    <!-- 수강 후기 섹션 -->
-    <section class="reviews reviews-sp">
-        <div class="site-container"><h2 class="reviews-title">수강 후기</h2></div>
+    <section class="reviews">
+        <div class="site-container"><h2 class="reviews-title">클래스 후기</h2></div>
         <div class="reviews-track-wrapper">
-            <div class="reviews-track" id="reviewsTrack2"></div>
+            <div class="reviews-track" id="reviewsTrack"></div>
         </div>
     </section>
 
-    <section class="enroll-section">
+    <section class="faq">
         <div class="site-container">
-            <div class="enroll-inner">
-                <div class="enroll-info">
-                    <p class="enroll-tag">수강신청</p>
-                    <h2 class="enroll-title"><span class="enroll-gold">[2027]</span> 황성찬T 연세대 수시 특강</h2>
-                    <ul class="enroll-list">
-                        <li>연세대 수시논술 특강 강의</li>
-                        <li>강사 + 합격자 답안작성구조도 제공</li>
-                        <li>연고대 편입논술과 연결되는 수시논술 학습 방향 제시</li>
-                    </ul>
-                </div>
-                <div class="enroll-bottom">
-                    <span class="enroll-price">수업료 <strong>600,000원</strong></span>
-                    <a href="#" class="enroll-btn">수강신청</a>
-                </div>
-            </div>
+            <h2 class="faq-title">자주 묻는 질문</h2>
+            <div class="faq-list" id="faqList"></div>
+        </div>
+    </section>
+
+    <section class="cta">
+        <div class="site-container">
+            <h2 class="cta-title">현강을 듣지 못해도<br>연고대 합격할 수 있는<br>시스템으로 준비했습니다.</h2>
+            <p class="cta-sub">연고대 편입논술 전문학원의 관리 시스템을 온라인으로</p>
+            <a onclick="showPage('category'); return false;" class="cta-btn" style="cursor:pointer">클래스 바로가기</a>
         </div>
     </section>
 
     <footer class="footer">
-        <div class="site-container">
         <div class="footer-top">
             <div>
                 <span class="footer-logo">DOCKTEACHER</span>
@@ -2911,7 +2981,7 @@
                 <div class="footer-col-title">메뉴</div>
                 <ul class="footer-links">
                     <li><a onclick="showPage('notice'); return false;" style="cursor:pointer">공지사항</a></li>
-                    <li><a href="lecture.html" style="cursor:pointer">강의 소개</a></li>
+                    <li><a onclick="showPage('lecture'); return false;" style="cursor:pointer">강의 소개</a></li>
                     <li><a onclick="showPage('category'); return false;" style="cursor:pointer">클래스</a></li>
                     <li><a onclick="showPage('textbook'); return false;" style="cursor:pointer">교재 구매</a></li>
                 </ul>
@@ -2926,7 +2996,7 @@
         </div>
         <div class="footer-bottom">
             <span class="footer-copy">Copyright ⓒ 독편사편입학원 All Right Reserved</span>
-        </div>
+            <div class="footer-socials"><a href="#">𝕏</a><a href="#">📷</a></div>
         </div>
     </footer>
 

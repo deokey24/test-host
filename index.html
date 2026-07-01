@@ -329,8 +329,12 @@
     100% { transform: translateX(-50%); }
   }
   @media (max-width: 600px) {
-    .cert-slider { margin: 32px -20px; }
-    .cert-card { flex: 0 0 160px; }
+    .cert-slider { margin: 28px -20px; }
+    .cert-card { flex: 0 0 145px; }
+  }
+  @media (max-width: 480px) {
+    .cert-slider { margin: 24px -16px; }
+    .cert-card { flex: 0 0 120px; }
   }
 
   /* ── 특징 4가지 ── */
@@ -1973,6 +1977,7 @@
 
   @media (max-width: 900px) {
     .cd-top { grid-template-columns: 1fr; padding: 40px 20px 40px; }
+    .cd-banner-inner-grid { padding: 40px 24px; }
     .cd-banner-card { display: none; }
     .cd-panel { position: static; }
     .cd-tabs-wrap { padding: 0 20px; }
@@ -2177,6 +2182,7 @@
   .faq-item.open .faq-a { display: block; }
 
   @media (max-width: 900px) {
+    .why-section { padding: 60px 24px; }
     .why-grid { grid-template-columns: repeat(2, 1fr); }
     .diff-grid { grid-template-columns: repeat(2, 1fr); }
     .intro-section { padding: 60px 24px; gap: 32px; }

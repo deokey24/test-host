@@ -65,7 +65,7 @@
     filter: none;
     background-size: contain;
     background-repeat: no-repeat;
-    background-position: 75% center;
+    background-position: 88% center;
 }
 .hero-overlay {
     display: none;
@@ -77,21 +77,66 @@
     transform: translateY(-50%);
     z-index: 2;
     pointer-events: none;
-    display: grid;
-    grid-template-columns: auto auto;
-    column-gap: 1.5rem;
-    row-gap: 0.4rem;
+    display: flex;
+    flex-direction: row;
     align-items: center;
+    gap: 2.5rem;
 }
-.hto-top-left,
-.hto-top-right,
-.hto-mid-left,
-.hto-mid-right {
+.hto-left {
+    display: flex;
+    flex-direction: column;
+}
+.hto-year {
     color: #ffffff;
-    font-weight: 900;
+    font-size: 1.56rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    margin-bottom: 2px;
+}
+.hto-name {
+    color: #fff;
     font-size: 4.5rem;
+    font-weight: 900;
     line-height: 1;
     letter-spacing: -0.02em;
+}
+.hto-subtitle {
+    color: #fff;
+    font-size: 2.4rem;
+    font-weight: 800;
+    margin-top: 4px;
+}
+.hto-blue {
+    color: #4A78FF;
+}
+.hto-vline {
+    width: 1px;
+    height: 90px;
+    background: rgba(255,255,255,0.3);
+    flex-shrink: 0;
+}
+.hto-right {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.hto-point {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 500;
+    line-height: 1.4;
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+}
+.hto-bullet {
+    color: #4A78FF;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.hero-photo-right {
+    display: none;
 }
 .hero-btn {
     font-weight: 600;
@@ -299,31 +344,27 @@
 }
 .sp-info-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 64px;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 40px;
     align-items: center;
 }
 .sp-book-stack {
-    position: relative;
-    height: 280px;
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    align-items: flex-start;
 }
 .sp-book {
-    position: absolute;
-    width: 39.6%;
+    flex: 1;
+    width: 0;
     border-radius: 6px;
     box-shadow: 0 10px 36px rgba(0,0,0,0.18);
 }
 .sp-book-1 {
-    top: -10%;
-    left: 50%;
-    transform: translateX(-105%) rotate(-5deg);
-    z-index: 1;
+    /* 첫 번째 이미지 */
 }
 .sp-book-2 {
-    top: -2%;
-    left: 50%;
-    transform: translateX(-15%) rotate(4deg);
-    z-index: 2;
+    /* 두 번째 이미지 */
 }
 .sp-features-wrap {
     position: relative;
@@ -386,7 +427,10 @@
         grid-template-columns: 1fr;
     }
     .sp-book-stack {
-        height: 340px;
+        gap: 8px;
+    }
+    .sp-side-box {
+        display: none;
     }
 }
 
@@ -824,6 +868,9 @@
     .lp-price-card { padding: 28px 20px; }
     .lp-feature { padding: 18px 16px 18px 14px; }
 }
+@media (max-width: 480px) {
+    .cert-grid { max-width: 220px; }
+}
 
 /* ── 수강신청 섹션 ── */
 .enroll-section {
@@ -934,8 +981,79 @@
         padding-top: 24px;
         width: 100%;
         justify-content: space-between;
+        margin-right: 0;
     }
     .enroll-btn {
         white-space: nowrap;
+    }
+    /* 히어로: 텍스트 좌 / 이미지 우 2열 레이아웃 */
+    .hero {
+        height: auto;
+        min-height: 220px;
+        padding: 60px 0 36px;
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+        overflow: hidden;
+    }
+    .hero-slides {
+        display: none !important;
+    }
+    .hero-text-overlay {
+        position: relative;
+        left: unset;
+        top: unset;
+        transform: none;
+        z-index: unset;
+        flex: 1;
+        padding-left: 24px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0;
+        align-self: center;
+    }
+    .hto-vline,
+    .hto-right {
+        display: none;
+    }
+    .hto-name {
+        font-size: 2.2rem;
+    }
+    .hto-subtitle {
+        font-size: 1.2rem;
+        margin-top: 8px;
+    }
+    .hero-photo-right {
+        display: block;
+        width: 42%;
+        align-self: stretch;
+        object-fit: cover;
+        object-position: top center;
+        flex-shrink: 0;
+    }
+}
+@media (max-width: 600px) {
+    .lp-vid-text {
+        padding: 32px 20px 28px;
+    }
+    .footer {
+        padding: 48px 0 24px;
+    }
+}
+@media (max-width: 480px) {
+    .hto-name {
+        font-size: 1.8rem;
+    }
+    .hto-subtitle {
+        font-size: 1rem;
+    }
+    .hero-text-overlay {
+        padding-left: 16px;
+    }
+    .hero-photo-right {
+        width: 40%;
+    }
+    .lp-vid-text {
+        padding: 24px 16px 20px;
     }
 }
