@@ -1326,6 +1326,157 @@ body {
     color: rgba(255, 255, 255, 0.7) !important;
 }
 
+/* ── 로그인 / 회원가입 모달 ── */
+.tm-submit-btn-gold { background: #fff; color: #111; }
+.tm-submit-btn-gold:hover { background: #e5e5e5; }
+.tm-submit-btn:disabled { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.3); cursor: not-allowed; }
+.tm-submit-btn:disabled:hover { background: rgba(255,255,255,0.08); }
+
+.su-error-msg {
+    color: #ff6b6b;
+    font-size: 13px;
+    margin: -6px 0 14px;
+}
+
+.su-steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 32px;
+}
+.su-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+    font-weight: 600;
+}
+.su-step span {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+}
+.su-step.active { color: #fff; }
+.su-step.active span { background: rgba(255,255,255,0.9); color: #111; }
+.su-step.done span { background: #fff; color: #111; }
+.su-step-line { width: 28px; height: 1px; background: rgba(255,255,255,0.15); }
+
+.su-agree-block { margin-bottom: 20px; }
+.chk-all, .chk-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.8);
+    cursor: pointer;
+    padding: 10px 0;
+}
+.chk-all { border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 16px; font-size: 15px; }
+.chk-all input, .chk-row input {
+    accent-color: #fff;
+    width: 17px; height: 17px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+.chk-row strong { color: #fff; font-weight: 700; font-size: 12px; }
+
+.su-doc-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 4px;
+    padding: 14px 16px;
+    max-height: 140px;
+    overflow-y: auto;
+    font-size: 12px;
+    line-height: 1.8;
+    color: rgba(255,255,255,0.45);
+    white-space: pre-line;
+    margin-top: 4px;
+}
+
+.su-tabs {
+    display: flex;
+    gap: 2px;
+    margin-top: 8px;
+}
+.su-tab {
+    flex: 1;
+    text-align: center;
+    font-size: 11px;
+    padding: 8px 4px;
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.45);
+    cursor: pointer;
+    border-radius: 4px 4px 0 0;
+}
+.su-tab.active { background: rgba(255,255,255,0.12); color: #fff; font-weight: 700; }
+
+.su-field-row { display: flex; gap: 8px; align-items: flex-start; }
+.su-field-row .tm-input { flex: 1; }
+.su-btn-inline {
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.85);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    font-size: 13px;
+    padding: 0 14px;
+    height: 44px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.su-btn-inline:hover { background: rgba(255,255,255,0.14); }
+
+.su-check-msg { font-size: 12px; margin-top: 6px; }
+.su-check-msg.ok { color: #6fcf97; }
+.su-check-msg.bad { color: #ff6b6b; }
+
+.su-channel-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 16px;
+}
+.su-channel-label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: rgba(255,255,255,0.7);
+    cursor: pointer;
+}
+.su-channel-label input { accent-color: #fff; width: 15px; height: 15px; cursor: pointer; }
+
+.su-radio-inline { display: flex; gap: 20px; }
+.su-radio-inline label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 14px; color: rgba(255,255,255,0.7);
+    cursor: pointer;
+}
+.su-radio-inline input { accent-color: #fff; width: 15px; height: 15px; cursor: pointer; }
+
+.su-btn-row { display: flex; gap: 10px; margin-top: 28px; }
+.su-btn-row .tm-submit-btn { margin-top: 0; }
+.su-btn-secondary {
+    background: rgba(255,255,255,0.06) !important;
+    color: rgba(255,255,255,0.7) !important;
+}
+.su-btn-secondary:hover { background: rgba(255,255,255,0.1) !important; }
+
+.su-success-icon {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    font-size: 30px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 24px;
+}
+
+@media (max-width: 560px) {
+    .su-channel-group { grid-template-columns: 1fr; }
+}
+
 /* ═══════════════════════════
    FAQ
 ═══════════════════════════ */

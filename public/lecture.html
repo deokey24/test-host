@@ -22,6 +22,7 @@
     <link href="https://cdn.jsdelivr.net/gh/orioncactus/suit@v1.0.6/packages/suit/dist/suit.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Nanum+Brush+Script&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="lecture.css">
     <style>
       :root {
         --gold: #C9A84C;
@@ -305,13 +306,14 @@
   }
   .cert-track {
     display: flex;
-    gap: 16px;
+    gap: 0;
     width: max-content;
     animation: certScroll 28s linear infinite;
   }
   .cert-track:hover { animation-play-state: paused; }
   .cert-card {
-    flex: 0 0 220px;
+    flex: 0 0 264px;
+    margin-right: 16px;
     border-radius: 10px;
     overflow: hidden;
     aspect-ratio: 3 / 4;
@@ -329,12 +331,8 @@
     100% { transform: translateX(-50%); }
   }
   @media (max-width: 600px) {
-    .cert-slider { margin: 28px -20px; }
-    .cert-card { flex: 0 0 145px; }
-  }
-  @media (max-width: 480px) {
-    .cert-slider { margin: 24px -16px; }
-    .cert-card { flex: 0 0 120px; }
+    .cert-slider { margin: 32px -20px; }
+    .cert-card { flex: 0 0 192px; }
   }
 
   /* ── 특징 4가지 ── */
@@ -1975,9 +1973,24 @@
   .badge-exam { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
   .cd-check { color: #ccc; font-size: 16px; }
 
+  /* 챕터 상세 (강좌 개요 / 수강 대상 / 세부 목차) */
+  .cd-chapter-detail {
+    padding: 16px 18px; border-top: 1px solid #f0f0f0;
+    font-size: 13px; color: #666; line-height: 1.8; background: #fcfcfb;
+  }
+  .cd-chapter-detail p { margin: 0 0 10px; }
+  .cd-chapter-detail p:last-child { margin-bottom: 0; }
+  .cd-chapter-detail strong { color: var(--dark); }
+  .cd-chapter-detail ul { margin: 0 0 12px; padding-left: 18px; }
+  .cd-chapter-detail ul:last-child { margin-bottom: 0; }
+  .cd-chapter-detail li { margin-bottom: 4px; }
+  .cd-chapter-part {
+    font-weight: 700; color: var(--dark); margin: 14px 0 6px; font-size: 13px;
+  }
+  .cd-chapter-part:first-of-type { margin-top: 0; }
+
   @media (max-width: 900px) {
     .cd-top { grid-template-columns: 1fr; padding: 40px 20px 40px; }
-    .cd-banner-inner-grid { padding: 40px 24px; }
     .cd-banner-card { display: none; }
     .cd-panel { position: static; }
     .cd-tabs-wrap { padding: 0 20px; }
@@ -2182,7 +2195,6 @@
   .faq-item.open .faq-a { display: block; }
 
   @media (max-width: 900px) {
-    .why-section { padding: 60px 24px; }
     .why-grid { grid-template-columns: repeat(2, 1fr); }
     .diff-grid { grid-template-columns: repeat(2, 1fr); }
     .intro-section { padding: 60px 24px; gap: 32px; }
@@ -2639,7 +2651,7 @@
     <!-- Navigation -->
     <header class="navbar" id="navbar">
         <div class="nav-container">
-            <a href="#" class="nav-logo" onclick="showPage('home'); return false;">DOCKTEACHER</a>
+            <a href="index.html" class="nav-logo">DOCKTEACHER</a>
             <nav class="nav-links">
                 <a onclick="showPage('notice'); return false;" style="cursor:pointer">공지사항</a>
                 <a href="lecture.html" style="cursor:pointer">강의 소개</a>
@@ -2647,7 +2659,7 @@
                 <a onclick="showPage('textbook'); return false;" style="cursor:pointer">교재 구매</a>
             </nav>
             <div class="nav-actions">
-                <button class="btn-login" onclick="doLogin()">로그인</button>
+                <button class="btn-login" onclick="openLoginModal()">로그인</button>
                 <div class="user-menu" id="userMenu">
                     <button class="btn-mypage">마이페이지</button>
                     <div class="user-dropdown">
@@ -2673,163 +2685,110 @@
 
     <section class="hero">
         <div class="hero-slides">
-            <div class="hero-slide" style="background-image: url('https://img.wecandoeat.com/hsc/IMG_20260609_151358.png')"></div>
+            <div class="hero-slide" style="background-image: url('images/hsc.jpg')"></div>
         </div>
-        <div class="hero-overlay"></div>
-        <div class="site-container">
-            <div class="hero-content">
-                <h1 class="hero-title">결과로 증명하는<br>프리미엄 편입 논술</h1>
-                <a href="lecture.html" class="hero-btn" style="cursor:pointer">강좌 소개 살펴보기 <span>→</span></a>
+        <div class="hero-text-overlay">
+            <div class="hto-left">
+                <span class="hto-year">황성찬T의 2027</span>
+                <span class="hto-subtitle"><span class="hto-blue">연세대 수시논술 특강</span></span>
+            </div>
+            <div class="hto-vline"></div>
+            <div class="hto-right">
+                <p class="hto-point"><span class="hto-bullet">-</span>연세대 수시논술만의 특화된 분석법</p>
+                <p class="hto-point"><span class="hto-bullet">-</span>강사 + 합격자 답안작성구조도 제공</p>
+                <p class="hto-point"><span class="hto-bullet">-</span>연고대 편입논술과 연결되는 수시논술 학습 방향 제시</p>
             </div>
         </div>
-    </section>
-
-    <section class="mission">
-        <div class="site-container">
-            <h2 class="mission-title">대한민국 최초 연고대 편입<br>소수정예 관리형 VOD</h2>
-        </div>
+        <img class="hero-photo-right" src="images/hsc.jpg" alt="황성찬 선생님">
     </section>
 
     <section class="social-proof" id="social-proof">
-        <div class="cards-track-wrapper" id="cardsWrapper">
-            <div class="cards-track" id="cardsTrack"></div>
+        <div class="site-container" style="text-align:center; margin-bottom:8px;">
+            <h1 style="color:#fff; font-size:clamp(1.6rem,3.5vw,2.6rem); font-weight:800; line-height:1.4; text-align:center;">연고대 편입 준비생이라면,<br>연세대 수시논술도 전략입니다</h1>
+        </div>
+        <div class="cert-slider" style="margin: 32px 0;">
+            <div class="cert-track">
+                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/1.png" alt="합격증 1"></div>
+                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/2.png" alt="합격증 2"></div>
+                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/3.png" alt="합격증 3"></div>
+                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/4.png" alt="합격증 4"></div>
+                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/5.png" alt="합격증 5"></div>
+                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/1.png" alt="합격증 1"></div>
+                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/2.png" alt="합격증 2"></div>
+                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/3.png" alt="합격증 3"></div>
+                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/4.png" alt="합격증 4"></div>
+                <div class="cert-card"><img src="https://cdn.dockteacher.co.kr/courses/001/5.png" alt="합격증 5"></div>
+            </div>
+        </div>
+        <div class="site-container" style="text-align:center; margin-top:8px;">
+            <h1 style="color:#fff; font-size:clamp(1.4rem,3vw,2.2rem); font-weight:700; line-height:1.5; text-align:center;">편입논술로 훈련한 독해력과 사고력을<br>연세대 수시논술 답안 구조로 연결해드립니다.</h1>
         </div>
     </section>
 
-    <section class="results-proof">
+    <!-- 답안작성구조도 섹션 -->
+    <section class="sp-info">
         <div class="site-container">
-
-            <!-- 시안 3: SVG 선형 그래프 -->
-            <div class="rp-chart">
-                <div class="rp-chart-bottom">
-                    <h2 class="rp-title" style="margin-bottom:16px;">
-                        <span class="rp-white">강사가 아니라,</span><br>
-                        <span class="rp-green">결과로 먼저 증명합니다.</span>
-                    </h2>
-                    <div class="rp-chart-label">1차 합격자가 아닌 연세대/고려대 최종합격자 수치입니다.<br>거짓없이 보여드립니다.</div>
+            <h1 class="sp-info-title">황성찬T가 설계한 답안작성구조도 하나로<br>합격 답안의 방향을 잡습니다.</h1>
+            <div class="sp-info-grid">
+                <div class="sp-book-stack">
+                    <img src="https://cdn.dockteacher.co.kr/courses/001/%EB%8B%B5%EC%95%88%EC%9E%91%EC%84%B1%EA%B5%AC%EC%A1%B0%EB%8F%84%20%ED%91%9C%EC%A7%80.png" class="sp-book sp-book-1" alt="답안작성구조도 표지">
+                    <img src="https://cdn.dockteacher.co.kr/courses/001/%EB%8B%B5%EC%95%88%EC%9E%91%EC%84%B1%EA%B5%AC%EC%A1%B0%EB%8F%84%20%EB%82%B4%EC%A7%801.png" class="sp-book sp-book-2" alt="답안작성구조도 내지1">
+                    <img src="https://cdn.dockteacher.co.kr/courses/001/%EB%8B%B5%EC%95%88%EC%9E%91%EC%84%B1%EA%B5%AC%EC%A1%B0%EB%8F%84%20%EB%82%B4%EC%A7%802.png" class="sp-book sp-book-3" alt="답안작성구조도 내지2">
                 </div>
-                <div class="rp-linechart-wrap">
-                    <svg viewBox="0 -30 700 255" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <defs>
-                            <linearGradient id="lineAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#C9A84C" stop-opacity="0.25"/>
-                                <stop offset="100%" stop-color="#C9A84C" stop-opacity="0"/>
-                            </linearGradient>
-                        </defs>
-                        <!-- 그리드 라인 -->
-                        <line x1="60" y1="20" x2="650" y2="20"  stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
-                        <line x1="60" y1="70" x2="650" y2="70"  stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
-                        <line x1="60" y1="120" x2="650" y2="120" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
-                        <line x1="60" y1="170" x2="650" y2="170" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
-                        <!-- 영역 채우기 -->
-                        <path class="rp-line-area" d="M 110,158 L 290,72 L 460,50 L 620,20 L 620,170 L 110,170 Z" fill="url(#lineAreaGrad)"/>
-                        <!-- 선 -->
-                        <path class="rp-line-path" d="M 110,158 L 290,72 L 460,50 L 620,20"/>
-                        <!-- 점 + 레이블 (2023) -->
-                        <g class="rp-line-dot">
-                            <circle cx="110" cy="158" r="5" fill="#C9A84C"/>
-                            <circle cx="110" cy="158" r="9" fill="none" stroke="#C9A84C" stroke-opacity="0.3" stroke-width="1.5"/>
-                            <text x="110" y="145" text-anchor="middle" font-size="18" fill="#ffffff" class="rp-line-label">47명</text>
-                            <text x="110" y="195" text-anchor="middle" font-size="17" fill="#ffffff" class="rp-line-label">2023</text>
-                        </g>
-                        <!-- 점 + 레이블 (2024) -->
-                        <g class="rp-line-dot">
-                            <circle cx="290" cy="72" r="5" fill="#C9A84C"/>
-                            <circle cx="290" cy="72" r="9" fill="none" stroke="#C9A84C" stroke-opacity="0.3" stroke-width="1.5"/>
-                            <text x="290" y="59" text-anchor="middle" font-size="18" fill="#ffffff" class="rp-line-label">74명</text>
-                            <text x="290" y="195" text-anchor="middle" font-size="17" fill="#ffffff" class="rp-line-label">2024</text>
-                        </g>
-                        <!-- 점 + 레이블 (2025) -->
-                        <g class="rp-line-dot">
-                            <circle cx="460" cy="50" r="5" fill="#C9A84C"/>
-                            <circle cx="460" cy="50" r="9" fill="none" stroke="#C9A84C" stroke-opacity="0.3" stroke-width="1.5"/>
-                            <text x="460" y="37" text-anchor="middle" font-size="18" fill="#ffffff" class="rp-line-label">80명</text>
-                            <text x="460" y="195" text-anchor="middle" font-size="17" fill="#ffffff" class="rp-line-label">2025</text>
-                        </g>
-                        <!-- 점 + 레이블 (2026) -->
-                        <g class="rp-line-dot">
-                            <circle cx="620" cy="20" r="6" fill="#F97316"/>
-                            <circle cx="620" cy="20" r="11" fill="none" stroke="#F97316" stroke-opacity="0.35" stroke-width="1.5"/>
-                            <text x="620" y="7" text-anchor="middle" font-size="18" font-weight="700" fill="#ffffff" class="rp-line-label">88명</text>
-                            <text x="620" y="195" text-anchor="middle" font-size="17" fill="#ffffff" class="rp-line-label">2026</text>
-                        </g>
-                    </svg>
+                <div class="sp-features-wrap">
+                <div class="sp-features">
+                    <div class="sp-feature">
+                        <h3 class="sp-feature-title">✔ 연세대 수시논술만의 특화된 분석법</h3>
+                        <ul class="sp-feature-list">
+                            <li>연고대 편입논술과는 결이 다른 연세대 수시논술의 출제 구조 분석</li>
+                            <li>수시논술에서 요구하는 제시문 독해, 논제 분석, 답안 구성 방식 정리</li>
+                        </ul>
+                    </div>
+                    <div class="sp-feature">
+                        <h3 class="sp-feature-title">✔ 황성찬T의 사고과정이 담긴 강사답안 분석서 제공</h3>
+                        <ul class="sp-feature-list">
+                            <li>단순한 모범답안이 아니라, 강사가 어떻게 읽고 판단했는지까지 담은 분석서</li>
+                            <li>제시문 해석부터 문단 구성, 문장 전개까지 사고 흐름을 단계별로 제시</li>
+                        </ul>
+                    </div>
+                    <div class="sp-feature">
+                        <h3 class="sp-feature-title">✔ 시험장에서 적용 가능한 답안작성구조도 제공</h3>
+                        <ul class="sp-feature-list">
+                            <li>무엇을 읽고, 어떤 기준으로 나누고, 어떤 순서로 써야 하는지 구조화</li>
+                            <li>해설을 듣고 끝나는 것이 아니라, 실제 답안으로 옮길 수 있는 작성 틀 제공</li>
+                        </ul>
+                    </div>
                 </div>
-                <p class="rp-footer" style="margin-top:32px;">독편논의 결과는 강의, 기출 분석, 모의고사, 첨삭, 피드백 시스템이 함께 작동했을 때만 만들어집니다.</p>
+                <div class="sp-side-box">
+                    <span>특강 수강 시,</span>
+                    <span>합격 답안 구조</span>
+                    <span>무료 제공</span>
+                </div>
+                </div>
             </div>
-
         </div>
     </section>
 
-    <section class="courses">
+    <!-- 영상 섹션 -->
+    <section class="lp-vid-section">
+        <img src="images/banner_1.jpg" class="lp-vid-bg-left" alt="">
+        <img src="images/banner_4.jpg" class="lp-vid-bg-right" alt="">
         <div class="site-container">
-            <h2 class="courses-title">연고대 편입논술 전문학원의 시스템을<br>온라인으로 옮겼습니다</h2>
-            <div class="courses-grid">
-                <div class="course-card">
-                    <div class="course-card-inner">
-                        <div class="course-tags"><span class="tag tag-vod">VOD</span></div>
-                        <p class="course-sub">진도에 맞춰 빠르게 따라오는 보강 강의</p>
-                        <h3 class="course-name">진도보강강의</h3>
-                        <p class="course-desc">놓친 개념, 한 번에 잡아드립니다</p>
-                    </div>
-                    <div class="course-card-footer">
-                        <p class="course-detail-title">진도 흐름을 유지하면서 부족한 부분을 집중 보완하는 VOD 강의</p>
-                        <div class="course-meta"><span>🕐 수강기간 무제한</span><span>👤 인원무제한</span></div>
-                        <div class="course-meta"><span>📅 모집기간 무제한</span></div>
-                        <div class="course-price-wrap"><span class="course-price">300,000원</span></div>
-                    </div>
-                </div>
-                <div class="course-card">
-                    <div class="course-card-inner">
-                        <div class="course-tags">
-                            <span class="tag tag-sale">초특가</span>
-                            <span class="tag tag-live">LIVE·VOD</span>
-                        </div>
-                        <p class="course-sub">1년 단위 올인원 · 소수정예 관리</p>
-                        <h3 class="course-name">올인원 소수정예</h3>
-                        <p class="course-desc">학원 시스템 그대로, 온라인으로</p>
-                    </div>
-                    <div class="course-card-footer">
-                        <p class="course-detail-title">라이브 + VOD + 1:1 피드백 + TEST 관리까지 1년 전 과정 포함</p>
-                        <div class="course-meta"><span>🕐 연말까지만 수강</span><span>👤 매달 10명 소수정예 모집</span></div>
-                        <div class="course-meta"><span>📅 2026년 7월 1일 ~ 2026년 8월 31일</span></div>
-                        <div class="course-price-wrap">
-                            <span class="course-price-original">6,000,000원</span>
-                            <span class="course-price">4,000,000원</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="course-card course-card-navy" onclick="location.href='lecture.html'" style="cursor:pointer">
-                    <div class="course-card-inner">
-                        <div class="course-tags"><span class="tag tag-live">특강</span></div>
-                        <p class="course-sub">연세대 수시논술 실전 대비</p>
-                        <h3 class="course-name">연세대 수시논술 특강</h3>
-                        <p class="course-desc">출제 패턴 집중 분석 · 단기 완성</p>
-                    </div>
-                    <div class="course-card-footer">
-                        <p class="course-detail-title">연세대 수시논술 출제 유형 심화 분석 및 실전 답안 작성 훈련</p>
-                        <div class="course-meta"><span>🕐 수강기간 3개월</span><span>👤 소수정예 모집</span></div>
-                        <div class="course-meta"><span>📅 2026년 7월 1일 ~ 2026년 8월 31일</span></div>
-                        <div class="course-price-wrap"><span class="course-price">600,000원</span></div>
+            <div class="lp-vid-player">
+                <div class="lp-vid-thumbnail">
+                    <div class="lp-vid-text">
+                        <p class="lp-vid-sub">합격자가 나올 수밖에 없는 연세대 수시논술 강의</p>
+                        <h2 class="lp-vid-main"><span class="lp-vid-blue">출제 메커니즘</span>을 완벽히 분석했습니다.</h2>
+                        <div class="lp-vid-divider"></div>
+                        <p class="lp-vid-course">"황성찬T의 2027 연세대 수시논술 특강"</p>
+                        <p class="lp-vid-proof">실제 <span class="lp-vid-blue">합격후기</span>와 <span class="lp-vid-blue">수업후기</span>가 증명합니다.</p>
+                        <button class="lp-vid-play">&#9654;</button>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- 시안 B: 골드 상단 바 + 중앙 정렬 + 오프셋 아웃라인 버튼 -->
-    <div class="tsa-gold-bar"></div>
-    <section class="tsb-section">
-        <div class="tsb-inner">
-            <div class="tsb-text">
-                <p>TEST를 통해 현재 실력과 학습 가능성을 확인한 뒤,</p>
-                <p>관리 가능한 학생만 선발합니다.</p>
-                <p>연고대 편입논술을 혼자 준비하기 어렵다고 느꼈다면</p>
-                <p>먼저 입학 TEST부터 신청해보시기 바랍니다.</p>
-            </div>
-            <button class="tsb-btn" onclick="openTestModal()">프리미엄 소수정예반 사전 진단 TEST 신청</button>
-        </div>
-    </section>
 
     <!-- TEST 신청 모달 -->
     <div id="testModal" class="test-modal-overlay" onclick="closeTestModal(event)">
@@ -2921,29 +2880,187 @@
         </div>
     </div>
 
-    <section class="reviews">
-        <div class="site-container"><h2 class="reviews-title">클래스 후기</h2></div>
+    <!-- 로그인 모달 -->
+    <div id="loginModal" class="test-modal-overlay" onclick="closeLoginModal(event)">
+        <div class="test-modal-box" style="max-width:420px;">
+            <button class="test-modal-close" onclick="closeLoginModal()">✕</button>
+            <h3 class="test-modal-title" style="text-align:center;">로그인</h3>
+            <div class="test-modal-divider" style="margin:0 auto 28px; background:rgba(255,255,255,0.5);"></div>
+            <form id="loginForm" onsubmit="submitLoginForm(event)">
+                <div class="tm-field">
+                    <label class="tm-label">아이디</label>
+                    <input type="text" class="tm-input" id="loginUsername" placeholder="아이디를 입력해주세요" autocomplete="username" required>
+                </div>
+                <div class="tm-field">
+                    <label class="tm-label">비밀번호</label>
+                    <input type="password" class="tm-input" id="loginPassword" placeholder="비밀번호를 입력해주세요" autocomplete="current-password" required>
+                </div>
+                <div class="su-error-msg" id="loginErrorMsg" style="display:none;"></div>
+                <button type="submit" class="tm-submit-btn tm-submit-btn-gold">로그인</button>
+            </form>
+            <div style="text-align:center; margin-top:22px; padding-top:20px; border-top:1px solid rgba(255,255,255,0.08);">
+                <span style="font-size:13px;color:rgba(255,255,255,0.5);">아직 회원이 아니신가요?</span>
+                <a href="#" onclick="event.preventDefault(); closeLoginModal(); openSignupModal();" style="font-size:13px; color:#fff; font-weight:700; margin-left:8px; cursor:pointer;">회원가입</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 회원가입 모달 -->
+    <div id="signupModal" class="test-modal-overlay" onclick="closeSignupModal(event)">
+        <div class="test-modal-box" style="max-width:640px;">
+            <button class="test-modal-close" onclick="closeSignupModal()">✕</button>
+            <h3 class="test-modal-title" style="text-align:center;">회원가입</h3>
+
+            <div class="su-steps">
+                <div class="su-step active" id="suStepDot1"><span>1</span>약관동의</div>
+                <div class="su-step-line"></div>
+                <div class="su-step" id="suStepDot2"><span>2</span>정보입력</div>
+                <div class="su-step-line"></div>
+                <div class="su-step" id="suStepDot3"><span>3</span>가입완료</div>
+            </div>
+
+            <!-- STEP 1: 약관동의 -->
+            <div id="suStep1">
+                <label class="chk-all"><input type="checkbox" id="suAgreeAll" onchange="toggleAgreeAll(this)"> 전체 동의합니다</label>
+
+                <div class="su-agree-block">
+                    <label class="chk-row"><input type="checkbox" id="suAgreeTerms" onchange="checkAgreeState()"> <strong>[필수]</strong> 이용약관 동의</label>
+                    <div class="su-doc-box" id="suTermsDoc"></div>
+                </div>
+
+                <div class="su-agree-block">
+                    <label class="chk-row"><input type="checkbox" id="suAgreePrivacy" onchange="checkAgreeState()"> <strong>[필수]</strong> 개인정보 수집 및 이용 동의</label>
+                    <div class="su-tabs">
+                        <div class="su-tab active" onclick="switchPrivacyTab(this,0)">수집하는 개인정보의 항목</div>
+                        <div class="su-tab" onclick="switchPrivacyTab(this,1)">개인정보의 수집·이용목적</div>
+                        <div class="su-tab" onclick="switchPrivacyTab(this,2)">개인정보의 보유 및 이용기간</div>
+                    </div>
+                    <div class="su-doc-box" id="suPrivacyDoc0"></div>
+                    <div class="su-doc-box" id="suPrivacyDoc1" style="display:none;"></div>
+                    <div class="su-doc-box" id="suPrivacyDoc2" style="display:none;"></div>
+                </div>
+
+                <button type="button" class="tm-submit-btn tm-submit-btn-gold" id="suStep1NextBtn" disabled onclick="goToSuStep(2)">다음</button>
+            </div>
+
+            <!-- STEP 2: 정보입력 -->
+            <div id="suStep2" style="display:none;">
+                <form id="suForm">
+                    <div class="tm-field">
+                        <label class="tm-label">회원아이디 <strong style="color:#fff;">*</strong></label>
+                        <div class="su-field-row">
+                            <input type="text" class="tm-input" id="suUsername" maxlength="20" placeholder="영문자로 시작, 영문자/숫자 5~20자" oninput="usernameCheckedOk=null; document.getElementById('suUsernameMsg').textContent='';">
+                            <button type="button" class="su-btn-inline" onclick="checkUsernameAvailability()">중복확인</button>
+                        </div>
+                        <div class="su-check-msg" id="suUsernameMsg"></div>
+                    </div>
+                    <div class="tm-field">
+                        <label class="tm-label">비밀번호 <strong style="color:#fff;">*</strong></label>
+                        <input type="password" class="tm-input" id="suPassword" maxlength="16" placeholder="영문자, 숫자, 특수문자 포함 8~16자">
+                    </div>
+                    <div class="tm-field">
+                        <label class="tm-label">비밀번호 확인 <strong style="color:#fff;">*</strong></label>
+                        <input type="password" class="tm-input" id="suPassword2" maxlength="16" placeholder="비밀번호를 한 번 더 입력해주세요">
+                    </div>
+                    <div class="tm-field">
+                        <label class="tm-label">이메일 <strong style="color:#fff;">*</strong></label>
+                        <input type="email" class="tm-input" id="suEmail" placeholder="example@email.com">
+                    </div>
+                    <div class="tm-field">
+                        <label class="tm-label">회원명 <strong style="color:#fff;">*</strong></label>
+                        <input type="text" class="tm-input" id="suName" placeholder="이름을 입력해주세요">
+                    </div>
+                    <div class="tm-field">
+                        <label class="tm-label">가입경로</label>
+                        <div class="su-channel-group">
+                            <label class="su-channel-label"><input type="checkbox" name="suChannel" value="학원 재원생"> 학원 재원생</label>
+                            <label class="su-channel-label"><input type="checkbox" name="suChannel" value="지인 등 소개"> 지인 등 소개</label>
+                            <label class="su-channel-label"><input type="checkbox" name="suChannel" value="독편사 카페"> 독편사 카페</label>
+                            <label class="su-channel-label"><input type="checkbox" name="suChannel" value="제휴 거래처"> 제휴 거래처</label>
+                            <label class="su-channel-label"><input type="checkbox" name="suChannel" value="인터넷 검색"> 인터넷 검색</label>
+                            <label class="su-channel-label"><input type="checkbox" name="suChannel" value="언론 기사"> 언론 기사</label>
+                            <label class="su-channel-label"><input type="checkbox" name="suChannel" value="광고 홍보물"> 광고 홍보물</label>
+                            <label class="su-channel-label"><input type="checkbox" name="suChannel" value="기타"> 기타</label>
+                        </div>
+                    </div>
+                    <div class="tm-field">
+                        <label class="tm-label">인터넷 검색 키워드</label>
+                        <input type="text" class="tm-input" id="suSearchKeyword" placeholder="검색 키워드를 입력해주세요">
+                    </div>
+                    <div class="tm-field">
+                        <label class="tm-label">전화번호</label>
+                        <input type="text" class="tm-input" id="suPhone" placeholder="예: 02-1234-5678">
+                    </div>
+                    <div class="tm-field">
+                        <label class="tm-label">핸드폰번호</label>
+                        <input type="text" class="tm-input" id="suMobile" placeholder="예: 010-1234-5678">
+                    </div>
+                    <div class="tm-field">
+                        <label class="tm-label">추천인 코드(추천인명)</label>
+                        <input type="text" class="tm-input" id="suReferrerCode" placeholder="추천인이 있는 경우 입력해주세요">
+                    </div>
+                    <div class="tm-field">
+                        <label class="tm-label">광고성 이메일 수신 동의 <strong style="color:#fff;">*</strong></label>
+                        <div class="su-radio-inline">
+                            <label><input type="radio" name="suEmailConsent" value="0"> 미수신</label>
+                            <label><input type="radio" name="suEmailConsent" value="1"> 수신</label>
+                        </div>
+                    </div>
+                    <div class="tm-field">
+                        <label class="tm-label">광고성 SMS 수신 동의 <strong style="color:#fff;">*</strong></label>
+                        <div class="su-radio-inline">
+                            <label><input type="radio" name="suSmsConsent" value="0"> 미수신</label>
+                            <label><input type="radio" name="suSmsConsent" value="1"> 수신</label>
+                        </div>
+                    </div>
+                </form>
+                <div class="su-error-msg" id="suFormError" style="display:none;"></div>
+                <div class="su-btn-row">
+                    <button type="button" class="tm-submit-btn su-btn-secondary" onclick="goToSuStep(1)">이전</button>
+                    <button type="button" class="tm-submit-btn tm-submit-btn-gold" id="suSubmitBtn" onclick="submitSignup()">가입하기</button>
+                </div>
+            </div>
+
+            <!-- STEP 3: 가입완료 -->
+            <div id="suStep3" style="display:none; text-align:center;">
+                <div class="su-success-icon">✓</div>
+                <h3 class="test-modal-title" style="text-align:center;">가입이 완료되었습니다</h3>
+                <p class="test-modal-body" style="text-align:center;">환영합니다, <strong id="suDoneName" style="color:#fff;"></strong>님!<br>이제 로그인 후 서비스를 이용하실 수 있습니다.</p>
+                <button type="button" class="tm-submit-btn tm-submit-btn-gold" onclick="closeSignupModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 수강 후기 섹션 -->
+    <section class="reviews reviews-sp">
+        <div class="site-container"><h2 class="reviews-title">수강 후기</h2></div>
         <div class="reviews-track-wrapper">
-            <div class="reviews-track" id="reviewsTrack"></div>
+            <div class="reviews-track" id="reviewsTrack2"></div>
         </div>
     </section>
 
-    <section class="faq">
+    <section class="enroll-section">
         <div class="site-container">
-            <h2 class="faq-title">자주 묻는 질문</h2>
-            <div class="faq-list" id="faqList"></div>
-        </div>
-    </section>
-
-    <section class="cta">
-        <div class="site-container">
-            <h2 class="cta-title">현강을 듣지 못해도<br>연고대 합격할 수 있는<br>시스템으로 준비했습니다.</h2>
-            <p class="cta-sub">연고대 편입논술 전문학원의 관리 시스템을 온라인으로</p>
-            <a onclick="showPage('category'); return false;" class="cta-btn" style="cursor:pointer">클래스 바로가기</a>
+            <div class="enroll-inner">
+                <div class="enroll-info">
+                    <p class="enroll-tag">수강신청</p>
+                    <h2 class="enroll-title"><span class="enroll-gold">[2027]</span> 황성찬T 연세대 수시 특강</h2>
+                    <ul class="enroll-list">
+                        <li>연세대 수시논술 특강 강의</li>
+                        <li>강사 + 합격자 답안작성구조도 제공</li>
+                        <li>연고대 편입논술과 연결되는 수시논술 학습 방향 제시</li>
+                    </ul>
+                </div>
+                <div class="enroll-bottom">
+                    <span class="enroll-price">수업료 <strong>600,000원</strong></span>
+                    <a href="#" class="enroll-btn">수강신청</a>
+                </div>
+            </div>
         </div>
     </section>
 
     <footer class="footer">
+        <div class="site-container">
         <div class="footer-top">
             <div>
                 <span class="footer-logo">DOCKTEACHER</span>
@@ -2976,6 +3093,7 @@
         </div>
         <div class="footer-bottom">
             <span class="footer-copy">Copyright ⓒ 독편사편입학원 All Right Reserved</span>
+        </div>
         </div>
     </footer>
 
@@ -3339,6 +3457,31 @@
         </div>
       </div>
 
+      <!-- 카드 9 -->
+      <div class="cp-card" onclick="goToClassDetail('classDetailNew','cdIntroNew','cdCurriculumNew')">
+        <div class="cp-thumb" style="background: linear-gradient(135deg,#0d1b2a 0%,#1a2d40 100%);">
+          <div class="cp-thumb-overlay">
+            <div class="cp-thumb-top">
+              <span class="cp-thumb-category">연고대 편입논술</span>
+              <span class="cp-thumb-badge badge-new">NEW</span>
+            </div>
+            <div>
+              <div class="cp-thumb-title">연고대 편입논술<br>완성 (전 13강)</div>
+              <div class="cp-thumb-subject">편입논술 · 황성찬</div>
+            </div>
+          </div>
+        </div>
+        <div class="cp-body">
+          <div class="cp-name">[연고대 편입논술] 연고대 편입논술 완성 — 독해원리부터 실전 논술까지 (OT+12강)</div>
+          <div class="cp-meta">
+            <div class="cp-meta-row"><span class="cp-meta-label">수강 신청</span><span class="cp-meta-val">상시 모집</span></div>
+            <div class="cp-meta-row"><span class="cp-meta-label">수강 기간</span><span class="cp-meta-val">등록일 ~ 2026.12.31</span></div>
+            <div class="cp-meta-row"><span class="cp-meta-label">모집인원</span><span class="cp-meta-val">인원 무제한</span></div>
+          </div>
+          <div class="cp-price-row"><span class="cp-price">가격 문의</span></div>
+        </div>
+      </div>
+
     </div><!-- /.cp-grid -->
   </div>
 </div><!-- /#classes -->
@@ -3394,8 +3537,8 @@
   <!-- 탭 -->
   <div class="cd-tabs-wrap">
     <div class="cd-tabs">
-      <button class="cd-tab active" onclick="cdTab(this,'cdIntro')">클래스 소개</button>
-      <button class="cd-tab" onclick="cdTab(this,'cdCurriculum')">커리큘럼</button>
+      <button class="cd-tab active" onclick="cdTab(this,'cdIntro','cdCurriculum')">클래스 소개</button>
+      <button class="cd-tab" onclick="cdTab(this,'cdCurriculum','cdIntro')">커리큘럼</button>
     </div>
   </div>
 
@@ -3627,6 +3770,721 @@
   </div><!-- /.cd-content-wrap -->
 </div><!-- /#classDetail -->
 
+<!-- ══ CLASS DETAIL PAGE (연고대 편입논술 완성) ══ -->
+<div id="classDetailNew" class="page">
+
+  <!-- 배너 -->
+  <div class="cd-banner">
+    <div class="cd-banner-inner-grid">
+      <!-- 좌측: 텍스트 -->
+      <div class="cd-banner-left">
+        <span class="cd-banner-tag">대상 : 연세대·고려대 편입논술 준비생</span>
+        <div class="cd-banner-sub">편입논술 완성</div>
+        <div class="cd-banner-title"><span class="accent">연고대 편입논술</span> 완성</div>
+        <div class="cd-banner-instructor">
+          <div class="cd-banner-avatar">
+            <img src="https://img.wecandoeat.com/hsc/hsc.png" alt="황성찬">
+          </div>
+          <div class="cd-banner-inst-info">
+            <span class="cd-banner-inst-label">대표 강사</span>
+            <span class="cd-banner-inst-name">편입논술 | 황성찬 선생님</span>
+          </div>
+        </div>
+      </div>
+      <!-- 우측: 강사 카드 -->
+      <div class="cd-banner-card">
+        <div class="cd-banner-card-img" style="background: linear-gradient(135deg,#0d1b2a 0%,#1a2d40 100%);"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 요약 바 (전체 너비) -->
+  <div style="border-top:1px solid #eee; border-bottom:1px solid #eee; background:var(--white);">
+    <div style="max-width:1100px; margin:0 auto; padding:0 40px; display:flex;">
+      <div class="cd-summary-item" style="flex:1;">
+        <span class="cd-summary-icon">📋</span>
+        <div><div class="cd-summary-label">총 강의수</div><div class="cd-summary-val">13개 강좌 (OT+12강)</div></div>
+      </div>
+      <div class="cd-summary-item" style="flex:1; border-left:1px solid #eee;">
+        <span class="cd-summary-icon">🗓</span>
+        <div><div class="cd-summary-label">커리큘럼</div><div class="cd-summary-val">1년 완성 과정</div></div>
+      </div>
+      <div class="cd-summary-item" style="flex:1; border-left:1px solid #eee;">
+        <span class="cd-summary-icon">🎓</span>
+        <div><div class="cd-summary-label">수료 기준</div><div class="cd-summary-val">진도율 80% 이상</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 탭 -->
+  <div class="cd-tabs-wrap">
+    <div class="cd-tabs">
+      <button class="cd-tab active" onclick="cdTab(this,'cdIntroNew','cdCurriculumNew')">클래스 소개</button>
+      <button class="cd-tab" onclick="cdTab(this,'cdCurriculumNew','cdIntroNew')">커리큘럼</button>
+    </div>
+  </div>
+
+  <!-- 2단 레이아웃 -->
+  <div class="cd-content-wrap">
+  <!-- 좌측: 본문 -->
+  <div class="cd-body">
+
+    <!-- 클래스 소개 탭 -->
+    <div id="cdIntroNew">
+      <div class="cd-intro-title">✏️ 클래스에서 배울 수 있는 내용이에요.</div>
+      <p class="cd-intro-desc">
+        연세대·고려대 편입논술을 처음 준비하는 수험생을 위한 OT부터, 독해의 핵심 원리, 요약형·비교형·적용형
+        3대 논술 유형, 실전 기출 분석까지 1년 커리큘럼을 하나로 완성하는 과정입니다.<br><br>
+        편입논술은 글짓기 시험이 아니라 이론과 사회 현상의 관계를 묻는 시험이라는 관점에서, 차원 구획·기능어·연결
+        독해 등 독해의 3대 핵심 역량을 실제 기출 지문에 적용하며 체화합니다.
+      </p>
+      <ul class="cd-bullet-list">
+        <li>차원 구획, 기능어, 연결 독해 등 논술 독해의 3대 핵심 역량을 기출 지문에 직접 적용하며 학습합니다.</li>
+        <li>요약형·비교형·적용형 3대 논술 유형의 본질과 답안 작성 공식을 단계별로 익힙니다.</li>
+        <li>원고지 사용법부터 개요표 작성, 실제 답안 전환까지 논술문 작성의 기초를 다집니다.</li>
+        <li>연세대·고려대·경희대·한양대 등 최신 기출 지문을 통해 실전 적용력을 훈련합니다.</li>
+        <li>편입 논술 전형의 전체 구조(1차 논술·2차 서류)와 최근 출제 트렌드까지 함께 안내합니다.</li>
+      </ul>
+
+      <hr class="cd-divider">
+
+      <div class="cd-sub-title">📌 이런 분들께 추천해요</div>
+      <div class="cd-apply-grid">
+        <div class="cd-apply-item">연세대·고려대 편입논술 준비생</div>
+        <div class="cd-apply-item">논술·서류·면접 준비 전략이 필요한 수험생</div>
+        <div class="cd-apply-item">독해력·문해력 향상이 필요한 수험생</div>
+        <div class="cd-apply-item">비교형·적용형 논술 답안 작성 훈련이 필요한 수험생</div>
+        <div class="cd-apply-item">최신 연고대 편입 전형 트렌드를 알고 싶은 수험생</div>
+        <div class="cd-apply-item">원고지 작성법부터 실전 답안까지 체계적으로 배우고 싶은 수험생</div>
+      </div>
+    </div>
+
+    <!-- 커리큘럼 탭 -->
+    <div id="cdCurriculumNew" style="display:none;">
+      <div class="cd-curriculum-header">
+        <div class="cd-curriculum-title">📚 커리큘럼</div>
+        <div class="cd-curriculum-count">📋 총 13개의 강의 (OT+12강)</div>
+      </div>
+
+      <!-- 0강 -->
+      <div class="cd-chapter">
+        <div class="cd-chapter-header"><span class="cd-chapter-tag">챕터</span> 0강</div>
+        <div class="cd-lesson">
+          <div class="cd-lesson-left">
+            <span class="cd-lesson-icon">▶</span>
+            <div><div>0강 수업영상 — 2027 연고대 편입논술 OT</div></div>
+          </div>
+        </div>
+        <div class="cd-chapter-detail">
+          <p><strong>강좌 개요</strong><br>연세대·고려대 편입논술 시작하기 전, 1년 커리큘럼의 전체 흐름과 연고대 편입 준비 방향을 안내하는 오리엔테이션 강좌입니다. 최근 연고대 편입 전형의 변화, 논술·서류·면접 준비 전략까지 전반적인 준비 구조를 확인합니다.</p>
+          <p><strong>수강 대상</strong></p>
+          <ul>
+            <li>연세대·고려대 편입논술을 처음 준비하는 수험생</li>
+            <li>논술, 서류, 면접을 어떻게 준비해야 할지 막막한 수험생</li>
+            <li>연고대 편입 전형의 최근 흐름을 알고 싶은 수험생</li>
+          </ul>
+          <p><strong>핵심 학습 목차</strong></p>
+          <div class="cd-chapter-part">[Part 1] 연고대 편입 준비의 전체 구조</div>
+          <ul>
+            <li>연고대 편입은 왜 1년 단위로 준비해야 하는가</li>
+            <li>논술, 서류, 면접이 어떻게 연결되는가</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 2] 최근 연고대 편입 전형의 변화</div>
+          <ul>
+            <li>연고대 편입 모집 인원 변화</li>
+            <li>논술 비중 확대</li>
+            <li>고려대 면접 강화</li>
+            <li>연세대 논술 유형 정형화</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 3] 서류 준비 전략</div>
+          <ul>
+            <li>전적대 성적 관리</li>
+            <li>공인영어 준비 방향</li>
+            <li>학업계획서 작성의 핵심</li>
+            <li>기타 서류 준비 시 주의할 점</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 4] 편입논술의 본질</div>
+          <ul>
+            <li>편입논술은 글짓기 시험이 아니다</li>
+            <li>이론과 사회 현상의 관계를 묻는 시험</li>
+            <li>요약, 비교, 적용, 비판, 평가 문제의 기본 구조</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 1강 -->
+      <div class="cd-chapter">
+        <div class="cd-chapter-header"><span class="cd-chapter-tag">챕터</span> 1강</div>
+        <div class="cd-lesson">
+          <div class="cd-lesson-left">
+            <span class="cd-lesson-icon">▶</span>
+            <div><div>1강 수업영상 — 독해의 핵심 원리1 (차원 구획 실전 적용 및 필수 기능어 마스터)</div></div>
+          </div>
+        </div>
+        <div class="cd-chapter-detail">
+          <p><strong>강좌 개요</strong></p>
+          <ul>
+            <li>논술 독해에 필수적인 3대 역량(차원 구획, 기능어, 연결 독해)을 실제 기출 지문에 적용해 보는 본격적인 독해 실전 강좌입니다.</li>
+            <li>특히 독해의 속도와 정확도를 획기적으로 높여주는 '기능어'의 쓰임새를 집중적으로 학습하여, 기계적이고 명확한 지문 분석력을 기릅니다.</li>
+          </ul>
+          <p><strong>수강 대상</strong></p>
+          <ul>
+            <li>글을 읽을 때 불필요한 예시나 부연 설명에 매몰되어 핵심 정보(정의, 원인 등)를 놓치는 수험생</li>
+            <li>긴 지문을 읽고 나서도 문단 간의 연결성이 파악되지 않아 요약이 단편적인 압축에 머무르는 수험생</li>
+            <li>사회과학 및 인문학 지문에서 변수 간의 관계(인과관계)나 이항 대립 구조를 스스로 찾아내는 훈련이 필요한 수험생</li>
+          </ul>
+          <p><strong>핵심 학습 목차</strong></p>
+          <div class="cd-chapter-part">[Part 1] 논술 독해의 3대 핵심 역량</div>
+          <ul>
+            <li>핵심 역량 개괄: 차원 구획, 기능어, 연결 독해의 유기적 관계</li>
+            <li>정보의 전환점 파악: 지문 내 새로운 정보가 등장하는 '차원 구획'의 원리</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 2] 차원 구획 실전 적용 분석</div>
+          <ul>
+            <li>연결 독해 실습: '일상'과 '선택'이라는 키워드를 통한 자발성과 강제성의 대립 구조 파악</li>
+            <li>차원 구획 실습: 수감자를 '죽음의 차원'과 '삶의 차원(특권층, 정글에 적응한 자)'으로 구획하여 요약하는 훈련</li>
+            <li>통념 비판 찾기: 이분법적 사고(가해자 vs 피해자)를 넘어선 모호성(회색 지대) 도출 방법</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 3] [중요] 논술 독해의 치트키, 필수 기능어</div>
+          <ul>
+            <li>동치 기능어 ('A도', '예를 들어'): 숨겨진 암묵적 전제 찾기 및 정의(A)와 구체적 사례(B)의 구분 (사례 부분은 날림 독해 후 정의 부분 확보)</li>
+            <li>대립 기능어 ('그러나/하지만', '반면에'): 주체의 대립을 넘어선 '속성'의 대립 파악 (선천적 vs 후천적 재능 등)</li>
+            <li>강조/조건 기능어 ('A하더라도 B'): B의 반의어를 A의 전제로 상정하여 문맥의 숨은 의도 파악</li>
+            <li>인과 기능어 ('A와 B 간의 관계'): 사회과학 지문 필수 논리: 원인(독립변수)이 결과(종속변수)에 미치는 영향 분석 및 도표/그래프(우상향/우하향)화 훈련</li>
+            <li>문장 추출 3대 시그널 맛보기: 인과 논증의 표지('-때문이다') 등 답안에 반드시 들어가야 할 핵심 문장 추출법</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 2강 -->
+      <div class="cd-chapter">
+        <div class="cd-chapter-header"><span class="cd-chapter-tag">챕터</span> 2강</div>
+        <div class="cd-lesson">
+          <div class="cd-lesson-left">
+            <span class="cd-lesson-icon">▶</span>
+            <div><div>2강 수업영상 — 독해의 핵심 원리2 (차원 구획 심화 및 대립 구조 요약법)</div></div>
+          </div>
+        </div>
+        <div class="cd-chapter-detail">
+          <p><strong>강좌 개요</strong></p>
+          <ul>
+            <li>논술 빈출 주제인 '역사관, 이타성, 문화의 수용' 지문을 통해 이전 시간에 배운 '차원 구획'을 심화 적용하는 실전 강좌입니다.</li>
+            <li>지문에 숨겨진 암묵적 전제를 논리적으로 추론하는 방법과, 대립되는 두 주체(A vs B)를 완벽한 한 문장으로 요약하는 공식 및 문장 추출 시그널을 학습합니다.</li>
+          </ul>
+          <p><strong>수강 대상</strong></p>
+          <ul>
+            <li>철학, 역사 등 추상적인 인문학 지문이 출제되면 지문의 흐름과 출제 의도를 파악하지 못하는 수험생</li>
+            <li>지문에 명시되지 않은 내용을 논리적 결함 없이 스스로 생각(추론)해 내는 데 어려움을 겪는 수험생</li>
+            <li>A와 B를 비교/대조하는 글을 쓸 때, 단순히 내용을 나열할 뿐 기준점(속성)을 잡아 깔끔하게 요약하지 못하는 수험생</li>
+          </ul>
+          <p><strong>핵심 학습 목차</strong></p>
+          <div class="cd-chapter-part">[Part 1] [논술 필수 배경지식] 역사를 바라보는 관점과 철학적 사유</div>
+          <ul>
+            <li>역사 해석의 방법론: 사실주의(사료 중심, 객관) vs 해석주의(학자 중심, 주관)</li>
+            <li>철학적 메커니즘의 이해: 칸트의 진리관에서 헤겔의 변증법(정-반-합)으로 이어지는 사유 구조 파악</li>
+            <li>시대적 패러다임의 변화: 중세(신) → 근대(이성/과학) → 포스트모더니즘(다양성/수용자 중심)</li>
+            <li>서구 중심 역사관 비판: 제국주의와 오리엔탈리즘의 한계를 꼬집는 출제자의 의도 분석</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 2] 차원 구획 심화 적용 (제국주의 지문)</div>
+          <ul>
+            <li>기능어의 실전 활용: '~만이 아니라(B의 강조)', '~적(추상적 개념의 구체화)' 기능어를 통한 핵심 정보 확보</li>
+            <li>사회과학적 변수 분석: 'A와 B 간의 비교(집단 간)'와 'A 내부의 비교(집단 내)'를 구분하는 독해 방법</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 3] 대립 구조 요약 공식 및 추론 독해 실습</div>
+          <ul>
+            <li>[실습 1] 이타적 행위 지문: 미개인(자연/연민) vs 문명인(이성/이기심)의 이항 대립 속성 추출 → 비교 요약의 공식: 주제 키워드를 포함하여 "A는 α인 반면에 B는 β이다"로 작성하는 훈련</li>
+            <li>[실습 2] 새로움의 역할 지문: 일반화된 단어('새로움')의 구체적 의미('종교') 찾기 → 추론 독해의 핵심: 성공/실패, 획일화/다양성 등 반대 관계를 도출하여 지문에 없는 숨은 의미(저항 vs 수능)를 읽어내는 기술</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 3강 -->
+      <div class="cd-chapter">
+        <div class="cd-chapter-header"><span class="cd-chapter-tag">챕터</span> 3강</div>
+        <div class="cd-lesson">
+          <div class="cd-lesson-left">
+            <span class="cd-lesson-icon">▶</span>
+            <div><div>3강 수업영상 — 독해 TEST 및 기능어 실전 적용</div></div>
+          </div>
+        </div>
+        <div class="cd-chapter-detail">
+          <p><strong>강좌 개요</strong></p>
+          <ul>
+            <li>1, 2강에서 학습한 독해 원리(차원 구획, 기능어 등)의 이해도를 점검하는 '독해 TEST 1'의 해설 강좌입니다.</li>
+            <li>단순한 정답 확인을 넘어, 기능어를 실전 지문에서 어떻게 인지하고, 논술 답안 작성을 위한 핵심 문장(근거)으로 어떻게 추출해야 하는지 그 논리적 과정을 복습하고 교정합니다.</li>
+          </ul>
+          <p><strong>수강 대상</strong></p>
+          <ul>
+            <li>배운 독해 이론(기능어)을 실제 논술 지문과 선지 판단에 어떻게 적용해야 할지 감이 잡히지 않는 수험생</li>
+            <li>글을 읽을 때 필자의 '주장'과 '근거'를 명확히 구분하여 추출하는 데 어려움을 겪는 수험생</li>
+            <li>사회과학 지문에서 도출되는 인과관계의 오류(제3의 변수)를 파악하고 논리적으로 분석하는 훈련이 필요한 수험생</li>
+          </ul>
+          <p><strong>핵심 학습 목차</strong></p>
+          <div class="cd-chapter-part">[Part 1] TEST 1 개괄 및 학습 시스템 안내</div>
+          <ul>
+            <li>독해 TEST 진행 목적 안내 (누적 진도에 대한 강제 복습 및 체화)</li>
+            <li>자가 채점 및 리뷰 노트(RTWAR) 우수 사례 공유 및 활용 가이드</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 2] 필수 기능어의 실전 의미와 답안 추출 공식</div>
+          <ul>
+            <li>목적과 수단/조건: 'A하기 위해 B해야 한다' (목적 A를 달성하기 위한 필수 조건 B의 정보 가치 파악)</li>
+            <li>대립과 강조: 'A뿐만 아니라 B' (B에 초점을 맞추되 A를 완전히 배제하지 않으며, A와 B가 주로 대립 관계로 출제됨을 인지)</li>
+            <li>주장과 근거: '~때문이다' (앞 문장은 주장, 뒷 문장은 근거문 → 실제 답안 작성 시에는 주장문이 아닌 근거문을 추출하여 서술할 것)</li>
+            <li>결론 및 요약의 표지: '이렇듯, 이러한, 따라서, 그러므로, ~라고 볼 때, ~인 경우'의 구조적 역할 파악</li>
+            <li>개념어와 사례: '예를 들어' (앞의 개념/정의가 이해되었다면 예시 부분은 날림 독해로 처리)</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 3] 추론적 읽기와 인과 오류 분석 (제3의 변수)</div>
+          <ul>
+            <li>사실적 읽기 vs 추론적 읽기: 지문에 명시된 인과 화살표(증감 관계)를 반대로 뒤집어 지문에 없는 숨은 의미를 도출하는 기술</li>
+            <li>상관관계와 인과관계의 분리: X(원인)와 Y(결과)의 관계가 성립하지 않을 때, 두 현상을 동시에 설명하는 '제3의 변수(공통 원인)' 찾기</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 4강 -->
+      <div class="cd-chapter">
+        <div class="cd-chapter-header"><span class="cd-chapter-tag">챕터</span> 4강</div>
+        <div class="cd-lesson">
+          <div class="cd-lesson-left">
+            <span class="cd-lesson-icon">▶</span>
+            <div><div>4강 수업영상 — 독해의 핵심 원리3 (유비추론의 이해 및 문학 작품 실전 독해법)</div></div>
+          </div>
+        </div>
+        <div class="cd-chapter-detail">
+          <p><strong>강좌 개요</strong><br>낯선 학술적 개념을 구조적으로 연결하는 '유비추론(비례 관계)'의 원리를 학습하고, 논술 지문으로 출제되는 문학 작품(시, 현대 소설)을 주관적 감상이 아닌 객관적인 '논증의 도구'로 활용하는 실전 독해 및 요약 공식을 마스터하는 강좌입니다.</p>
+          <p><strong>수강 대상</strong></p>
+          <ul>
+            <li>물리학, 논리학 등 낯선 소재가 지문에 등장하면 세부 내용에 매몰되어 지문의 전체적인 구조와 핵심을 놓치는 수험생</li>
+            <li>논술 지문으로 시나 소설이 출제되었을 때, 수능 국어처럼 주관적인 감상에 빠져 출제자의 의도를 이탈하는 수험생</li>
+            <li>비문학 지문의 기준(관점)을 문학 작품에 대입하여 '역추론'하는 실전 적용 능력이 부족한 수험생</li>
+          </ul>
+          <p><strong>핵심 학습 목차</strong></p>
+          <div class="cd-chapter-part">[Part 1] 구조적 독해: 유비추론 (LP 논리)</div>
+          <ul>
+            <li>지문 분석: 고전역학/양자역학(물리)과 고전논리/LP논리(논리)의 구조적 대응</li>
+            <li>유비추론의 핵심: 대상의 이름(명칭)이 아닌, 대상이 가진 '속성(존재의 유무, 참/거짓의 공존 등)'을 1:1로 매칭하여 새로운 개념을 추론하는 독해 훈련</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 2] 논술형 문학 작품 독해 원리 (공통)</div>
+          <ul>
+            <li>단독 해석 금지의 원칙: 문학 작품은 절대 단독으로 해석하지 않으며, 타 제시문(비문학 기준)과의 관계 속에서 '논증의 도구'로만 활용할 것</li>
+            <li>역추론 기법: 기준 제시문과 대상 제시문 간의 '불일치(대립)' 지점을 파악하여, 문학 작품의 상징적 의미를 논리적으로 도출하는 방법</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 3] 갈래별 문학 작품 실전 독해 (시 & 소설)</div>
+          <ul>
+            <li>[시 독해법] 연세대 2024 수시 기출 적용 → 추출 공식: 시적 화자 → 시적 대상 → 정서의 변화 지점(핵심 출제 포인트) 찾기</li>
+            <li>[현대 소설 독해법] 건국대 2025 모의 기출 적용 → 추출 공식 1: 굵직한 사건(장면/Scene)을 2~3개로 분할하여 덩어리로 묶기 → 추출 공식 2: 인물의 정서(내면적 심리)와 태도(외면적 대사/행동)를 구분하여 대립 관계 파악</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 5강 -->
+      <div class="cd-chapter">
+        <div class="cd-chapter-header"><span class="cd-chapter-tag">챕터</span> 5강</div>
+        <div class="cd-lesson">
+          <div class="cd-lesson-left">
+            <span class="cd-lesson-icon">▶</span>
+            <div><div>5강 수업영상 — 요약형의 본질과 비문학 글의 9가지 구조</div></div>
+          </div>
+        </div>
+        <div class="cd-chapter-detail">
+          <p><strong>강좌 개요</strong></p>
+          <ul>
+            <li>요약형 논술의 본질을 이해하고, 단순 압축이 아닌 핵심 정보 선별 능력을 기르는 강좌입니다.</li>
+            <li>유형별 공식 암기에서 벗어나 대학이 실제로 평가하는 독해력과 문해력을 학습합니다.</li>
+            <li>비문학 글의 구조를 분석하는 방법과 비교형·적용형으로 연결되는 독해의 기본 원리를 익힙니다.</li>
+          </ul>
+          <p><strong>수강 대상</strong></p>
+          <ul>
+            <li>요약형 문제를 문단별 압축 수준으로 접근하는 수험생</li>
+            <li>긴 지문에서 중요한 정보와 중요하지 않은 정보를 구분하기 어려운 수험생</li>
+            <li>비교형·적용형 문제 풀이의 기반이 되는 독해력을 기르고 싶은 수험생</li>
+          </ul>
+          <p><strong>핵심 학습 목차</strong></p>
+          <div class="cd-chapter-part">[Part 1] 요약형의 본질</div>
+          <ul>
+            <li>요약과 압축의 차이 이해</li>
+            <li>핵심 정보와 부가 정보를 구분하는 독해 원리</li>
+            <li>반복 정보 제거 및 핵심 개념 추출 훈련</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 2] 연결 독해와 정보 선별</div>
+          <ul>
+            <li>연결 독해를 통한 핵심 정보 파악</li>
+            <li>중요한 정보가 반복되는 구조 이해</li>
+            <li>시험장에서 버릴 정보와 살릴 정보를 구분하는 방법</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 3] 비문학 글의 9가지 구조</div>
+          <ul>
+            <li>학술 텍스트의 대표 구조 학습</li>
+            <li>비교형 문제의 핵심인 비교 기준 설정 방법</li>
+            <li>원인·결과·주체·방법 등 주요 분석 기준 이해</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 4] 유형의 본질 이해</div>
+          <ul>
+            <li>요약형·비교형·적용형의 평가 목적 분석</li>
+            <li>유형별 공식 암기의 한계</li>
+            <li>출제 의도 중심의 문제 접근법 학습</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 5] RTW/AR 활용법</div>
+          <ul>
+            <li>강사의 실제 독해·사고·답안 작성 과정 분석</li>
+            <li>Reading-Thinking-Writing의 연결 구조 이해</li>
+            <li>답안 작성까지 이어지는 독해 사고 훈련</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 6강 -->
+      <div class="cd-chapter">
+        <div class="cd-chapter-header"><span class="cd-chapter-tag">챕터</span> 6강</div>
+        <div class="cd-lesson">
+          <div class="cd-lesson-left">
+            <span class="cd-lesson-icon">▶</span>
+            <div><div>6강 수업영상 — 원고지 사용법과 논술문 작성법</div></div>
+          </div>
+        </div>
+        <div class="cd-chapter-detail">
+          <p><strong>강좌 개요</strong></p>
+          <ul>
+            <li>논술 답안 작성에 필요한 원고지 사용법과 학술적 글쓰기의 기본 규칙을 학습하는 강좌입니다.</li>
+            <li>고려대학교 2019학년도 일반논술 기출을 활용하여 답안 작성 구조와 문장 구성 원리를 익힙니다.</li>
+            <li>개요표를 실제 답안으로 전환하는 과정을 통해 논술문 작성의 기초를 다집니다.</li>
+          </ul>
+          <p><strong>수강 대상</strong></p>
+          <ul>
+            <li>답안 작성은 가능하지만 문장 구성과 형식이 불안정한 수험생</li>
+            <li>원고지 작성 규칙과 논술 답안 형식을 정확히 익히고 싶은 수험생</li>
+            <li>개요 작성 후 실제 답안으로 연결하는 훈련이 필요한 수험생</li>
+          </ul>
+          <p><strong>핵심 학습 목차</strong></p>
+          <div class="cd-chapter-part">[Part 1] 원고지 사용법</div>
+          <ul>
+            <li>들여쓰기, 문단 구분의 기준</li>
+            <li>괄호, 쉼표, 마침표 작성 규칙</li>
+            <li>문장 길이와 문단 구성 방법</li>
+            <li>채점자가 읽기 좋은 답안 작성법</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 2] 논술형 학술 표현</div>
+          <ul>
+            <li>주장, 원인, 결과, 비교 표현 학습</li>
+            <li>논술 답안에 자주 사용되는 학술적 문장 구조</li>
+            <li>접속 표현 및 논리 전개 방식 정리</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 3] 답안 작성 구조 실습</div>
+          <ul>
+            <li>개요표 작성 및 활용 방법</li>
+            <li>개요를 문장으로 전환하는 과정</li>
+            <li>고려대 2019 일반논술 해설 및 답안 구조 분석</li>
+            <li>RTW/AR 기반 답안 작성 훈련</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 7강 -->
+      <div class="cd-chapter">
+        <div class="cd-chapter-header"><span class="cd-chapter-tag">챕터</span> 7강</div>
+        <div class="cd-lesson">
+          <div class="cd-lesson-left">
+            <span class="cd-lesson-icon">▶</span>
+            <div><div>7강 수업영상 — 비교형 문제 풀이 방법론 (P-S 구조 및 Frame Map)</div></div>
+          </div>
+        </div>
+        <div class="cd-chapter-detail">
+          <p><strong>강좌 개요</strong></p>
+          <ul>
+            <li>연고대 논술의 핵심 유형인 비교/대조형 문제를 체계적으로 분석하고 풀어내기 위한 '비교형 풀이 방법론'을 본격적으로 학습하는 강좌입니다.</li>
+            <li>논술 독해의 필수 도구인 P-S(Problem-Solution) 구조를 활용하여 지문 속 문제 상황과 해결 방식의 논리 구조를 분석합니다.</li>
+            <li>단서 추출, 기준 설정, Form 작성, 그리고 Frame Map을 통한 상위 개념화 과정을 거쳐 흔들리지 않는 비교 논술의 개요(뼈대)를 설계하는 구체적인 방법을 익힙니다.</li>
+          </ul>
+          <p><strong>수강 대상</strong></p>
+          <ul>
+            <li>비교/대조형 논술 문제가 출제되었을 때, 공통점과 차이점의 기준을 잡지 못해 내용 나열에만 그치는 수험생</li>
+            <li>지문이 길어지거나 복잡해질 때 핵심 구조(문제-해결)를 빠르게 파악하는 데 어려움을 겪는 수험생</li>
+            <li>추출한 단서들을 상위 개념으로 묶어내고, 이를 바탕으로 체계적인 개요(Frame Map)를 작성하는 훈련이 필요한 수험생</li>
+          </ul>
+          <p><strong>핵심 학습 목차</strong></p>
+          <div class="cd-chapter-part">[Part 1] 비교 논술의 뼈대: P-S 구조 적용</div>
+          <ul>
+            <li>P-S (Problem-Solution) 구조의 이해 및 독해 원리</li>
+            <li>연세대 수시 기출 제시문 분석 (문제 상황 인식과 해결 방식 도출)</li>
+            <li>실전 적용: '고통'에 대한 태도 비교 (수용 vs 저항의 대립 구도 파악)</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 2] 비교 기준 설정과 A vs B 분석</div>
+          <ul>
+            <li>지문 내 핵심 단서(Keyword) 추출 및 변형 방법</li>
+            <li>단순 내용 비교를 넘어선 '비교 기준(속성)' 설정 방법론</li>
+            <li>비교형 답안 작성을 위한 기본 Form 작성법</li>
+            <li>개념적 대립어 도출 훈련 (예: 선천 vs 후천, 자발 vs 강제 등)</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 3] 개요 작성의 완성: Frame Map 활용</div>
+          <ul>
+            <li>지문의 논리적 구조를 한눈에 파악하는 시각화 방법 (Frame Map)</li>
+            <li>하위 개념의 단서들을 일반화하는 '상위 개념화' 및 '범주화' 훈련</li>
+            <li>비교 논술 실전 개요 작성 실습</li>
+            <li>Frame Map을 실제 답안 구조 설계로 연결하는 방법</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 8강 -->
+      <div class="cd-chapter">
+        <div class="cd-chapter-header"><span class="cd-chapter-tag">챕터</span> 8강</div>
+        <div class="cd-lesson">
+          <div class="cd-lesson-left">
+            <span class="cd-lesson-icon">▶</span>
+            <div><div>8강 수업영상 — 비교형 skill: A와 B 구조 독해법과 개념지식 키워드 학습</div></div>
+          </div>
+        </div>
+        <div class="cd-chapter-detail">
+          <p><strong>강좌 개요</strong></p>
+          <ul>
+            <li>논술 지문에서 가장 빈번하게 등장하는 A와 B의 대립 구조를 빠르게 파악하는 방법을 학습합니다.</li>
+            <li>T자 그래프를 활용하여 비교·대조 관계를 시각적으로 정리하는 독해법을 익힙니다.</li>
+            <li>첫 문장의 추상적 내용을 효과적으로 읽는 W 독해법을 학습합니다.</li>
+            <li>경희대 기출 키워드를 통해 개념지식 키워드와 대립항 구조를 분석하는 방법을 익힙니다.</li>
+          </ul>
+          <p><strong>수강 대상</strong></p>
+          <ul>
+            <li>비교·대조 지문 독해에 어려움을 느끼는 수험생</li>
+            <li>논술 제시문의 구조를 빠르게 파악하고 싶은 수험생</li>
+            <li>독해 속도와 정확도를 동시에 높이고 싶은 수험생</li>
+          </ul>
+          <p><strong>핵심 학습 목차</strong></p>
+          <div class="cd-chapter-part">[Part 1] A와 B 구조 읽기</div>
+          <ul>
+            <li>A와 B 대립 구조의 중요성</li>
+            <li>비교·대조 지문의 출제 방식</li>
+            <li>의미론적 대립항 찾기</li>
+            <li>논술 지문 구조화 훈련</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 2] W 독해법</div>
+          <ul>
+            <li>추상적 첫 문장 읽는 법</li>
+            <li>키워드만 확보하고 넘어가기</li>
+            <li>구체화 이후 다시 돌아오기</li>
+            <li>독해 속도 향상 훈련</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 3] 개념지식 키워드 분석</div>
+          <ul>
+            <li>원인-결과 관계 찾기</li>
+            <li>외부/내부, 자발성/강제성 구분</li>
+            <li>경희대 대립 키워드 - 정의관</li>
+            <li>개념 간 인과관계 파악</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 9강 -->
+      <div class="cd-chapter">
+        <div class="cd-chapter-header"><span class="cd-chapter-tag">챕터</span> 9강</div>
+        <div class="cd-lesson">
+          <div class="cd-lesson-left">
+            <span class="cd-lesson-icon">▶</span>
+            <div><div>9강 수업영상 — 적용형 문제 해설과 편입 논술의 이해</div></div>
+          </div>
+        </div>
+        <div class="cd-chapter-detail">
+          <p><strong>강좌 개요</strong></p>
+          <ul>
+            <li>적용형 논술 문제의 핵심 구조인 '기준 → 대상 평가' 방식을 학습합니다.</li>
+            <li>연세대학교 수시 논술 지문을 활용하여 기준 제시문과 대상 제시문의 관계를 분석하는 방법을 익힙니다.</li>
+            <li>편입 논술의 전체 구조와 평가 방식을 이해하며, 1차 논술과 2차 전형(서류)의 특징을 살펴봅니다.</li>
+          </ul>
+          <p><strong>수강 대상</strong></p>
+          <ul>
+            <li>적용형 논술 문제를 체계적으로 풀이하고 싶은 수험생</li>
+            <li>기준과 대상을 구분하는 훈련이 필요한 수험생</li>
+            <li>편입 논술 전형의 구조를 처음 접하는 수험생</li>
+          </ul>
+          <p><strong>핵심 학습 목차</strong></p>
+          <div class="cd-chapter-part">[Part 1] 적용형 문제의 구조 이해</div>
+          <ul>
+            <li>일반 비교형과 적용형 문제의 차이</li>
+            <li>적용형 논제 유형 분석</li>
+            <li>기준과 대상 구분하기</li>
+            <li>논제의 메커니즘 파악 훈련</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 2] 연세대학교 수시 논술 지문 적용 해설</div>
+          <ul>
+            <li>현실주의적 낙관성 개념 분석</li>
+            <li>기준 제시문에서 조건 추출하기</li>
+            <li>비판적 평가 작성 방법</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 3] 기준 → 대상 평가 방법론</div>
+          <ul>
+            <li>기준 제시문의 핵심 조건 찾기</li>
+            <li>포커싱(Focusing) 훈련</li>
+            <li>대상의 정확한 설정 방법</li>
+            <li>조건-사례 매칭 훈련</li>
+            <li>적용형 답안 작성 구조</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 4] 편입 논술 전형 이해</div>
+          <ul>
+            <li>편입 전형의 전체 구조</li>
+            <li>1차 논술 전형 특징</li>
+            <li>2차 논술 + 서류 평가 구조</li>
+            <li>대학별 평가 방식 이해</li>
+            <li>합격을 위한 준비 전략</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 10강 -->
+      <div class="cd-chapter">
+        <div class="cd-chapter-header"><span class="cd-chapter-tag">챕터</span> 10강</div>
+        <div class="cd-lesson">
+          <div class="cd-lesson-left">
+            <span class="cd-lesson-icon">▶</span>
+            <div><div>10강 수업영상 — 적용형 글쓰기 실전 (논지 추출과 3단계 변형 원리 및 한양대 기출 분석)</div></div>
+          </div>
+        </div>
+        <div class="cd-chapter-detail">
+          <p><strong>강좌 개요</strong></p>
+          <ul>
+            <li>기준 제시문의 문장을 그대로 베껴 쓰는 방식에서 벗어나, 핵심 논지를 추출하고 대상 제시문의 소재에 맞게 구체화하는 '3단계 변형 원리'를 학습합니다.</li>
+            <li>2대 1 관계 문제의 다면형 사고법과, 복합 논제(해석+비판+서술)로 구성된 한양대 기출(세한도)을 통해 실전 적용 능력을 극대화하는 강좌입니다.</li>
+          </ul>
+          <p><strong>수강 대상</strong></p>
+          <ul>
+            <li>제시문의 문장을 변형 없이 그대로 복사+붙여넣기 하여 감점을 받는 수험생</li>
+            <li>기준 제시문 2개, 대상 제시문 1개(2대 1 관계)가 출제되었을 때, 다면적 사고를 전개하지 못하고 단순 대립으로만 글을 쓰는 수험생</li>
+            <li>복합 논제(해석, 문제점 지적, 서술이 혼합된 형태)의 요구 사항을 정확히 분리하고 글의 뼈대를 잡는 데 어려움을 겪는 수험생</li>
+          </ul>
+          <p><strong>핵심 학습 목차</strong></p>
+          <div class="cd-chapter-part">[Part 1] 문제 풀이 전 가이드: 2015 모의 사회계열 (분류 및 평가)</div>
+          <ul>
+            <li>기준 제시문의 문장(법/도덕 규범)을 대상 제시문(언어 규범)의 소재에 맞게 1차 변형하기</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 2] [중요] 독해 및 글쓰기 핵심: 논지 추출과 3단계 변형 원리</div>
+          <ul>
+            <li>기준 제시문에서 핵심 논지(조건문: A이면 B이고 C다)를 기계적으로 찾아내기</li>
+            <li>추출한 문장을 대상 제시문의 상황(신조어 사용 집단과 기존 문법 사용 집단 간의 소통 불가 등)에 맞게 구체화하는 3단계 변형 과정 완벽 체화</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 3] 다면형 사고와 2대 1 관계 문제의 접근법</div>
+          <ul>
+            <li>기준 제시문 2개, 대상 제시문 1개(2:1)의 구조일 때, 1차원적 대립 구도를 넘어 다면형 사고를 전개하여 평가하는 방법론</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 4] 실전 적용: 한양대 기출 분석 (세한도와 도상학)</div>
+          <ul>
+            <li>복합 논제(해석, 문제점 지적, 서술) 요구 사항 분석 및 글의 뼈대(개요) 잡기</li>
+            <li>제시문 나(도상학)의 3단계 해석법을 세한도에 직접 적용하기</li>
+            <li>관점의 대립 파악 및 조건부 해석 적용</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 11강 -->
+      <div class="cd-chapter">
+        <div class="cd-chapter-header"><span class="cd-chapter-tag">챕터</span> 11강</div>
+        <div class="cd-lesson">
+          <div class="cd-lesson-left">
+            <span class="cd-lesson-icon">▶</span>
+            <div><div>11강 수업영상 — 적용형 실전 적용 및 사회과학 방법론 심화 독해</div></div>
+          </div>
+        </div>
+        <div class="cd-chapter-detail">
+          <p><strong>강좌 개요</strong></p>
+          <ul>
+            <li>적용형 논술 문제의 실전 개요 짜기(질문형 답안 구조)부터 연고대 최신 출제 트렌드까지 아우르는 실전 심화 강좌입니다.</li>
+            <li>사회과학 지문의 핵심인 '양적 연구(도표/그래프)'와 '질적 연구(인터뷰/내심)'의 독해 방법론을 비교 학습하여, 대주제를 도출하는 원리를 파악합니다.</li>
+            <li>기준 제시문의 논지를 대상 제시문에 맞게 구체화하는 '3단계 패러프레이징(변형) 기술'을 체화하여 상위 10%의 차별화된 답안을 완성하는 훈련을 진행합니다.</li>
+          </ul>
+          <p><strong>수강 대상</strong></p>
+          <ul>
+            <li>도표나 그래프가 포함된 사회계열 논술 문제가 출제되면 데이터 해석에만 매몰되어 대주제를 찾지 못하는 수험생</li>
+            <li>한계점(비판)을 서술할 때, 어떤 구조의 문장을 써야 할지 막막한 수험생</li>
+            <li>제시문의 문장을 그대로 복사 붙여넣기(단순 인용)하여, 자신의 언어로 변형(패러프레이징)하는 능력이 부족한 수험생</li>
+          </ul>
+          <p><strong>핵심 학습 목차</strong></p>
+          <div class="cd-chapter-part">[Part 1] [답안 작성 전략] 문제 2번 접근법 및 개요 짜기</div>
+          <ul>
+            <li>질문형 '답안 작성 구조'를 활용하여 스스로 묻고 답하며 글의 뼈대 잡기</li>
+            <li>내적 갈등 분석 및 한계 제시 문항의 시간 배분 및 분량 조절 팁</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 2] [최신 논술 기조] 연세대학교 수시/편입 출제 트렌드 분석</div>
+          <ul>
+            <li>인문계열과 사회계열의 통합: '융합형 인재'를 요구하는 대학의 의도</li>
+            <li>편입(3학년)과 수시(1학년) 논술이 요구하는 배경지식과 방법론의 차이</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 3] [사회과학 방법론] 양적 연구 vs 질적 연구 독해법</div>
+          <ul>
+            <li>양적 연구: 숫자로 표기 가능 ➔ 도표/그래프 출제 ➔ X축과 Y축 변수로 대주제(독립/종속 변수) 파악하기</li>
+            <li>질적 연구: 숫자로 표기 불가 ➔ 인터뷰/대사 출제 ➔ 화자의 '내심(속마음)'과 괄호 안의 묘사에서 핵심 단서 찾기</li>
+            <li>문학/소설 지문에서 '내적 갈등' 추출하기 → 인물을 수식하는 표현(예: 프랑스인, 중국인)에 담긴 출제자의 의도 파악 → 갈등은 혼자 발생하지 않는다! 대립하는 두 가지 신념/가치관 찾아내기</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 4] 3단계 패러프레이징 훈련</div>
+          <ul>
+            <li>10강 문제로 훈련 진행: 연세대 2015 모의 사회계열 (가-2)</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 12강 -->
+      <div class="cd-chapter">
+        <div class="cd-chapter-header"><span class="cd-chapter-tag">챕터</span> 12강</div>
+        <div class="cd-lesson">
+          <div class="cd-lesson-left">
+            <span class="cd-lesson-icon">▶</span>
+            <div><div>12강 수업영상 — 실전 기출 분석(연세대 2017 수시 사회) 및 사회과학 독해 방법론</div></div>
+          </div>
+        </div>
+        <div class="cd-chapter-detail">
+          <p><strong>강좌 개요</strong></p>
+          <ul>
+            <li>연세대 2017 사회계열 기출을 통해 비교형 논제의 전략적 개요 설계법을 학습합니다.</li>
+            <li>데이터 유형(명목형/연속형) 및 변수(독립/종속)를 구분하여 도표/그래프를 분석하고, 이를 논술 답안의 논리로 치환하는 실전 방법론을 다룹니다.</li>
+          </ul>
+          <p><strong>수강 대상</strong></p>
+          <ul>
+            <li>비교형 문제 풀이 시, 제시문 간의 논리적 연결 고리를 찾지 못하고 단순 내용 요약에 그치는 수험생</li>
+            <li>도표/그래프 분석 시 독립 변수(원인)와 종속 변수(결과)를 파악하지 못해 해석의 방향을 잡지 못하는 수험생</li>
+            <li>강사 답안을 필사할 때 단순히 받아쓰기에만 급급하여, 사고 과정(역개요)을 체화하는 법을 배우고 싶은 수험생</li>
+          </ul>
+          <p><strong>핵심 학습 목차</strong></p>
+          <div class="cd-chapter-part">[Part 1] 실전 기출 분석: 복합 논제 전략</div>
+          <ul>
+            <li>문제 풀이 순서 전략: 비교(1번)보다 설명/적용(2번)의 배점이 큰 경우, 문제 2번을 먼저 분석하여 논의의 핵심을 파악한 뒤 문제 1번으로 역추론하는 공략법</li>
+            <li>제시문 간의 키워드를 1:1로 매칭하는 독해 연습</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 2] 올바른 복습법: 필사와 역개요</div>
+          <ul>
+            <li>역개요 작성법: 강사 답안을 읽고 문장을 받아쓰는 것이 아니라, 강사의 사고 흐름(개요)을 키워드로 추론하여 재구성하는 훈련</li>
+            <li>변형(패러프레이징) 기술: 단순히 키워드를 바꾸는 수준을 넘어, 대상 제시문의 소재(신조어/마콘도 마을)에 맞게 논리 구조를 구체화하는 3단계 변형 훈련</li>
+          </ul>
+          <div class="cd-chapter-part">[Part 3] 사회과학자의 눈: 도표/그래프 독해 방법론</div>
+          <ul>
+            <li>데이터 유형 구분 — 명목형: 단순 분류(성별, 지역, 축구 등번호) ➔ 막대 그래프 ➔ [집단 간 비교] 중심 서술</li>
+            <li>데이터 유형 구분 — 연속형: 크기/순서 차등(시험 점수, 경제 수준) ➔ 선 그래프 ➔ [인과 관계성] 중심 서술 ("~할수록 ~하다")</li>
+            <li>변수 분석: 독립 변수(X)와 종속 변수(Y)의 이해 — 사회과학 논술은 '원인(X축)'을 분석하여 결과를 도출하는 과정</li>
+            <li>도표/그래프 내 변수를 확인하여 논제에서 요구하는 대주제와 연결하는 역방향 분석법</li>
+          </ul>
+        </div>
+      </div>
+
+    </div><!-- /#cdCurriculumNew -->
+
+  </div><!-- /.cd-body -->
+
+  <!-- 우측: 결제 패널 -->
+  <div>
+    <div class="cd-panel">
+      <div class="cd-panel-label">CLASS ENROLLMENT</div>
+      <div class="cd-panel-title">연고대 편입논술 완성 (전 13강)</div>
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:20px;">
+        <div class="cd-panel-price">가격 문의</div>
+      </div>
+      <button class="btn-pay">수강 문의하기 →</button>
+      <button class="btn-share-panel">🔗 공유하기</button>
+      <div class="cd-panel-meta">
+        <div class="cd-panel-row"><span class="label">신청 기간</span><span class="val">무제한 상시 모집</span></div>
+        <div class="cd-panel-row"><span class="label">수강 기간</span><span class="val">등록일 ~ 2026.12.31</span></div>
+        <div class="cd-panel-row"><span class="label">구성</span><span class="val">OT + 12강 (1년 완성)</span></div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /.cd-content-wrap -->
+</div><!-- /#classDetailNew -->
+
 
 
 
@@ -3728,7 +4586,7 @@
         학생의 학업계획서, 답안, 모의고사 결과, 첨삭<br>
         이후의 수정방향까지 함께 관리합니다.
       </p>
-      <button class="lec-hero-btn">수강신청하기 →</button>
+      <button class="lec-hero-btn" onclick="showPage('classes')">수강신청하기 →</button>
     </div>
     <div class="lec-hero-right">
       <div class="lec-master-card">
@@ -3878,7 +4736,7 @@
         <span class="lec-pricing-badge">특별할인</span>
       </div>
       <div class="lec-pricing-price">4,000,000<span>원</span></div>
-      <button class="btn-enroll" style="margin-top:36px;">수강신청하기</button>
+      <button class="btn-enroll" style="margin-top:36px;" onclick="showPage('classes')">수강신청하기</button>
     </div>
   </section>
 
@@ -4185,7 +5043,7 @@
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
         window.scrollTo({ top: 0, behavior: 'instant' });
-        const whiteBg = ['notice', 'textbook', 'classes', 'classDetail', 'category'];
+        const whiteBg = ['notice', 'textbook', 'classes', 'classDetail', 'classDetailNew', 'category'];
         if (id === 'home') {
           document.body.style.background = '';
         } else {
@@ -4194,19 +5052,23 @@
         document.querySelector('.navbar').style.display = id === 'lecturePlayer' ? 'none' : '';
       }
 
-      function goToClassDetail() {
-        showPage('classDetail');
-        document.querySelectorAll('.cd-tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.cd-tab')[0].classList.add('active');
-        document.getElementById('cdIntro').style.display = 'block';
-        document.getElementById('cdCurriculum').style.display = 'none';
+      function goToClassDetail(pageId, introId, curriculumId) {
+        pageId = pageId || 'classDetail';
+        introId = introId || 'cdIntro';
+        curriculumId = curriculumId || 'cdCurriculum';
+        showPage(pageId);
+        const tabs = document.querySelectorAll('#' + pageId + ' .cd-tab');
+        tabs.forEach(t => t.classList.remove('active'));
+        if (tabs[0]) tabs[0].classList.add('active');
+        document.getElementById(introId).style.display = 'block';
+        document.getElementById(curriculumId).style.display = 'none';
       }
 
-      function cdTab(el, targetId) {
-        document.querySelectorAll('.cd-tab').forEach(t => t.classList.remove('active'));
+      function cdTab(el, targetId, otherId) {
+        el.parentElement.querySelectorAll('.cd-tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
-        document.getElementById('cdIntro').style.display = targetId === 'cdIntro' ? 'block' : 'none';
-        document.getElementById('cdCurriculum').style.display = targetId === 'cdCurriculum' ? 'block' : 'none';
+        document.getElementById(targetId).style.display = 'block';
+        document.getElementById(otherId).style.display = 'none';
       }
 
       function cpFilter(el) {

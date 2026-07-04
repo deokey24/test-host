@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 페이지 - DOCKTEACHER</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #0B0F1A;
+    color: #E6E8EF;
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: #0E1324;
+    border-right: 1px solid #232A42;
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-logo {
+    font-size: 15px;
+    font-weight: 700;
+    color: #E6E8EF;
+    padding: 0 20px 20px;
+    letter-spacing: 0.02em;
+  }
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .side-link {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 12px 20px;
+    background: transparent;
+    border: none;
+    border-left: 3px solid transparent;
+    color: #9AA1BD;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .side-link:hover { background: #151B30; color: #E6E8EF; }
+  .side-link.active {
+    background: #151B30;
+    color: #fff;
+    border-left-color: #4A5AF0;
+    font-weight: 600;
+  }
+  .main-wrap {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: #11162A;
+    border-bottom: 1px solid #232A42;
+  }
+  header h1 { font-size: 16px; margin: 0; color: #E6E8EF; font-weight: 600; }
+  header form { margin: 0; }
+  header button {
+    padding: 8px 14px;
+    border: 1px solid #2E3654;
+    border-radius: 6px;
+    background: transparent;
+    color: #E6E8EF;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  header button:hover { background: #1A2038; }
+  main {
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  .admin-section { display: none; }
+  .admin-section.active { display: block; }
+  .card {
+    background: #11162A;
+    border: 1px solid #232A42;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .card h2 { font-size: 14px; margin: 0 0 14px; color: #E6E8EF; }
+  .card input[type="text"], .card input[type="file"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #2E3654;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 10px;
+    background: #0B0F1A;
+    color: #E6E8EF;
+  }
+  .card input[type="text"]::placeholder { color: #6B7390; }
+  .card input[type="text"]:focus, .card input[type="file"]:focus {
+    outline: none;
+    border-color: #4A5AF0;
+  }
+  .card button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    background: #4A5AF0;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .card button:hover { background: #3A48D6; }
+  .card button:disabled { background: #2E3654; color: #6B7390; cursor: not-allowed; }
+  .progress {
+    height: 8px;
+    background: #232A42;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 12px;
+    display: none;
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #4A5AF0;
+    transition: width 0.2s;
+  }
+  .status-text { font-size: 12px; color: #9AA1BD; margin-top: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid #232A42; }
+  th { color: #9AA1BD; font-weight: 500; }
+  td { color: #E6E8EF; }
+  .badge { padding: 2px 8px; border-radius: 999px; font-size: 11px; }
+  .badge-uploading, .badge-queued { background: #3A2E10; color: #E8B84B; }
+  .badge-processing { background: #16233F; color: #6FA8FF; }
+  .badge-done { background: #10301F; color: #4FCE8B; }
+  .badge-failed { background: #3A1418; color: #F27C88; }
+  .badge-pw-yes { background: #10301F; color: #4FCE8B; }
+  .badge-pw-no { background: #3A2E10; color: #E8B84B; }
+  .member-toolbar { display: flex; gap: 8px; margin-bottom: 14px; }
+  .member-toolbar input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #2E3654;
+    border-radius: 6px;
+    font-size: 14px;
+    background: #0B0F1A;
+    color: #E6E8EF;
+  }
+  .member-toolbar input::placeholder { color: #6B7390; }
+  .member-toolbar button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    background: #4A5AF0;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .member-toolbar button:hover { background: #3A48D6; }
+  .member-table-wrap { overflow-x: auto; }
+  .member-pagination { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 13px; color: #9AA1BD; }
+  .member-pagination button {
+    padding: 6px 12px;
+    border: 1px solid #2E3654;
+    border-radius: 6px;
+    background: transparent;
+    color: #E6E8EF;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .member-pagination button:hover:not(:disabled) { background: #1A2038; }
+  .member-pagination button:disabled { color: #4A5170; cursor: not-allowed; }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">DOCKTEACHER 관리자</div>
+      <nav class="sidebar-nav">
+        <button class="side-link active" data-target="videoSection">영상 업로드</button>
+        <button class="side-link" data-target="memberSection">회원목록</button>
+      </nav>
+    </aside>
+    <div class="main-wrap">
+      <header>
+        <h1 id="sectionTitle">영상 업로드</h1>
+        <form method="POST" action="/admin/logout">
+          <button type="submit">로그아웃</button>
+        </form>
+      </header>
+      <main>
+        <section id="videoSection" class="admin-section active">
+          <div class="card">
+            <h2>영상 업로드</h2>
+            <input type="text" id="title" placeholder="강의 제목">
+            <input type="file" id="file" accept="video/*">
+            <button id="uploadBtn">업로드</button>
+            <div class="progress" id="progress"><div class="progress-bar" id="progressBar"></div></div>
+            <div class="status-text" id="statusText"></div>
+          </div>
+          <div class="card">
+            <h2>업로드된 영상</h2>
+            <table>
+              <thead><tr><th>제목</th><th>상태</th><th>등록일</th></tr></thead>
+              <tbody id="videoList"></tbody>
+            </table>
+          </div>
+        </section>
+        <section id="memberSection" class="admin-section">
+          <div class="card">
+            <h2>회원목록 (<span id="memberTotal">0</span>명)</h2>
+            <div class="member-toolbar">
+              <input type="text" id="memberSearch" placeholder="아이디, 이름, 이메일, 연락처로 검색">
+              <button id="memberSearchBtn">검색</button>
+            </div>
+            <div class="member-table-wrap">
+              <table>
+                <thead>
+                  <tr><th>아이디</th><th>이름</th><th>이메일</th><th>연락처</th><th>가입일</th><th>비밀번호</th></tr>
+                </thead>
+                <tbody id="memberList"></tbody>
+              </table>
+            </div>
+            <div class="member-pagination">
+              <button id="memberPrevBtn">이전</button>
+              <span id="memberPageInfo"></span>
+              <button id="memberNextBtn">다음</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.side-link').forEach(link => {
+      link.addEventListener('click', () => {
+        document.querySelectorAll('.side-link').forEach(l => l.classList.remove('active'));
+        document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+        link.classList.add('active');
+        document.getElementById(link.dataset.target).classList.add('active');
+        document.getElementById('sectionTitle').textContent = link.textContent;
+      });
+    });
+
+    const PART_CONCURRENCY = 4;
+
+    async function loadVideos() {
+      const res = await fetch('/admin/api/videos');
+      const videos = await res.json();
+      const tbody = document.getElementById('videoList');
+      tbody.innerHTML = videos.map(v => `
+        <tr>
+          <td>${v.title}</td>
+          <td><span class="badge badge-${v.status}">${v.status}</span></td>
+          <td>${new Date(v.created_at).toLocaleString('ko-KR')}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function uploadPart(url, blob, partNumber, onProgress) {
+      const res = await fetch(url, { method: 'PUT', body: blob });
+      if (!res.ok) throw new Error(`파트 ${partNumber} 업로드 실패`);
+      onProgress(blob.size);
+      return { PartNumber: partNumber, ETag: res.headers.get('ETag') };
+    }
+
+    async function uploadInParallel(items, worker, concurrency) {
+      const results = new Array(items.length);
+      let cursor = 0;
+      async function runNext() {
+        const i = cursor++;
+        if (i >= items.length) return;
+        results[i] = await worker(items[i], i);
+        return runNext();
+      }
+      await Promise.all(Array.from({ length: concurrency }, runNext));
+      return results;
+    }
+
+    document.getElementById('uploadBtn').addEventListener('click', async () => {
+      const title = document.getElementById('title').value.trim();
+      const fileInput = document.getElementById('file');
+      const file = fileInput.files[0];
+      const btn = document.getElementById('uploadBtn');
+      const progress = document.getElementById('progress');
+      const progressBar = document.getElementById('progressBar');
+      const statusText = document.getElementById('statusText');
+
+      if (!title || !file) {
+        alert('제목과 파일을 모두 선택해주세요.');
+        return;
+      }
+
+      btn.disabled = true;
+      progress.style.display = 'block';
+      statusText.textContent = '업로드 준비 중...';
+
+      try {
+        const presignRes = await fetch('/admin/api/videos/presign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, fileSize: file.size })
+        });
+        if (!presignRes.ok) throw new Error('presign 요청 실패');
+        const { videoId, partSize, urls } = await presignRes.json();
+
+        let uploadedBytes = 0;
+        const onProgress = (bytes) => {
+          uploadedBytes += bytes;
+          progressBar.style.width = `${Math.min(100, (uploadedBytes / file.size) * 100)}%`;
+          statusText.textContent = `업로드 중... ${(uploadedBytes / 1e9).toFixed(2)}GB / ${(file.size / 1e9).toFixed(2)}GB`;
+        };
+
+        const parts = await uploadInParallel(urls, async ({ partNumber, url }) => {
+          const start = (partNumber - 1) * partSize;
+          const end = Math.min(partNumber * partSize, file.size);
+          const blob = file.slice(start, end);
+          return uploadPart(url, blob, partNumber, onProgress);
+        }, PART_CONCURRENCY);
+
+        statusText.textContent = '업로드 완료 처리 중...';
+        parts.sort((a, b) => a.PartNumber - b.PartNumber);
+        const completeRes = await fetch(`/admin/api/videos/${videoId}/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ parts })
+        });
+        if (!completeRes.ok) throw new Error('완료 처리 실패');
+
+        statusText.textContent = '업로드 완료. 트랜스코딩 대기열에 등록되었습니다.';
+        document.getElementById('title').value = '';
+        fileInput.value = '';
+        await loadVideos();
+      } catch (err) {
+        statusText.textContent = `오류: ${err.message}`;
+      } finally {
+        btn.disabled = false;
+        progress.style.display = 'none';
+        progressBar.style.width = '0%';
+      }
+    });
+
+    loadVideos();
+    setInterval(loadVideos, 10000);
+
+    const MEMBER_PAGE_SIZE = 50;
+    let memberPage = 1;
+    let memberSearch = '';
+
+    function escapeHtml(str) {
+      return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    async function loadMembers() {
+      const params = new URLSearchParams({ page: memberPage, pageSize: MEMBER_PAGE_SIZE });
+      if (memberSearch) params.set('search', memberSearch);
+      const res = await fetch(`/admin/api/members?${params}`);
+      const { total, page, pageSize, rows } = await res.json();
+
+      document.getElementById('memberTotal').textContent = total;
+      const tbody = document.getElementById('memberList');
+      tbody.innerHTML = rows.map(m => `
+        <tr>
+          <td>${escapeHtml(m.username)}</td>
+          <td>${escapeHtml(m.name)}</td>
+          <td>${escapeHtml(m.email)}</td>
+          <td>${escapeHtml(m.phone || m.mobile)}</td>
+          <td>${m.joined_at ? new Date(m.joined_at).toLocaleDateString('ko-KR') : ''}</td>
+          <td><span class="badge badge-pw-${m.has_password ? 'yes' : 'no'}">${m.has_password ? '설정됨' : '미설정'}</span></td>
+        </tr>
+      `).join('');
+
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      document.getElementById('memberPageInfo').textContent = `${page} / ${totalPages}`;
+      document.getElementById('memberPrevBtn').disabled = page <= 1;
+      document.getElementById('memberNextBtn').disabled = page >= totalPages;
+    }
+
+    document.getElementById('memberSearchBtn').addEventListener('click', () => {
+      memberSearch = document.getElementById('memberSearch').value.trim();
+      memberPage = 1;
+      loadMembers();
+    });
+    document.getElementById('memberSearch').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('memberSearchBtn').click();
+    });
+    document.getElementById('memberPrevBtn').addEventListener('click', () => {
+      if (memberPage > 1) { memberPage--; loadMembers(); }
+    });
+    document.getElementById('memberNextBtn').addEventListener('click', () => {
+      memberPage++; loadMembers();
+    });
+
+    loadMembers();
+  </script>
+</body>
+</html>

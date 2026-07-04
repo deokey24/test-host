@@ -1,0 +1,16 @@
+[Unit]
+Description=DOCKTEACHER video transcoding worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/dockteacher-web/worker
+EnvironmentFile=/home/ubuntu/dockteacher-web/worker/.env
+ExecStart=/usr/bin/node /home/ubuntu/dockteacher-web/worker/index.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

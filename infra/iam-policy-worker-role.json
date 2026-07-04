@@ -1,0 +1,31 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "SelfStopOnly",
+      "Effect": "Allow",
+      "Action": ["ec2:StopInstances"],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": { "ec2:ResourceTag/Project": "dockteacher-worker" }
+      }
+    },
+    {
+      "Sid": "DescribeForHealthCheck",
+      "Effect": "Allow",
+      "Action": ["ec2:DescribeInstances", "ec2:DescribeInstanceStatus"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ConsumeVideoJobQueue",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:ChangeMessageVisibility"
+      ],
+      "Resource": "arn:aws:sqs:ap-northeast-2:*:dockteacher-video-jobs"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "WakeWorkerInstance",
+      "Effect": "Allow",
+      "Action": ["ec2:StartInstances"],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": { "ec2:ResourceTag/Project": "dockteacher-worker" }
+      }
+    },
+    {
+      "Sid": "CheckWorkerState",
+      "Effect": "Allow",
+      "Action": ["ec2:DescribeInstances", "ec2:DescribeInstanceStatus"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "PublishVideoJob",
+      "Effect": "Allow",
+      "Action": ["sqs:SendMessage", "sqs:GetQueueAttributes"],
+      "Resource": "arn:aws:sqs:ap-northeast-2:*:dockteacher-video-jobs"
+    }
+  ]
+}

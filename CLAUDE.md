@@ -4,29 +4,41 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-독편사편입논술학원(DOCKTEACHER) 홈페이지. 빌드 도구 없이 HTML/CSS/JS만으로 구성된 정적 SPA.
+독편사편입논술학원(DOCKTEACHER) 홈페이지. 프론트엔드는 HTML/CSS/JS로 구성된 정적 SPA이며, Node.js(Express) 서버가 `/`에서 정적 사이트를 서빙하고 `/admin`에 비밀번호로 보호되는 관리자 페이지를 제공.
 
 ## Development
 
-빌드 단계 없음. 정적 파일 서버로 바로 실행:
-
 ```bash
-# 간단한 로컬 서버
-python3 -m http.server 8080
-# 또는
-npx serve .
+npm install
+npm start   # http://localhost:3000
 ```
 
-`index.html`을 브라우저에서 직접 열어도 동작하지만, 일부 리소스는 서버가 필요할 수 있음.
+`PORT`, `ADMIN_PASSWORD`, `SESSION_SECRET` 환경변수로 설정 오버라이드 가능 (기본 비밀번호: `dockAdmin`).
 
 ## Architecture
 
 ### 파일 구조
 
-- `index.html` — 모든 페이지 마크업 + 페이지별 CSS (`<style>` 블록)
-- `style.css` — 네비게이션, 전역 레이아웃, 기본 컴포넌트 스타일
-- `script.js` — 모든 JS 로직 (하드코딩된 데이터 포함)
-- `images/` — 슬라이더용 이미지
+- `server.js` — Express 서버. `/`는 `public/` 정적 서빙, `/admin`은 세션 기반 비밀번호 인증
+- `admin/login.html`, `admin/index.html` — 관리자 로그인 폼 / 인증 후 빈 페이지 (정적 서빙 대상 아님, `server.js`가 직접 `sendFile`)
+- `public/index.html` — 모든 페이지 마크업 + 페이지별 CSS (`<style>` 블록)
+- `public/style.css` — 네비게이션, 전역 레이아웃, 기본 컴포넌트 스타일
+- `public/script.js` — 모든 JS 로직 (하드코딩된 데이터 포함)
+- `public/images/` — 슬라이더용 이미지
+
+### 관리자 페이지 (`/admin`)
+
+세션 쿠키(`express-session`) 기반 비밀번호 인증. `GET /admin`은 미인증 시 로그인 폼, 인증 시 관리자 화면을 반환. `POST /admin/login`으로 비밀번호(`dockAdmin`) 확인 후 세션에 `isAdmin` 플래그 설정, `POST /admin/logout`으로 세션 파기.
+
+### 대용량 영상 업로드 파이프라인
+
+관리자 페이지에서 20~30GB급 강의 영상을 업로드 → ffmpeg 압축 → Cloudflare R2 저장 → 경로를 MySQL에 기록하는 별도 파이프라인. 상세 설계는 `infra/README.md`와 바탕화면 `영상업로드-아키텍처.md` 참고.
+
+- `lib/` — 운영 서버(`server.js`)가 쓰는 R2 presigned URL(`r2.js`), SQS 발행(`sqs.js`), 워커 기동(`ec2.js`), MySQL(`db.js`) 헬퍼
+- `admin/index.html` — 파일 선택 → R2 멀티파트 presigned URL로 브라우저가 R2에 직접 업로드 → 완료 시 SQS에 작업 발행
+- `worker/` — 별도 EC2 인스턴스에 배포되는 독립 Node 프로젝트. SQS 컨슈머, ffmpeg 압축(동시 5개 캡핑), R2 재업로드, DB 갱신, 유휴 시 자기 자신 `stop-instances`
+- `infra/` — IAM 정책, AWS CLI 프로비저닝 스크립트, MySQL 스키마, systemd 유닛, 워커 인스턴스 부트스트랩 스크립트
+- 운영 서버와 워커 인스턴스는 원본 대용량 파일이 오가지 않도록 분리되어 있고 (브라우저 ↔ R2 직접 통신), 완료 신호는 SQS 메타데이터만 오간다
 
 ### SPA 페이지 전환 방식
 

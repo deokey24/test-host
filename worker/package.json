@@ -1,0 +1,18 @@
+{
+  "name": "dockteacher-video-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "영상 트랜스코딩 워커 — SQS 큐 소비, ffmpeg 압축, R2 업로드, DB 기록",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env index.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ec2": "^3.600.0",
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/client-sqs": "^3.600.0",
+    "@aws-sdk/lib-storage": "^3.600.0",
+    "mysql2": "^3.10.0",
+    "p-limit": "^3.1.0"
+  }
+}
