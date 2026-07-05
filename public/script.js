@@ -489,10 +489,69 @@ async function submitSignup() {
     }
 }
 
+/* ── 수강신청 클래스 카드 (관리자 페이지에서 CRUD) ── */
+
+function escapeHtmlText(str) {
+    return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function classCardHtml(c) {
+    const page = c.detail_page || 'classDetail';
+    const suffix = page.startsWith('classDetail') ? page.slice('classDetail'.length) : '';
+    const metaRows = [
+        ['수강 신청', c.enroll_period],
+        ['수강 기간', c.course_period],
+        ['모집인원', c.capacity_note]
+    ].filter(([, val]) => val).map(([label, val]) => `
+        <div class="cp-meta-row"><span class="cp-meta-label">${label}</span><span class="cp-meta-val">${escapeHtmlText(val)}</span></div>
+    `).join('');
+
+    return `
+      <div class="cp-card" data-filter="${escapeHtmlText(c.filter_tab)}" onclick="goToClassDetail('${escapeHtmlText(page)}','cdIntro${escapeHtmlText(suffix)}','cdCurriculum${escapeHtmlText(suffix)}')">
+        <div class="cp-thumb" style="background: ${escapeHtmlText(c.thumb_gradient || 'linear-gradient(135deg,#0d1b2a 0%,#1a2d40 100%)')};">
+          <div class="cp-thumb-overlay">
+            <div class="cp-thumb-top">
+              <span class="cp-thumb-category">${escapeHtmlText(c.category)}</span>
+              <span class="cp-thumb-badge badge-${escapeHtmlText(c.badge_style || 'new')}">${escapeHtmlText(c.badge_text || 'NEW')}</span>
+            </div>
+            <div>
+              <div class="cp-thumb-title">${escapeHtmlText(c.thumb_title).replace(/\n/g, '<br>')}</div>
+              ${c.thumb_subject ? `<div class="cp-thumb-subject">${escapeHtmlText(c.thumb_subject)}</div>` : ''}
+            </div>
+          </div>
+        </div>
+        <div class="cp-body">
+          <div class="cp-name">${escapeHtmlText(c.name)}</div>
+          <div class="cp-meta">${metaRows}</div>
+          <div class="cp-price-row">
+            ${c.discount ? `<span class="cp-discount">${escapeHtmlText(c.discount)}</span>` : ''}
+            <span class="cp-price">${escapeHtmlText(c.price)}</span>
+            ${c.original_price ? `<span class="cp-original">${escapeHtmlText(c.original_price)}</span>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+}
+
+async function renderClassCards() {
+    try {
+        const res = await fetch('/api/classes');
+        if (!res.ok) return;
+        const classes = await res.json();
+        if (!Array.isArray(classes) || classes.length === 0) return;
+        const grid = document.querySelector('#classes .cp-grid');
+        if (!grid) return;
+        grid.innerHTML = classes.map(classCardHtml).join('');
+    } catch (err) {
+        // DB 미연결 환경(로컬 등)에서는 index.html의 기본 카드를 그대로 유지
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     renderReviews();
     renderCards();
     renderFaq();
     initHamburger();
     checkLoginState();
+    renderClassCards();
 });

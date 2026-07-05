@@ -111,6 +111,101 @@ app.post('/admin/api/videos/:id/complete', requireAdminApi, async (req, res) => 
   res.json({ ok: true });
 });
 
+// Express 4는 async 라우트의 reject를 잡지 못하므로 명시적으로 500 처리
+function wrapAsync(handler) {
+  return (req, res) => {
+    handler(req, res).catch(err => {
+      console.error(err);
+      if (!res.headersSent) res.status(500).json({ error: '서버 오류가 발생했습니다.' });
+    });
+  };
+}
+
+const CLASS_FIELDS = [
+  'filter_tab', 'category', 'badge_style', 'badge_text', 'thumb_title', 'thumb_subject',
+  'thumb_gradient', 'name', 'enroll_period', 'course_period', 'capacity_note',
+  'discount', 'price', 'original_price', 'detail_page', 'sort_order', 'is_active'
+];
+const BADGE_STYLES = ['enroll', 'hot', 'new'];
+
+function validateClassBody(body) {
+  for (const field of ['category', 'thumb_title', 'name', 'price']) {
+    if (!body[field] || !String(body[field]).trim()) {
+      return `${field}은(는) 필수 항목입니다.`;
+    }
+  }
+  if (body.badge_style && !BADGE_STYLES.includes(body.badge_style)) {
+    return 'badge_style은 enroll, hot, new 중 하나여야 합니다.';
+  }
+  return null;
+}
+
+function classValues(body) {
+  return CLASS_FIELDS.map(field => {
+    if (field === 'sort_order') return parseInt(body.sort_order, 10) || 0;
+    if (field === 'is_active') {
+      return body.is_active === false || body.is_active === 0 || body.is_active === '0' ? 0 : 1;
+    }
+    if (field === 'badge_style') return body.badge_style || 'new';
+    if (field === 'badge_text') return body.badge_text || 'NEW';
+    if (field === 'filter_tab') return body.filter_tab || '전체';
+    if (field === 'thumb_gradient') return body.thumb_gradient || 'linear-gradient(135deg,#0d1b2a 0%,#1a2d40 100%)';
+    const value = body[field];
+    return value === undefined || value === null || String(value).trim() === '' ? null : String(value).trim();
+  });
+}
+
+app.get('/api/classes', wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    'SELECT * FROM classes WHERE is_active = 1 ORDER BY sort_order, id'
+  );
+  res.json(rows);
+}));
+
+app.get('/admin/api/classes', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query('SELECT * FROM classes ORDER BY sort_order, id');
+  res.json(rows);
+}));
+
+app.post('/admin/api/classes', requireAdminApi, wrapAsync(async (req, res) => {
+  const error = validateClassBody(req.body);
+  if (error) {
+    res.status(400).json({ error });
+    return;
+  }
+  const [result] = await getPool().query(
+    `INSERT INTO classes (${CLASS_FIELDS.join(', ')}) VALUES (${CLASS_FIELDS.map(() => '?').join(', ')})`,
+    classValues(req.body)
+  );
+  res.json({ ok: true, id: result.insertId });
+}));
+
+app.put('/admin/api/classes/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const error = validateClassBody(req.body);
+  if (error) {
+    res.status(400).json({ error });
+    return;
+  }
+  const [result] = await getPool().query(
+    `UPDATE classes SET ${CLASS_FIELDS.map(f => `${f} = ?`).join(', ')} WHERE id = ?`,
+    [...classValues(req.body), req.params.id]
+  );
+  if (result.affectedRows === 0) {
+    res.status(404).json({ error: '클래스를 찾을 수 없습니다.' });
+    return;
+  }
+  res.json({ ok: true });
+}));
+
+app.delete('/admin/api/classes/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const [result] = await getPool().query('DELETE FROM classes WHERE id = ?', [req.params.id]);
+  if (result.affectedRows === 0) {
+    res.status(404).json({ error: '클래스를 찾을 수 없습니다.' });
+    return;
+  }
+  res.json({ ok: true });
+}));
+
 app.get('/admin/api/members', requireAdminApi, async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const pageSize = Math.min(200, Math.max(1, parseInt(req.query.pageSize, 10) || 50));

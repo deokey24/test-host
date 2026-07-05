@@ -3299,7 +3299,7 @@
     <div class="cp-grid">
 
       <!-- 카드 1 -->
-      <div class="cp-card" onclick="goToClassDetail()">
+      <div class="cp-card" data-filter="경찰대 편입" onclick="goToClassDetail()">
         <div class="cp-thumb" style="background: linear-gradient(135deg,#0d1b2a 0%,#1a2d40 100%);">
           <div class="cp-thumb-overlay">
             <div class="cp-thumb-top">
@@ -3324,7 +3324,7 @@
       </div>
 
       <!-- 카드 2 -->
-      <div class="cp-card" onclick="goToClassDetail()">
+      <div class="cp-card" data-filter="경찰대 편입" onclick="goToClassDetail()">
         <div class="cp-thumb" style="background: linear-gradient(135deg,#0d1b2a 0%,#1a2d40 100%);">
           <div class="cp-thumb-overlay">
             <div class="cp-thumb-top">
@@ -3349,7 +3349,7 @@
       </div>
 
       <!-- 카드 3 -->
-      <div class="cp-card" onclick="goToClassDetail()">
+      <div class="cp-card" data-filter="파이널반" onclick="goToClassDetail()">
         <div class="cp-thumb" style="background: linear-gradient(135deg,#0d1b2a 0%,#162535 100%);">
           <div class="cp-thumb-overlay">
             <div class="cp-thumb-top">
@@ -3378,7 +3378,7 @@
       </div>
 
       <!-- 카드 4 -->
-      <div class="cp-card" onclick="goToClassDetail()">
+      <div class="cp-card" data-filter="연고대 논술" onclick="goToClassDetail()">
         <div class="cp-thumb" style="background: linear-gradient(135deg,#1a0d2a 0%,#2d1a40 100%);">
           <div class="cp-thumb-overlay">
             <div class="cp-thumb-top">
@@ -3403,7 +3403,7 @@
       </div>
 
       <!-- 카드 5 -->
-      <div class="cp-card" onclick="goToClassDetail()">
+      <div class="cp-card" data-filter="연고대 논술" onclick="goToClassDetail()">
         <div class="cp-thumb" style="background: linear-gradient(135deg,#1a0d2a 0%,#2a1540 100%);">
           <div class="cp-thumb-overlay">
             <div class="cp-thumb-top">
@@ -3428,7 +3428,7 @@
       </div>
 
       <!-- 카드 6 -->
-      <div class="cp-card" onclick="goToClassDetail()">
+      <div class="cp-card" data-filter="연고대 논술" onclick="goToClassDetail()">
         <div class="cp-thumb" style="background: linear-gradient(135deg,#1a1a0d 0%,#2d2a10 100%);">
           <div class="cp-thumb-overlay">
             <div class="cp-thumb-top">
@@ -3453,7 +3453,7 @@
       </div>
 
       <!-- 카드 7 -->
-      <div class="cp-card" onclick="goToClassDetail()">
+      <div class="cp-card" data-filter="파이널반" onclick="goToClassDetail()">
         <div class="cp-thumb" style="background: linear-gradient(135deg,#0d1b2a 0%,#1a3040 100%);">
           <div class="cp-thumb-overlay">
             <div class="cp-thumb-top">
@@ -3482,7 +3482,7 @@
       </div>
 
       <!-- 카드 8 -->
-      <div class="cp-card" onclick="goToClassDetail()">
+      <div class="cp-card" data-filter="연고대 논술" onclick="goToClassDetail()">
         <div class="cp-thumb" style="background: linear-gradient(135deg,#1a0d20 0%,#2a1535 100%);">
           <div class="cp-thumb-overlay">
             <div class="cp-thumb-top">
@@ -3507,7 +3507,7 @@
       </div>
 
       <!-- 카드 9 -->
-      <div class="cp-card" onclick="goToClassDetail('classDetailNew','cdIntroNew','cdCurriculumNew')">
+      <div class="cp-card" data-filter="인강" onclick="goToClassDetail('classDetailNew','cdIntroNew','cdCurriculumNew')">
         <div class="cp-thumb" style="background: linear-gradient(135deg,#0d1b2a 0%,#1a2d40 100%);">
           <div class="cp-thumb-overlay">
             <div class="cp-thumb-top">
@@ -5123,6 +5123,11 @@
       function cpFilter(el) {
         document.querySelectorAll('.cp-filter-tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
+        const tab = el.textContent.trim();
+        document.querySelectorAll('#classes .cp-card').forEach(card => {
+          const filter = card.dataset.filter || '';
+          card.style.display = (tab === '전체' || filter === tab) ? '' : 'none';
+        });
       }
 
       function tbFilter(el) {

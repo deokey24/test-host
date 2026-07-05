@@ -99,7 +99,8 @@
     margin-bottom: 20px;
   }
   .card h2 { font-size: 14px; margin: 0 0 14px; color: #E6E8EF; }
-  .card input[type="text"], .card input[type="file"] {
+  .card input[type="text"], .card input[type="file"], .card input[type="number"],
+  .card select, .card textarea {
     width: 100%;
     padding: 10px 12px;
     border: 1px solid #2E3654;
@@ -108,12 +109,14 @@
     margin-bottom: 10px;
     background: #0B0F1A;
     color: #E6E8EF;
+    font-family: inherit;
   }
-  .card input[type="text"]::placeholder { color: #6B7390; }
-  .card input[type="text"]:focus, .card input[type="file"]:focus {
+  .card input::placeholder, .card textarea::placeholder { color: #6B7390; }
+  .card input:focus, .card select:focus, .card textarea:focus {
     outline: none;
     border-color: #4A5AF0;
   }
+  .card textarea { resize: vertical; min-height: 60px; }
   .card button {
     padding: 10px 16px;
     border: none;
@@ -151,6 +154,43 @@
   .badge-failed { background: #3A1418; color: #F27C88; }
   .badge-pw-yes { background: #10301F; color: #4FCE8B; }
   .badge-pw-no { background: #3A2E10; color: #E8B84B; }
+  .class-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 12px;
+  }
+  .class-form-grid .full { grid-column: 1 / -1; }
+  .field-label {
+    display: block;
+    font-size: 12px;
+    color: #9AA1BD;
+    margin-bottom: 4px;
+  }
+  .class-form-actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+  .class-form-actions .btn-secondary {
+    background: transparent;
+    border: 1px solid #2E3654;
+    color: #E6E8EF;
+  }
+  .class-form-actions .btn-secondary:hover { background: #1A2038; }
+  .check-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: #9AA1BD; }
+  .check-row input { width: auto; margin: 0; }
+  .row-btn {
+    padding: 5px 10px;
+    border: 1px solid #2E3654;
+    border-radius: 6px;
+    background: transparent;
+    color: #E6E8EF;
+    font-size: 12px;
+    cursor: pointer;
+    margin-right: 4px;
+  }
+  .row-btn:hover { background: #1A2038; }
+  .row-btn.danger { border-color: #5A2730; color: #F27C88; }
+  .row-btn.danger:hover { background: #2A1418; }
+  .badge-active-yes { background: #10301F; color: #4FCE8B; }
+  .badge-active-no { background: #3A2E10; color: #E8B84B; }
+  .class-table-wrap { overflow-x: auto; }
   .member-toolbar { display: flex; gap: 8px; margin-bottom: 14px; }
   .member-toolbar input {
     flex: 1;
@@ -193,6 +233,7 @@
       <div class="sidebar-logo">DOCKTEACHER 관리자</div>
       <nav class="sidebar-nav">
         <button class="side-link active" data-target="videoSection">영상 업로드</button>
+        <button class="side-link" data-target="classSection">클래스 관리</button>
         <button class="side-link" data-target="memberSection">회원목록</button>
       </nav>
     </aside>
@@ -219,6 +260,104 @@
               <thead><tr><th>제목</th><th>상태</th><th>등록일</th></tr></thead>
               <tbody id="videoList"></tbody>
             </table>
+          </div>
+        </section>
+        <section id="classSection" class="admin-section">
+          <div class="card">
+            <h2 id="classFormTitle">클래스 등록</h2>
+            <div class="class-form-grid">
+              <div>
+                <label class="field-label">필터 탭</label>
+                <select id="cfFilterTab">
+                  <option>경찰대 편입</option>
+                  <option>연고대 논술</option>
+                  <option>파이널반</option>
+                  <option>인강</option>
+                  <option>전체</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">카테고리 라벨 *</label>
+                <input type="text" id="cfCategory" placeholder="예: 2027 경찰대 편입">
+              </div>
+              <div>
+                <label class="field-label">배지 스타일</label>
+                <select id="cfBadgeStyle">
+                  <option value="new">NEW (초록)</option>
+                  <option value="hot">HOT (빨강)</option>
+                  <option value="enroll">수강신청 (파랑)</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">배지 문구</label>
+                <input type="text" id="cfBadgeText" placeholder="예: NEW / HOT / 수강신청">
+              </div>
+              <div class="full">
+                <label class="field-label">썸네일 제목 * (줄바꿈 그대로 반영)</label>
+                <textarea id="cfThumbTitle" rows="2" placeholder="예: 경찰대 언어논리&#10;4월 신규반"></textarea>
+              </div>
+              <div>
+                <label class="field-label">썸네일 과목·강사</label>
+                <input type="text" id="cfThumbSubject" placeholder="예: 언어논리 · 황성찬">
+              </div>
+              <div>
+                <label class="field-label">썸네일 배경 (CSS gradient)</label>
+                <input type="text" id="cfThumbGradient" placeholder="비우면 기본 네이비 그라데이션">
+              </div>
+              <div class="full">
+                <label class="field-label">강좌명 (카드 본문) *</label>
+                <input type="text" id="cfName" placeholder="예: [경찰대 편입] 2027년 대비 황성찬T 경찰대 언어논리 4월 신규반 개강">
+              </div>
+              <div>
+                <label class="field-label">수강 신청 기간</label>
+                <input type="text" id="cfEnrollPeriod" placeholder="예: 2026.03.20 ~ 2026.04.10">
+              </div>
+              <div>
+                <label class="field-label">수강 기간</label>
+                <input type="text" id="cfCoursePeriod" placeholder="예: 2026.04.01 ~ 2026.11.30">
+              </div>
+              <div>
+                <label class="field-label">모집인원 표기</label>
+                <input type="text" id="cfCapacityNote" placeholder="예: 선착순 마감 / N수생 25% 할인">
+              </div>
+              <div>
+                <label class="field-label">할인율 표기</label>
+                <input type="text" id="cfDiscount" placeholder="예: 25% (없으면 비움)">
+              </div>
+              <div>
+                <label class="field-label">가격 *</label>
+                <input type="text" id="cfPrice" placeholder="예: 280,000원 / 가격 문의">
+              </div>
+              <div>
+                <label class="field-label">할인 전 가격</label>
+                <input type="text" id="cfOriginalPrice" placeholder="예: 510,000원 (없으면 비움)">
+              </div>
+              <div>
+                <label class="field-label">상세페이지 ID</label>
+                <input type="text" id="cfDetailPage" placeholder="비우면 기본 상세페이지">
+              </div>
+              <div>
+                <label class="field-label">노출 순서</label>
+                <input type="number" id="cfSortOrder" value="0">
+              </div>
+            </div>
+            <label class="check-row"><input type="checkbox" id="cfIsActive" checked> 사이트에 노출</label>
+            <div class="class-form-actions">
+              <button id="classSaveBtn">등록</button>
+              <button id="classCancelBtn" class="btn-secondary" style="display:none;">수정 취소</button>
+              <span class="status-text" id="classFormStatus" style="margin-top:0;"></span>
+            </div>
+          </div>
+          <div class="card">
+            <h2>클래스 목록 (<span id="classTotal">0</span>개)</h2>
+            <div class="class-table-wrap">
+              <table>
+                <thead>
+                  <tr><th>순서</th><th>강좌명</th><th>필터</th><th>가격</th><th>노출</th><th>관리</th></tr>
+                </thead>
+                <tbody id="classList"></tbody>
+              </table>
+            </div>
           </div>
         </section>
         <section id="memberSection" class="admin-section">
@@ -408,6 +547,134 @@
     });
 
     loadMembers();
+
+    // ── 클래스 관리 ──
+    const CLASS_FIELD_INPUTS = {
+      filter_tab: 'cfFilterTab',
+      category: 'cfCategory',
+      badge_style: 'cfBadgeStyle',
+      badge_text: 'cfBadgeText',
+      thumb_title: 'cfThumbTitle',
+      thumb_subject: 'cfThumbSubject',
+      thumb_gradient: 'cfThumbGradient',
+      name: 'cfName',
+      enroll_period: 'cfEnrollPeriod',
+      course_period: 'cfCoursePeriod',
+      capacity_note: 'cfCapacityNote',
+      discount: 'cfDiscount',
+      price: 'cfPrice',
+      original_price: 'cfOriginalPrice',
+      detail_page: 'cfDetailPage',
+      sort_order: 'cfSortOrder'
+    };
+    let editingClassId = null;
+    let classCache = [];
+
+    function readClassForm() {
+      const body = {};
+      for (const [field, id] of Object.entries(CLASS_FIELD_INPUTS)) {
+        body[field] = document.getElementById(id).value.trim();
+      }
+      body.is_active = document.getElementById('cfIsActive').checked;
+      return body;
+    }
+
+    function fillClassForm(cls) {
+      for (const [field, id] of Object.entries(CLASS_FIELD_INPUTS)) {
+        document.getElementById(id).value = cls[field] ?? '';
+      }
+      document.getElementById('cfIsActive').checked = !!cls.is_active;
+    }
+
+    function resetClassForm() {
+      editingClassId = null;
+      fillClassForm({ filter_tab: '경찰대 편입', badge_style: 'new', sort_order: 0, is_active: 1 });
+      document.getElementById('classFormTitle').textContent = '클래스 등록';
+      document.getElementById('classSaveBtn').textContent = '등록';
+      document.getElementById('classCancelBtn').style.display = 'none';
+      document.getElementById('classFormStatus').textContent = '';
+    }
+
+    async function loadClasses() {
+      const res = await fetch('/admin/api/classes');
+      if (!res.ok) return;
+      classCache = await res.json();
+      document.getElementById('classTotal').textContent = classCache.length;
+      document.getElementById('classList').innerHTML = classCache.map(c => `
+        <tr>
+          <td>${c.sort_order}</td>
+          <td>${escapeHtml(c.name)}</td>
+          <td>${escapeHtml(c.filter_tab)}</td>
+          <td>${escapeHtml(c.price)}</td>
+          <td><span class="badge badge-active-${c.is_active ? 'yes' : 'no'}">${c.is_active ? '노출' : '숨김'}</span></td>
+          <td>
+            <button class="row-btn" data-edit-class="${c.id}">수정</button>
+            <button class="row-btn danger" data-delete-class="${c.id}">삭제</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('classList').addEventListener('click', async (e) => {
+      const editId = e.target.dataset.editClass;
+      const deleteId = e.target.dataset.deleteClass;
+
+      if (editId) {
+        const cls = classCache.find(c => String(c.id) === editId);
+        if (!cls) return;
+        editingClassId = cls.id;
+        fillClassForm(cls);
+        document.getElementById('classFormTitle').textContent = `클래스 수정 (#${cls.id})`;
+        document.getElementById('classSaveBtn').textContent = '수정 저장';
+        document.getElementById('classCancelBtn').style.display = '';
+        document.getElementById('classFormStatus').textContent = '';
+        document.getElementById('classSection').scrollIntoView({ behavior: 'smooth' });
+      }
+
+      if (deleteId) {
+        const cls = classCache.find(c => String(c.id) === deleteId);
+        if (!cls || !confirm(`"${cls.name}" 클래스를 삭제할까요?\n삭제 후 되돌릴 수 없습니다.`)) return;
+        const res = await fetch(`/admin/api/classes/${deleteId}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          alert(data.error || '삭제에 실패했습니다.');
+          return;
+        }
+        if (String(editingClassId) === deleteId) resetClassForm();
+        await loadClasses();
+      }
+    });
+
+    document.getElementById('classSaveBtn').addEventListener('click', async () => {
+      const body = readClassForm();
+      const status = document.getElementById('classFormStatus');
+
+      if (!body.category || !body.thumb_title || !body.name || !body.price) {
+        status.textContent = '카테고리, 썸네일 제목, 강좌명, 가격은 필수입니다.';
+        return;
+      }
+
+      const url = editingClassId ? `/admin/api/classes/${editingClassId}` : '/admin/api/classes';
+      const res = await fetch(url, {
+        method: editingClassId ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        status.textContent = data.error || '저장에 실패했습니다.';
+        return;
+      }
+
+      const wasEditing = editingClassId;
+      resetClassForm();
+      document.getElementById('classFormStatus').textContent = wasEditing ? '수정되었습니다.' : '등록되었습니다.';
+      await loadClasses();
+    });
+
+    document.getElementById('classCancelBtn').addEventListener('click', resetClassForm);
+
+    loadClasses();
   </script>
 </body>
 </html>

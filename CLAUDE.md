@@ -65,7 +65,9 @@ CSS 변수가 두 곳에 선언되어 있어 주의 필요:
 
 ### 데이터
 
-모든 콘텐츠(강의 목록, 수강 후기, FAQ)는 `script.js` 상단 상수 배열에 하드코딩:
+수강신청 클래스 카드는 MySQL `classes` 테이블에서 로드(`GET /api/classes`, `script.js`의 `renderClassCards()`), 관리자 페이지 "클래스 관리" 섹션에서 CRUD. DB 미연결 시 `index.html`의 하드코딩 카드 9개가 폴백으로 유지됨.
+
+나머지 콘텐츠(강의 영상, 수강 후기, FAQ)는 `script.js` 상단 상수 배열에 하드코딩:
 - `lectureVideos` — 강의 영상 URL 목록
 - `reviews`, `reviewData` — 수강 후기
 - `faqData` — FAQ 항목
