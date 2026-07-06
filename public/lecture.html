@@ -1066,8 +1066,8 @@
     .nav-links { display: none; }
     .nav-hamburger { display: flex; }
 
-    /* Home Hero */
-    .hero { flex-direction: column; padding: 100px 40px 60px; gap: 0; }
+    /* Home Hero — 이 페이지의 실제 히어로(.hero-text-overlay 구조)는 lecture.css가 담당하므로
+       index.html 홈 히어로(.hero-left/.hero-right 구조) 전용 규칙은 여기서 제외 */
     .hero-left { display: contents; }
     .hero-title { order: 1; width: 100%; text-align: center; font-size: clamp(30px, 8vw, 48px); margin-bottom: 16px; }
     .hero-sub { order: 2; width: 100%; text-align: center; margin-bottom: 0; }
@@ -1133,8 +1133,7 @@
     /* Nav */
     .nav-logo { font-size: 16px; }
 
-    /* Home Hero */
-    .hero { padding: 90px 20px 60px; }
+    /* Home Hero (index.html 홈 전용 구조, 이 페이지에서는 미사용) */
     .hero-right { height: 300px; }
     .hero-img-notebook { width: 74%; bottom: 0; left: 0; }
     .hero-img-tablet { width: 46%; top: 8%; right: 0; }
@@ -1900,6 +1899,9 @@
     border: 1px solid #eee; border-radius: 8px;
     overflow: hidden; margin-bottom: 48px;
   }
+  .cd-summary-inline {
+    max-width: 1100px; margin: 0 auto; padding: 0 40px; display: flex;
+  }
   .cd-summary-item {
     flex: 1; padding: 20px 16px;
     display: flex; align-items: center; gap: 10px;
@@ -1963,7 +1965,8 @@
     padding: 14px 18px; border-top: 1px solid #f0f0f0;
     font-size: 14px; color: #555;
   }
-  .cd-lesson-left { display: flex; align-items: center; gap: 12px; }
+  .cd-lesson-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .cd-lesson-left > div { min-width: 0; }
   .cd-lesson-icon { color: #aaa; font-size: 16px; }
   .cd-lesson-time { font-size: 12px; color: #bbb; }
   .cd-lesson-badge {
@@ -1990,17 +1993,27 @@
   .cd-chapter-part:first-of-type { margin-top: 0; }
 
   @media (max-width: 900px) {
-    .cd-top { grid-template-columns: 1fr; padding: 40px 20px 40px; }
+    .cd-content-wrap { grid-template-columns: 1fr; gap: 24px; padding: 0 20px 60px; }
+    .cd-banner-inner-grid { grid-template-columns: 1fr; gap: 24px; padding: 40px 24px; }
+    .cd-banner { min-height: unset; }
     .cd-banner-card { display: none; }
-    .cd-panel { position: static; }
+    .cd-panel { position: static; margin-top: 24px; }
     .cd-tabs-wrap { padding: 0 20px; }
-    .cd-body { padding: 32px 20px 60px; }
-    .cd-summary-bar { flex-direction: column; }
+    .cd-body { padding: 32px 0 0; }
+    .cd-summary-bar,
+    .cd-summary-inline { flex-direction: column; }
     .cd-summary-item { border-right: none; border-bottom: 1px solid #eee; }
     .cd-summary-item:last-child { border-bottom: none; }
     .cd-apply-grid { grid-template-columns: 1fr 1fr; }
   }
+  @media (max-width: 600px) {
+    .cd-content-wrap { padding: 0 16px 48px; }
+    .cd-banner-inner-grid { padding: 32px 20px; }
+    .cd-tabs-wrap { padding: 0 16px; }
+    .cd-summary-inline { padding: 0 20px; }
+  }
   @media (max-width: 480px) {
+    .cd-banner { padding-top: 40px; }
     .cd-apply-grid { grid-template-columns: 1fr; }
     .cd-tab { padding: 14px 14px; font-size: 13px; }
   }
@@ -2775,7 +2788,7 @@
         <img src="images/banner_4.jpg" class="lp-vid-bg-right" alt="">
         <div class="site-container">
             <div class="lp-vid-player">
-                <div class="lp-vid-thumbnail">
+                <div class="lp-vid-thumbnail" id="lpVidThumbnail" onclick="playIntroVideo()">
                     <div class="lp-vid-text">
                         <p class="lp-vid-sub">합격자가 나올 수밖에 없는 연세대 수시논술 강의</p>
                         <h2 class="lp-vid-main"><span class="lp-vid-blue">출제 메커니즘</span>을 완벽히 분석했습니다.</h2>
@@ -3518,7 +3531,7 @@
 
   <!-- 요약 바 (전체 너비) -->
   <div style="border-top:1px solid #eee; border-bottom:1px solid #eee; background:var(--white);">
-    <div style="max-width:1100px; margin:0 auto; padding:0 40px; display:flex;">
+    <div class="cd-summary-inline">
       <div class="cd-summary-item" style="flex:1;">
         <span class="cd-summary-icon">📋</span>
         <div><div class="cd-summary-label">총 강의수</div><div class="cd-summary-val">10개 강좌</div></div>
@@ -3800,7 +3813,7 @@
 
   <!-- 요약 바 (전체 너비) -->
   <div style="border-top:1px solid #eee; border-bottom:1px solid #eee; background:var(--white);">
-    <div style="max-width:1100px; margin:0 auto; padding:0 40px; display:flex;">
+    <div class="cd-summary-inline">
       <div class="cd-summary-item" style="flex:1;">
         <span class="cd-summary-icon">📋</span>
         <div><div class="cd-summary-label">총 강의수</div><div class="cd-summary-val">13개 강좌 (OT+12강)</div></div>
@@ -5074,6 +5087,12 @@
       function cpFilter(el) {
         document.querySelectorAll('.cp-filter-tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
+      }
+
+      function playIntroVideo() {
+        const box = document.getElementById('lpVidThumbnail');
+        if (!box || box.querySelector('video')) return;
+        box.innerHTML = '<video class="lp-vid-video" controls autoplay playsinline src="https://cdn.dockteacher.co.kr/courses/001/lectures/000/video/0%EA%B0%95_%EC%97%B0%EA%B3%A0%EB%8C%80%20%ED%8E%B8%EC%9E%85%EB%85%BC%EC%88%A0%20OT.mp4"></video>';
       }
 
       function tbFilter(el) {

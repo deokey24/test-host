@@ -253,7 +253,10 @@ function submitTestForm(e) {
     document.getElementById('testModal').scrollTop = 0;
 }
 
+let currentMemberName = null;
+
 function applyLoggedInUI(name) {
+    currentMemberName = name;
     document.querySelector('.btn-login').style.display = 'none';
     document.getElementById('userMenu').style.display = 'block';
 }
@@ -272,6 +275,262 @@ async function checkLoginState() {
     } catch (err) {}
 }
 
+/* ── 내 강의실 ── */
+
+let myLecCache = [];
+let myLecFilter = '진행중';
+
+async function openMyLectures() {
+    showPage('myLectures');
+    const nameEl = document.getElementById('myLecGreetingName');
+    if (nameEl) nameEl.textContent = currentMemberName ? currentMemberName + '님' : '환영합니다';
+    try {
+        const res = await fetch('/api/members/my-lectures');
+        myLecCache = res.ok ? await res.json() : [];
+    } catch (err) {
+        myLecCache = [];
+    }
+    renderMyLectures();
+}
+
+function switchMyLecTab(el, status) {
+    document.querySelectorAll('#myLectures .my-lec-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    myLecFilter = status;
+    renderMyLectures();
+}
+
+function renderMyLectures() {
+    const filtered = myLecCache.filter(l => l.status === myLecFilter);
+    document.getElementById('myLecSectionLabel').textContent = myLecFilter === '완료' ? '수강 완료한 강의' : '수강 중인 강의';
+    document.getElementById('myLecSectionCount').textContent = filtered.length + '개';
+
+    const gridEl = document.getElementById('myLecGrid');
+    const emptyEl = document.getElementById('myLecEmpty');
+    if (filtered.length === 0) {
+        gridEl.innerHTML = '';
+        emptyEl.style.display = 'block';
+        return;
+    }
+    emptyEl.style.display = 'none';
+    gridEl.innerHTML = filtered.map(l => {
+        const progressMatch = (l.progress_note || '').match(/(\d+)\s*\/\s*(\d+)/);
+        const progressHtml = progressMatch
+            ? `<div class="my-lec-progress-wrap">
+                 <div class="my-lec-count-row">
+                   <span class="my-lec-count-label">수강 진도</span>
+                   <span class="my-lec-count">${l.progress_note}</span>
+                 </div>
+                 <div class="my-lec-bar-bg">
+                   <div class="my-lec-bar-fill" style="width:${Math.min(100, Math.round(progressMatch[1] / progressMatch[2] * 100))}%;"></div>
+                 </div>
+               </div>`
+            : (l.progress_note ? `<div class="my-lec-progress-wrap"><span class="my-lec-count-label">${l.progress_note}</span></div>` : '');
+        const titleParts = (l.thumb_title || l.name || '').split('\n');
+        return `
+            <div class="my-lec-card" onclick="openLecturePlayer(${l.class_id})" style="cursor:pointer;">
+                <div class="my-lec-thumb" style="background:${l.thumb_gradient || 'linear-gradient(135deg,#0d1b2a,#1a2d40)'};">
+                    <span class="class-badge badge-humane">${l.category || ''}</span>
+                    <div style="position:absolute;bottom:12px;left:14px;right:14px;">
+                        <div style="font-family:'Noto Serif KR',serif;font-size:15px;font-weight:900;color:#fff;line-height:1.3;">${titleParts.join('<br>')}</div>
+                    </div>
+                </div>
+                <div class="my-lec-body">
+                    <div class="my-lec-teacher">${l.thumb_subject || ''}</div>
+                    <div class="my-lec-name">${l.name}</div>
+                    ${progressHtml}
+                    <button class="my-lec-btn">이어 수강하기</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+/* ── 강의 플레이어 (영상 + 수업자료) ── */
+
+let lecturePlayerClass = null;
+let lecturePlayerLectures = [];
+let lecturePlayerIndex = 0;
+
+async function openLecturePlayer(classId) {
+    try {
+        const res = await fetch(`/api/members/my-lectures/${classId}`);
+        if (!res.ok) { alert('강의 목록을 불러오지 못했습니다.'); return; }
+        const data = await res.json();
+        lecturePlayerClass = data.class;
+        lecturePlayerLectures = data.lectures || [];
+    } catch (err) {
+        alert('강의 목록을 불러오지 못했습니다.');
+        return;
+    }
+    if (lecturePlayerLectures.length === 0) {
+        alert('등록된 강의 영상이 없습니다.');
+        return;
+    }
+    showPage('lecturePlayer');
+    renderLectureCurriculum();
+    selectLecture(0);
+}
+
+function renderLectureCurriculum() {
+    document.getElementById('lpCurriculumList').innerHTML = lecturePlayerLectures.map((l, idx) => `
+        <div class="lp-item${idx === lecturePlayerIndex ? ' current' : ''}" data-lecture-idx="${idx}" style="cursor:pointer;">
+            <span class="lp-item-num">${String(l.lectureNumber).padStart(2, '0')}</span>
+            <span class="lp-item-check"></span>
+            <div class="lp-item-info"><div class="lp-item-name">${escapeHtmlText(l.title)}</div></div>
+        </div>
+    `).join('');
+    document.querySelectorAll('#lpCurriculumList .lp-item').forEach(el => {
+        el.addEventListener('click', () => selectLecture(Number(el.dataset.lectureIdx)));
+    });
+}
+
+function selectLecture(idx) {
+    if (idx < 0 || idx >= lecturePlayerLectures.length) return;
+    lecturePlayerIndex = idx;
+    const lecture = lecturePlayerLectures[idx];
+
+    document.getElementById('lpLectureNum').textContent = `제 ${lecture.lectureNumber}강`;
+    document.getElementById('lpLectureTitle').textContent = lecture.title;
+    document.getElementById('lpCourseName').textContent = lecturePlayerClass ? lecturePlayerClass.name : '';
+    document.getElementById('lpInfoNum').textContent = `${lecture.lectureNumber}강`;
+    document.getElementById('lpInfoTitle').textContent = lecture.title;
+
+    const video = document.getElementById('lectureVideo');
+    const source = document.getElementById('lectureVideoSrc');
+    source.src = lecture.videoUrl;
+    video.load();
+
+    document.getElementById('lpProgressCount').textContent = `${idx + 1} / ${lecturePlayerLectures.length}강`;
+    document.getElementById('lpProgressBarFill').style.width = `${Math.round((idx + 1) / lecturePlayerLectures.length * 100)}%`;
+
+    const materialsEl = document.getElementById('lpMaterialsList');
+    if (lecture.materials.length === 0) {
+        materialsEl.innerHTML = '<div class="lp-file-empty">등록된 자료가 없습니다.</div>';
+    } else {
+        materialsEl.innerHTML = lecture.materials.map(m => `
+            <a class="lp-file-item" href="${m.url}" target="_blank" rel="noopener" style="cursor:pointer;text-decoration:none;">
+                <div class="lp-file-icon">PDF</div>
+                <div>
+                    <div class="lp-file-name">${escapeHtmlText(m.title)}</div>
+                </div>
+            </a>
+        `).join('');
+    }
+
+    renderLectureCurriculum();
+}
+
+function nextLecture() {
+    if (lecturePlayerIndex + 1 < lecturePlayerLectures.length) selectLecture(lecturePlayerIndex + 1);
+}
+
+/* ── 마이페이지 ── */
+
+function openMyPage() {
+    showPage('myPage');
+    switchMyPageTab(document.querySelector('#myPage .my-lec-tab'), 'mpInfo');
+}
+
+function switchMyPageTab(el, panelId) {
+    document.querySelectorAll('#myPage .my-lec-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('#myPage .mp-tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(panelId).classList.add('active');
+
+    if (panelId === 'mpInfo') loadMyInfo();
+    if (panelId === 'mpDevices') loadMyDevices();
+}
+
+async function loadMyInfo() {
+    try {
+        const res = await fetch('/api/members/my-info');
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('mpInfoUsername').textContent = data.username || '-';
+        document.getElementById('mpInfoName').textContent = data.name || '-';
+        document.getElementById('mpInfoEmail').textContent = data.email || '-';
+        document.getElementById('mpInfoMobile').textContent = data.mobile || data.phone || '-';
+    } catch (err) {}
+}
+
+async function loadMyDevices() {
+    const listEl = document.getElementById('mpDeviceList');
+    try {
+        const res = await fetch('/api/members/devices');
+        if (!res.ok) return;
+        const devices = await res.json();
+        document.getElementById('mpDeviceCount').textContent = devices.length;
+        if (devices.length === 0) {
+            listEl.innerHTML = '<div class="mp-empty">등록된 기기가 없습니다.</div>';
+            return;
+        }
+        listEl.innerHTML = devices.map(d => `
+            <div class="mp-device-card">
+                <div>
+                    <div class="mp-device-label">${d.label || '알 수 없는 기기'}${d.isCurrent ? '<span class="mp-device-badge">현재 기기</span>' : ''}</div>
+                    <div class="mp-device-meta">${d.ip || ''} · 최근 로그인 ${d.lastLoginAt ? new Date(d.lastLoginAt).toLocaleString('ko-KR') : '-'}</div>
+                </div>
+                <button class="mp-device-remove" onclick="removeDevice(${d.id})" title="기기 삭제">✕</button>
+            </div>
+        `).join('');
+    } catch (err) {}
+}
+
+async function removeDevice(id) {
+    if (!confirm('이 기기를 삭제하시겠습니까? 해당 기기에서는 다시 로그인해야 합니다.')) return;
+    try {
+        const res = await fetch(`/api/members/devices/${id}`, { method: 'DELETE' });
+        if (res.ok) loadMyDevices();
+    } catch (err) {}
+}
+
+async function submitChangePassword(e) {
+    e.preventDefault();
+    const currentPassword = document.getElementById('mpCurrentPassword').value;
+    const newPassword1 = document.getElementById('mpNewPassword1').value;
+    const newPassword2 = document.getElementById('mpNewPassword2').value;
+    const errEl = document.getElementById('mpPasswordErrorMsg');
+    const okEl = document.getElementById('mpPasswordSuccessMsg');
+    errEl.style.display = 'none';
+    okEl.style.display = 'none';
+
+    if (!SU_PASSWORD_RE.test(newPassword1)) {
+        errEl.textContent = '비밀번호는 영문자, 숫자, 특수문자를 모두 포함한 8~16자여야 합니다.';
+        errEl.style.display = 'block';
+        return;
+    }
+    if (newPassword1 !== newPassword2) {
+        errEl.textContent = '새 비밀번호가 일치하지 않습니다.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    const submitBtn = document.getElementById('mpPasswordSubmitBtn');
+    submitBtn.disabled = true;
+    try {
+        const res = await fetch('/api/members/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ currentPassword, newPassword: newPassword1 })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            errEl.textContent = data.error || '비밀번호 변경에 실패했습니다.';
+            errEl.style.display = 'block';
+            return;
+        }
+        document.getElementById('mpPasswordForm').reset();
+        okEl.textContent = '비밀번호가 변경되었습니다.';
+        okEl.style.display = 'block';
+    } catch (err) {
+        errEl.textContent = '서버와 통신 중 오류가 발생했습니다.';
+        errEl.style.display = 'block';
+    } finally {
+        submitBtn.disabled = false;
+    }
+}
+
 /* ── 로그인 모달 ── */
 
 function openLoginModal() {
@@ -287,10 +546,20 @@ function closeLoginModal(e) {
     document.body.style.overflow = '';
 }
 
+function getOrCreateDeviceId() {
+    let id = localStorage.getItem('deviceId');
+    if (!id) {
+        id = crypto.randomUUID();
+        localStorage.setItem('deviceId', id);
+    }
+    return id;
+}
+
 async function submitLoginForm(e) {
     e.preventDefault();
     const username = document.getElementById('loginUsername').value.trim();
     const password = document.getElementById('loginPassword').value;
+    const keepLoggedIn = document.getElementById('loginKeepLoggedIn').checked;
     const errEl = document.getElementById('loginErrorMsg');
     errEl.style.display = 'none';
 
@@ -298,7 +567,7 @@ async function submitLoginForm(e) {
         const res = await fetch('/api/members/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ username, password, deviceId: getOrCreateDeviceId(), keepLoggedIn })
         });
         const data = await res.json();
         if (!res.ok) {
@@ -311,6 +580,116 @@ async function submitLoginForm(e) {
     } catch (err) {
         errEl.textContent = '서버와 통신 중 오류가 발생했습니다.';
         errEl.style.display = 'block';
+    }
+}
+
+/* ── 비밀번호 찾기 / 재설정 모달 ── */
+
+function openForgotPasswordModal() {
+    document.getElementById('forgotPasswordForm').reset();
+    document.getElementById('forgotPasswordErrorMsg').style.display = 'none';
+    document.getElementById('forgotPasswordSuccessMsg').style.display = 'none';
+    document.getElementById('forgotPasswordModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeForgotPasswordModal(e) {
+    if (e && e.target !== document.getElementById('forgotPasswordModal')) return;
+    document.getElementById('forgotPasswordModal').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+async function submitForgotPasswordForm(e) {
+    e.preventDefault();
+    const username = document.getElementById('forgotUsername').value.trim();
+    const errEl = document.getElementById('forgotPasswordErrorMsg');
+    const okEl = document.getElementById('forgotPasswordSuccessMsg');
+    errEl.style.display = 'none';
+    okEl.style.display = 'none';
+
+    const submitBtn = document.getElementById('forgotPasswordSubmitBtn');
+    submitBtn.disabled = true;
+    try {
+        const res = await fetch('/api/members/forgot-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            errEl.textContent = data.error || '요청에 실패했습니다.';
+            errEl.style.display = 'block';
+            return;
+        }
+        okEl.textContent = '등록된 이메일로 재설정 링크를 보냈습니다. 메일함을 확인해주세요.';
+        okEl.style.display = 'block';
+    } catch (err) {
+        errEl.textContent = '서버와 통신 중 오류가 발생했습니다.';
+        errEl.style.display = 'block';
+    } finally {
+        submitBtn.disabled = false;
+    }
+}
+
+function closeResetPasswordModal() {
+    document.getElementById('resetPasswordModal').classList.remove('open');
+    document.body.style.overflow = '';
+    const url = new URL(window.location.href);
+    url.searchParams.delete('resetToken');
+    window.history.replaceState({}, '', url);
+}
+
+function openResetPasswordModalIfNeeded() {
+    const token = new URL(window.location.href).searchParams.get('resetToken');
+    if (!token) return;
+    document.getElementById('resetPasswordForm').reset();
+    document.getElementById('resetPasswordErrorMsg').style.display = 'none';
+    document.getElementById('resetPasswordModal').dataset.token = token;
+    document.getElementById('resetPasswordModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+async function submitResetPasswordForm(e) {
+    e.preventDefault();
+    const token = document.getElementById('resetPasswordModal').dataset.token;
+    const password1 = document.getElementById('resetPassword1').value;
+    const password2 = document.getElementById('resetPassword2').value;
+    const errEl = document.getElementById('resetPasswordErrorMsg');
+    errEl.style.display = 'none';
+
+    if (!SU_PASSWORD_RE.test(password1)) {
+        errEl.textContent = '비밀번호는 영문자, 숫자, 특수문자를 모두 포함한 8~16자여야 합니다.';
+        errEl.style.display = 'block';
+        return;
+    }
+    if (password1 !== password2) {
+        errEl.textContent = '비밀번호가 일치하지 않습니다.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    const submitBtn = document.getElementById('resetPasswordSubmitBtn');
+    submitBtn.disabled = true;
+    try {
+        const res = await fetch('/api/members/reset-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, newPassword: password1 })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            errEl.textContent = data.error || '비밀번호 변경에 실패했습니다.';
+            errEl.style.display = 'block';
+            return;
+        }
+        closeResetPasswordModal();
+        alert('비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.');
+        openLoginModal();
+    } catch (err) {
+        errEl.textContent = '서버와 통신 중 오류가 발생했습니다.';
+        errEl.style.display = 'block';
+    } finally {
+        submitBtn.disabled = false;
     }
 }
 
@@ -468,7 +847,8 @@ async function submitSignup() {
             body: JSON.stringify({
                 username, password, email, name, phone, mobile,
                 signupChannel, searchKeyword, referrerCode,
-                emailConsent: emailConsent.value, smsConsent: smsConsent.value
+                emailConsent: emailConsent.value, smsConsent: smsConsent.value,
+                deviceId: getOrCreateDeviceId()
             })
         });
         const data = await res.json();
@@ -507,7 +887,7 @@ function classCardHtml(c) {
     `).join('');
 
     return `
-      <div class="cp-card" data-filter="${escapeHtmlText(c.filter_tab)}" onclick="goToClassDetail('${escapeHtmlText(page)}','cdIntro${escapeHtmlText(suffix)}','cdCurriculum${escapeHtmlText(suffix)}')">
+      <div class="cp-card" data-filter="${escapeHtmlText(c.filter_tab)}" onclick="goToClassDetail('${escapeHtmlText(page)}','cdIntro${escapeHtmlText(suffix)}','cdCurriculum${escapeHtmlText(suffix)}',${c.id})">
         <div class="cp-thumb" style="background: ${escapeHtmlText(c.thumb_gradient || 'linear-gradient(135deg,#0d1b2a 0%,#1a2d40 100%)')};">
           <div class="cp-thumb-overlay">
             <div class="cp-thumb-top">
@@ -547,6 +927,121 @@ async function renderClassCards() {
     }
 }
 
+/* ── 관리자 페이지에서 등록한 클래스의 동적 상세페이지 (강의 소개 / 커리큘럼) ── */
+
+async function loadDynamicClassDetail(classId, introId, curriculumId) {
+    const introEl = document.getElementById(introId);
+    const curriculumEl = document.getElementById(curriculumId);
+    if (!introEl || !curriculumEl) return;
+    introEl.innerHTML = '<p class="cd-intro-desc">불러오는 중...</p>';
+    curriculumEl.innerHTML = '';
+    try {
+        const res = await fetch(`/api/classes/${classId}/content`);
+        if (!res.ok) { introEl.innerHTML = '<p class="cd-intro-desc">강의 소개를 찾을 수 없습니다.</p>'; return; }
+        const data = await res.json();
+
+        const tagEl = document.getElementById('cdDynTag');
+        const subtitleEl = document.getElementById('cdDynSubtitle');
+        const titleAccentEl = document.getElementById('cdDynTitleAccent');
+        const titleRestEl = document.getElementById('cdDynTitleRest');
+        const instructorWrapEl = document.getElementById('cdDynInstructorWrap');
+        const instructorNameEl = document.getElementById('cdDynInstructorName');
+        const cardImgEl = document.getElementById('cdDynCardImg');
+
+        if (tagEl) tagEl.textContent = data.banner_tag || data.category || data.filter_tab || '';
+        if (subtitleEl) subtitleEl.textContent = data.banner_subtitle || '';
+        if (titleAccentEl) titleAccentEl.textContent = data.banner_title_accent || data.name || '';
+        if (titleRestEl) titleRestEl.textContent = data.banner_title_rest || '';
+        if (instructorWrapEl && instructorNameEl) {
+            if (data.banner_instructor_name) {
+                instructorNameEl.textContent = data.banner_instructor_name;
+                instructorWrapEl.style.display = '';
+            } else {
+                instructorWrapEl.style.display = 'none';
+            }
+        }
+        if (cardImgEl) {
+            if (data.banner_card_type === 'image' && data.banner_image_url) {
+                cardImgEl.style.backgroundImage = `url('${data.banner_image_url}')`;
+                cardImgEl.style.backgroundSize = 'cover';
+                cardImgEl.style.backgroundPosition = 'center';
+            } else {
+                cardImgEl.style.backgroundImage = '';
+                cardImgEl.style.background = data.banner_card_gradient || 'linear-gradient(135deg,#0d1b2a 0%,#1a2d40 100%)';
+            }
+        }
+
+        const introSections = (data.intro_content && Array.isArray(data.intro_content.sections)) ? data.intro_content.sections : [];
+        introEl.innerHTML = introSections.length
+            ? introSections.map(renderIntroSection).join('')
+            : '<p class="cd-intro-desc">등록된 강의 소개가 없습니다.</p>';
+
+        const curriculum = data.curriculum_content || {};
+        const chapters = Array.isArray(curriculum.chapters) ? curriculum.chapters : [];
+        const countEl = document.getElementById('cdDynLectureCount');
+        if (countEl) countEl.textContent = curriculum.totalLabel || (chapters.length ? `${chapters.length}개 강좌` : '-');
+
+        curriculumEl.innerHTML = `
+            <div class="cd-curriculum-header">
+                <div class="cd-curriculum-title">📚 커리큘럼</div>
+                <div class="cd-curriculum-count">📋 ${escapeHtmlText(curriculum.totalLabel || '')}</div>
+            </div>
+        ` + (chapters.length ? chapters.map(renderCurriculumChapter).join('') : '<p class="cd-intro-desc">등록된 커리큘럼이 없습니다.</p>');
+    } catch (err) {
+        introEl.innerHTML = '<p class="cd-intro-desc">강의 소개를 불러오지 못했습니다.</p>';
+    }
+}
+
+function renderContentGroup(grp, listClass) {
+    const subheading = grp.subheading ? `<div class="cd-chapter-part">${escapeHtmlText(grp.subheading)}</div>` : '';
+    const bullets = (grp.bullets || []).filter(b => b && b.trim());
+    const list = bullets.length ? `<ul${listClass ? ` class="${listClass}"` : ''}>${bullets.map(b => `<li>${escapeHtmlText(b)}</li>`).join('')}</ul>` : '';
+    return subheading + list;
+}
+
+function renderIntroSection(sec, idx) {
+    const heading = idx === 0
+        ? `<div class="cd-intro-title">${escapeHtmlText(sec.heading)}</div>`
+        : `<hr class="cd-divider"><div class="cd-sub-title">${escapeHtmlText(sec.heading)}</div>`;
+    const paragraph = sec.paragraph ? `<p class="cd-intro-desc">${escapeHtmlText(sec.paragraph).replace(/\n/g, '<br>')}</p>` : '';
+    const groups = Array.isArray(sec.groups) ? sec.groups.map(grp => renderContentGroup(grp, 'cd-bullet-list')).join('') : '';
+    return heading + paragraph + groups;
+}
+
+function renderCurriculumChapter(ch) {
+    const sections = Array.isArray(ch.sections) ? ch.sections.map(sec => {
+        const paragraph = sec.paragraph ? `<br>${escapeHtmlText(sec.paragraph).replace(/\n/g, '<br>')}` : '';
+        const groups = Array.isArray(sec.groups) ? sec.groups.map(grp => renderContentGroup(grp, null)).join('') : '';
+        return `<p><strong>${escapeHtmlText(sec.heading)}</strong>${paragraph}</p>${groups}`;
+    }).join('') : '';
+    return `
+        <div class="cd-chapter">
+          <div class="cd-chapter-header"><span class="cd-chapter-tag">챕터</span> ${escapeHtmlText(ch.label)}</div>
+          <div class="cd-lesson">
+            <div class="cd-lesson-left">
+              <span class="cd-lesson-icon">▶</span>
+              <div><div>${escapeHtmlText(ch.lessonTitle)}</div></div>
+            </div>
+          </div>
+          <div class="cd-chapter-detail">${sections}</div>
+        </div>
+    `;
+}
+
+async function renderCategoryTabs() {
+    try {
+        const res = await fetch('/api/class-categories');
+        if (!res.ok) return;
+        const categories = await res.json();
+        const container = document.getElementById('cpFilterTabs');
+        if (!container || !Array.isArray(categories)) return;
+        container.innerHTML = '<button class="cp-filter-tab active" onclick="cpFilter(this)">전체</button>' +
+            categories.map(c => `<button class="cp-filter-tab" onclick="cpFilter(this)">${escapeHtmlText(c.name)}</button>`).join('');
+    } catch (err) {
+        // DB 미연결 환경(로컬 등)에서는 "전체" 탭만 유지
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     renderReviews();
     renderCards();
@@ -554,4 +1049,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initHamburger();
     checkLoginState();
     renderClassCards();
+    renderCategoryTabs();
+    openResetPasswordModalIfNeeded();
 });

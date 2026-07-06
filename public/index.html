@@ -735,6 +735,7 @@
     margin-bottom: 8px;
   }
   .lp-file-item:hover { border-color: rgba(201,168,76,0.3); background: rgba(201,168,76,0.04); }
+  .lp-file-empty { font-size: 13px; color: rgba(255,255,255,0.35); padding: 8px 2px; }
   .lp-file-icon {
     width: 32px; height: 32px;
     background: rgba(201,168,76,0.1);
@@ -777,37 +778,6 @@
     background: linear-gradient(90deg, var(--gold-dark), var(--gold));
     border-radius: 3px;
   }
-  .lp-qna-input {
-    width: 100%;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 6px;
-    padding: 12px 14px;
-    font-size: 13px;
-    font-family: 'Noto Sans KR', sans-serif;
-    color: var(--white);
-    resize: none;
-    outline: none;
-    min-height: 80px;
-    margin-bottom: 10px;
-    transition: border-color 0.2s;
-  }
-  .lp-qna-input::placeholder { color: rgba(255,255,255,0.2); }
-  .lp-qna-input:focus { border-color: rgba(201,168,76,0.4); }
-  .lp-qna-btn {
-    width: 100%;
-    background: var(--gold);
-    border: none;
-    color: var(--black);
-    font-size: 13px;
-    font-weight: 700;
-    font-family: 'Noto Sans KR', sans-serif;
-    padding: 11px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .lp-qna-btn:hover { background: var(--gold-light); }
   .lp-next-btn {
     width: 100%;
     background: rgba(255,255,255,0.05);
@@ -1037,6 +1007,91 @@
   }
   @media (max-width: 560px) {
     .my-lec-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── MY PAGE ── */
+  #myPage {
+    background: var(--black);
+    min-height: 100vh;
+  }
+  .mp-tab-panel { display: none; max-width: 520px; }
+  .mp-tab-panel.active { display: block; }
+
+  .mp-info-row {
+    display: flex;
+    align-items: center;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .mp-info-label {
+    width: 110px;
+    flex-shrink: 0;
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+  }
+  .mp-info-value {
+    font-size: 14px;
+    color: var(--white);
+    font-weight: 500;
+  }
+
+  .mp-device-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .mp-device-count {
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+  }
+  .mp-device-count strong { color: var(--gold); font-weight: 700; }
+  .mp-device-list { display: flex; flex-direction: column; gap: 12px; }
+  .mp-device-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #161616;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+    padding: 16px 18px;
+  }
+  .mp-device-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .mp-device-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gold);
+    border: 1px solid rgba(201,168,76,0.4);
+    border-radius: 10px;
+    padding: 1px 8px;
+  }
+  .mp-device-meta {
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+  }
+  .mp-device-remove {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.35);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 6px 8px;
+    transition: color 0.15s;
+  }
+  .mp-device-remove:hover { color: #e05252; }
+  .mp-empty {
+    font-size: 13px;
+    color: rgba(255,255,255,0.35);
+    padding: 20px 0;
   }
 
   /* ── ANIMATIONS ── */
@@ -1902,6 +1957,9 @@
     border: 1px solid #eee; border-radius: 8px;
     overflow: hidden; margin-bottom: 48px;
   }
+  .cd-summary-inline {
+    max-width: 1100px; margin: 0 auto; padding: 0 40px; display: flex;
+  }
   .cd-summary-item {
     flex: 1; padding: 20px 16px;
     display: flex; align-items: center; gap: 10px;
@@ -1965,7 +2023,8 @@
     padding: 14px 18px; border-top: 1px solid #f0f0f0;
     font-size: 14px; color: #555;
   }
-  .cd-lesson-left { display: flex; align-items: center; gap: 12px; }
+  .cd-lesson-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .cd-lesson-left > div { min-width: 0; }
   .cd-lesson-icon { color: #aaa; font-size: 16px; }
   .cd-lesson-time { font-size: 12px; color: #bbb; }
   .cd-lesson-badge {
@@ -1992,20 +2051,29 @@
   .cd-chapter-part:first-of-type { margin-top: 0; }
 
   @media (max-width: 900px) {
-    .cd-top { grid-template-columns: 1fr; padding: 40px 20px 40px; }
-    .cd-banner-inner-grid { padding: 40px 24px; }
+    .cd-content-wrap { grid-template-columns: 1fr; gap: 24px; padding: 0 20px 60px; }
+    .cd-banner-inner-grid { grid-template-columns: 1fr; gap: 24px; padding: 40px 24px; }
+    .cd-banner { min-height: unset; }
     .cd-banner-card { display: none; }
-    .cd-panel { position: static; }
+    .cd-panel { position: static; margin-top: 24px; }
     .cd-tabs-wrap { padding: 0 20px; }
-    .cd-body { padding: 32px 20px 60px; }
-    .cd-summary-bar { flex-direction: column; }
+    .cd-body { padding: 32px 0 0; }
+    .cd-summary-bar,
+    .cd-summary-inline { flex-direction: column; }
     .cd-summary-item { border-right: none; border-bottom: 1px solid #eee; }
     .cd-summary-item:last-child { border-bottom: none; }
     .cd-apply-grid { grid-template-columns: 1fr 1fr; }
   }
+  @media (max-width: 600px) {
+    .cd-content-wrap { padding: 0 16px 48px; }
+    .cd-banner-inner-grid { padding: 32px 20px; }
+    .cd-tabs-wrap { padding: 0 16px; }
+    .cd-summary-inline { padding: 0 20px; }
+  }
   @media (max-width: 480px) {
     .cd-apply-grid { grid-template-columns: 1fr; }
     .cd-tab { padding: 14px 14px; font-size: 13px; }
+    .cd-banner { padding-top: 40px; }
   }
 
   /* ── 왜 만들었는가 섹션 ── */
@@ -2667,7 +2735,8 @@
                 <div class="user-menu" id="userMenu">
                     <button class="btn-mypage">마이페이지</button>
                     <div class="user-dropdown">
-                        <a onclick="showPage('myLectures'); return false;" style="cursor:pointer">내 강의</a>
+                        <a onclick="openMyLectures(); return false;" style="cursor:pointer">내 강의실</a>
+                        <a onclick="openMyPage(); return false;" style="cursor:pointer">마이페이지</a>
                         <a class="dropdown-logout" onclick="doLogout()">로그아웃</a>
                     </div>
                 </div>
@@ -2952,13 +3021,57 @@
                     <label class="tm-label">비밀번호</label>
                     <input type="password" class="tm-input" id="loginPassword" placeholder="비밀번호를 입력해주세요" autocomplete="current-password" required>
                 </div>
+                <label class="tm-check-label" style="margin-bottom:16px;">
+                    <input type="checkbox" id="loginKeepLoggedIn"> 로그인 유지
+                </label>
                 <div class="su-error-msg" id="loginErrorMsg" style="display:none;"></div>
                 <button type="submit" class="tm-submit-btn tm-submit-btn-gold">로그인</button>
             </form>
             <div style="text-align:center; margin-top:22px; padding-top:20px; border-top:1px solid rgba(255,255,255,0.08);">
                 <span style="font-size:13px;color:rgba(255,255,255,0.5);">아직 회원이 아니신가요?</span>
                 <a href="#" onclick="event.preventDefault(); closeLoginModal(); openSignupModal();" style="font-size:13px; color:#fff; font-weight:700; margin-left:8px; cursor:pointer;">회원가입</a>
+                <a href="#" onclick="event.preventDefault(); closeLoginModal(); openForgotPasswordModal();" style="font-size:13px; color:rgba(255,255,255,0.5); margin-left:12px; cursor:pointer;">비밀번호 찾기</a>
             </div>
+        </div>
+    </div>
+
+    <!-- 비밀번호 찾기 모달 -->
+    <div id="forgotPasswordModal" class="test-modal-overlay" onclick="closeForgotPasswordModal(event)">
+        <div class="test-modal-box" style="max-width:420px;">
+            <button class="test-modal-close" onclick="closeForgotPasswordModal()">✕</button>
+            <h3 class="test-modal-title" style="text-align:center;">비밀번호 찾기</h3>
+            <div class="test-modal-divider" style="margin:0 auto 28px; background:rgba(255,255,255,0.5);"></div>
+            <p style="font-size:13px;color:rgba(255,255,255,0.6);text-align:center;margin:-12px 0 20px;">가입 시 등록한 아이디를 입력하시면<br>등록된 이메일로 재설정 링크를 보내드립니다.</p>
+            <form id="forgotPasswordForm" onsubmit="submitForgotPasswordForm(event)">
+                <div class="tm-field">
+                    <label class="tm-label">아이디</label>
+                    <input type="text" class="tm-input" id="forgotUsername" placeholder="아이디를 입력해주세요" autocomplete="username" required>
+                </div>
+                <div class="su-error-msg" id="forgotPasswordErrorMsg" style="display:none;"></div>
+                <div class="su-error-msg" id="forgotPasswordSuccessMsg" style="display:none;color:#8fd694;"></div>
+                <button type="submit" class="tm-submit-btn tm-submit-btn-gold" id="forgotPasswordSubmitBtn">재설정 링크 받기</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 비밀번호 재설정 모달 -->
+    <div id="resetPasswordModal" class="test-modal-overlay">
+        <div class="test-modal-box" style="max-width:420px;">
+            <button class="test-modal-close" onclick="closeResetPasswordModal()">✕</button>
+            <h3 class="test-modal-title" style="text-align:center;">새 비밀번호 설정</h3>
+            <div class="test-modal-divider" style="margin:0 auto 28px; background:rgba(255,255,255,0.5);"></div>
+            <form id="resetPasswordForm" onsubmit="submitResetPasswordForm(event)">
+                <div class="tm-field">
+                    <label class="tm-label">새 비밀번호</label>
+                    <input type="password" class="tm-input" id="resetPassword1" maxlength="16" placeholder="영문/숫자/특수문자 포함 8~16자" autocomplete="new-password" required>
+                </div>
+                <div class="tm-field">
+                    <label class="tm-label">새 비밀번호 확인</label>
+                    <input type="password" class="tm-input" id="resetPassword2" maxlength="16" placeholder="비밀번호를 한 번 더 입력해주세요" autocomplete="new-password" required>
+                </div>
+                <div class="su-error-msg" id="resetPasswordErrorMsg" style="display:none;"></div>
+                <button type="submit" class="tm-submit-btn tm-submit-btn-gold" id="resetPasswordSubmitBtn">비밀번호 변경</button>
+            </form>
         </div>
     </div>
 
@@ -3288,12 +3401,8 @@
 <div id="classes" class="page">
   <div class="classes-page-body">
 
-    <div class="cp-filter-tabs">
+    <div class="cp-filter-tabs" id="cpFilterTabs">
       <button class="cp-filter-tab active" onclick="cpFilter(this)">전체</button>
-      <button class="cp-filter-tab" onclick="cpFilter(this)">경찰대 편입</button>
-      <button class="cp-filter-tab" onclick="cpFilter(this)">연고대 논술</button>
-      <button class="cp-filter-tab" onclick="cpFilter(this)">파이널반</button>
-      <button class="cp-filter-tab" onclick="cpFilter(this)">인강</button>
     </div>
 
     <div class="cp-grid">
@@ -3567,7 +3676,7 @@
 
   <!-- 요약 바 (전체 너비) -->
   <div style="border-top:1px solid #eee; border-bottom:1px solid #eee; background:var(--white);">
-    <div style="max-width:1100px; margin:0 auto; padding:0 40px; display:flex;">
+    <div class="cd-summary-inline">
       <div class="cd-summary-item" style="flex:1;">
         <span class="cd-summary-icon">📋</span>
         <div><div class="cd-summary-label">총 강의수</div><div class="cd-summary-val">10개 강좌</div></div>
@@ -3849,7 +3958,7 @@
 
   <!-- 요약 바 (전체 너비) -->
   <div style="border-top:1px solid #eee; border-bottom:1px solid #eee; background:var(--white);">
-    <div style="max-width:1100px; margin:0 auto; padding:0 40px; display:flex;">
+    <div class="cd-summary-inline">
       <div class="cd-summary-item" style="flex:1;">
         <span class="cd-summary-icon">📋</span>
         <div><div class="cd-summary-label">총 강의수</div><div class="cd-summary-val">13개 강좌 (OT+12강)</div></div>
@@ -4535,6 +4644,59 @@
 </div><!-- /#classDetailNew -->
 
 
+<!-- ══ 관리자 페이지에서 등록한 클래스용 동적 상세페이지 ══ -->
+<div id="classDetailDynamic" class="page">
+
+  <!-- 배너 -->
+  <div class="cd-banner">
+    <div class="cd-banner-inner-grid">
+      <div class="cd-banner-left">
+        <span class="cd-banner-tag" id="cdDynTag"></span>
+        <div class="cd-banner-sub" id="cdDynSubtitle"></div>
+        <div class="cd-banner-title"><span class="accent" id="cdDynTitleAccent"></span> <span id="cdDynTitleRest"></span></div>
+        <div class="cd-banner-instructor" id="cdDynInstructorWrap" style="display:none;">
+          <div class="cd-banner-inst-info">
+            <span class="cd-banner-inst-label">대표 강사</span>
+            <span class="cd-banner-inst-name" id="cdDynInstructorName"></span>
+          </div>
+        </div>
+      </div>
+      <div class="cd-banner-card">
+        <div class="cd-banner-card-img" id="cdDynCardImg" style="background: linear-gradient(135deg,#0d1b2a 0%,#1a2d40 100%);"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 요약 바 -->
+  <div style="border-top:1px solid #eee; border-bottom:1px solid #eee; background:var(--white);">
+    <div class="cd-summary-inline">
+      <div class="cd-summary-item" style="flex:1;">
+        <span class="cd-summary-icon">📋</span>
+        <div><div class="cd-summary-label">총 강의수</div><div class="cd-summary-val" id="cdDynLectureCount">-</div></div>
+      </div>
+      <div class="cd-summary-item" style="flex:1; border-left:1px solid #eee;">
+        <span class="cd-summary-icon">🎓</span>
+        <div><div class="cd-summary-label">수료 기준</div><div class="cd-summary-val">진도율 80% 이상</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 탭 -->
+  <div class="cd-tabs-wrap">
+    <div class="cd-tabs">
+      <button class="cd-tab active" onclick="cdTab(this,'cdIntroDynamic','cdCurriculumDynamic')">클래스 소개</button>
+      <button class="cd-tab" onclick="cdTab(this,'cdCurriculumDynamic','cdIntroDynamic')">커리큘럼</button>
+    </div>
+  </div>
+
+  <!-- 2단 레이아웃 -->
+  <div class="cd-content-wrap">
+  <div class="cd-body">
+    <div id="cdIntroDynamic"></div>
+    <div id="cdCurriculumDynamic" style="display:none;"></div>
+  </div>
+  </div><!-- /.cd-content-wrap -->
+</div><!-- /#classDetailDynamic -->
 
 
 <!-- ══ TEXTBOOK PAGE ══ -->
@@ -4802,99 +4964,89 @@
           <h1 class="my-lec-title">내 강의실</h1>
           <span class="my-lec-title-en">MY LECTURES</span>
         </div>
-        <span class="my-lec-greeting">수강생님, <strong>환영합니다</strong></span>
+        <span class="my-lec-greeting">수강생님, <strong id="myLecGreetingName">환영합니다</strong></span>
       </div>
       <div class="my-lec-tabs">
-        <button class="my-lec-tab active">수강 중</button>
-        <button class="my-lec-tab">수강 완료</button>
+        <button class="my-lec-tab active" onclick="switchMyLecTab(this,'진행중')">수강 중</button>
+        <button class="my-lec-tab" onclick="switchMyLecTab(this,'완료')">수강 완료</button>
       </div>
     </div>
   </div>
 
   <div class="my-lec-section">
     <div class="my-lec-section-head">
-      <span class="my-lec-section-label">수강 중인 강의</span>
-      <span class="my-lec-section-count">3개</span>
+      <span class="my-lec-section-label" id="myLecSectionLabel">수강 중인 강의</span>
+      <span class="my-lec-section-count" id="myLecSectionCount">0개</span>
     </div>
 
-    <div class="my-lec-grid">
+    <div class="my-lec-grid" id="myLecGrid"></div>
+    <div class="mp-empty" id="myLecEmpty" style="display:none;">아직 등록된 강의가 없습니다.<br>수강신청 후 강의가 등록되면 이곳에 표시됩니다.</div>
 
-      <!-- Card 1 -->
-      <div class="my-lec-card" onclick="showPage('lecturePlayer')" style="cursor:pointer;">
-        <div class="my-lec-thumb" style="background:linear-gradient(135deg,#0d1b2a,#1a2d40);">
-          <span class="class-badge badge-humane">경찰대</span>
-          <div style="position:absolute;bottom:12px;left:14px;right:14px;">
-            <div style="font-family:'Noto Serif KR',serif;font-size:15px;font-weight:900;color:#fff;line-height:1.3;">경찰대 언어논리<br>5월 신규반</div>
-          </div>
-        </div>
-        <div class="my-lec-body">
-          <div class="my-lec-teacher">황성찬 강사</div>
-          <div class="my-lec-name">[경찰대 편입] 2027년 대비 황성찬T 경찰대 언어논리 5월 신규반</div>
-          <div class="my-lec-progress-wrap">
-            <div class="my-lec-count-row">
-              <span class="my-lec-count-label">수강 진도</span>
-              <span class="my-lec-count">10 / 26강</span>
-            </div>
-            <div class="my-lec-bar-bg">
-              <div class="my-lec-bar-fill" style="width:38%;"></div>
-            </div>
-          </div>
-          <button class="my-lec-btn">이어 수강하기</button>
-        </div>
-      </div>
-
-      <!-- Card 2 -->
-      <div class="my-lec-card" onclick="showPage('lecturePlayer')" style="cursor:pointer;">
-        <div class="my-lec-thumb" style="background:linear-gradient(135deg,#1a0d2a,#2d1a40);">
-          <span class="class-badge badge-humane">연고대</span>
-          <div style="position:absolute;bottom:12px;left:14px;right:14px;">
-            <div style="font-family:'Noto Serif KR',serif;font-size:15px;font-weight:900;color:#fff;line-height:1.3;">연고대 편입논술<br>6월 개강반</div>
-          </div>
-        </div>
-        <div class="my-lec-body">
-          <div class="my-lec-teacher">황성찬 강사</div>
-          <div class="my-lec-name">연고대 편입논술반 6월 개강반 등록 신청</div>
-          <div class="my-lec-progress-wrap">
-            <div class="my-lec-count-row">
-              <span class="my-lec-count-label">수강 진도</span>
-              <span class="my-lec-count">5 / 32강</span>
-            </div>
-            <div class="my-lec-bar-bg">
-              <div class="my-lec-bar-fill" style="width:16%;"></div>
-            </div>
-          </div>
-          <button class="my-lec-btn">이어 수강하기</button>
-        </div>
-      </div>
-
-      <!-- Card 3 -->
-      <div class="my-lec-card" onclick="showPage('lecturePlayer')" style="cursor:pointer;">
-        <div class="my-lec-thumb" style="background:linear-gradient(135deg,#0d1b2a,#162535);">
-          <span class="class-badge badge-math">파이널</span>
-          <div style="position:absolute;bottom:12px;left:14px;right:14px;">
-            <div style="font-family:'Noto Serif KR',serif;font-size:15px;font-weight:900;color:#fff;line-height:1.3;">언어논리&amp;자소서<br>100일 완성반</div>
-          </div>
-        </div>
-        <div class="my-lec-body">
-          <div class="my-lec-teacher">황성찬 강사</div>
-          <div class="my-lec-name">[경찰대 편입] 언어논리&amp;자소서 100일 완성반 8월 대개강</div>
-          <div class="my-lec-progress-wrap">
-            <div class="my-lec-count-row">
-              <span class="my-lec-count-label">수강 진도</span>
-              <span class="my-lec-count">18 / 40강</span>
-            </div>
-            <div class="my-lec-bar-bg">
-              <div class="my-lec-bar-fill" style="width:45%;"></div>
-            </div>
-          </div>
-          <button class="my-lec-btn">이어 수강하기</button>
-        </div>
-      </div>
-
-    </div>
   </div>
 
 </div><!-- /#myLectures -->
+
+<div id="myPage" class="page">
+
+  <div class="my-lec-hero">
+    <div class="my-lec-hero-inner">
+      <div class="my-lec-hero-top">
+        <div class="my-lec-hero-left">
+          <h1 class="my-lec-title">마이페이지</h1>
+          <span class="my-lec-title-en">MY PAGE</span>
+        </div>
+      </div>
+      <div class="my-lec-tabs">
+        <button class="my-lec-tab active" onclick="switchMyPageTab(this,'mpInfo')">내 정보</button>
+        <button class="my-lec-tab" onclick="switchMyPageTab(this,'mpDevices')">기기 관리</button>
+        <button class="my-lec-tab" onclick="switchMyPageTab(this,'mpPassword')">비밀번호 변경</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="my-lec-section">
+
+    <!-- 내 정보 -->
+    <div id="mpInfo" class="mp-tab-panel active">
+      <div class="mp-info-row"><div class="mp-info-label">아이디</div><div class="mp-info-value" id="mpInfoUsername">-</div></div>
+      <div class="mp-info-row"><div class="mp-info-label">이름</div><div class="mp-info-value" id="mpInfoName">-</div></div>
+      <div class="mp-info-row"><div class="mp-info-label">이메일</div><div class="mp-info-value" id="mpInfoEmail">-</div></div>
+      <div class="mp-info-row"><div class="mp-info-label">휴대폰</div><div class="mp-info-value" id="mpInfoMobile">-</div></div>
+    </div>
+
+    <!-- 기기 관리 -->
+    <div id="mpDevices" class="mp-tab-panel">
+      <div class="mp-device-head">
+        <span class="my-lec-section-label">등록된 기기</span>
+        <span class="mp-device-count"><strong id="mpDeviceCount">0</strong> / 3</span>
+      </div>
+      <div class="mp-device-list" id="mpDeviceList"></div>
+    </div>
+
+    <!-- 비밀번호 변경 -->
+    <div id="mpPassword" class="mp-tab-panel">
+      <form id="mpPasswordForm" onsubmit="submitChangePassword(event)">
+        <div class="tm-field">
+          <label class="tm-label">현재 비밀번호</label>
+          <input type="password" class="tm-input" id="mpCurrentPassword" autocomplete="current-password" required>
+        </div>
+        <div class="tm-field">
+          <label class="tm-label">새 비밀번호</label>
+          <input type="password" class="tm-input" id="mpNewPassword1" maxlength="16" placeholder="영문/숫자/특수문자 포함 8~16자" autocomplete="new-password" required>
+        </div>
+        <div class="tm-field">
+          <label class="tm-label">새 비밀번호 확인</label>
+          <input type="password" class="tm-input" id="mpNewPassword2" maxlength="16" placeholder="비밀번호를 한 번 더 입력해주세요" autocomplete="new-password" required>
+        </div>
+        <div class="su-error-msg" id="mpPasswordErrorMsg" style="display:none;"></div>
+        <div class="su-error-msg" id="mpPasswordSuccessMsg" style="display:none;color:#8fd694;"></div>
+        <button type="submit" class="tm-submit-btn tm-submit-btn-gold" id="mpPasswordSubmitBtn">비밀번호 변경</button>
+      </form>
+    </div>
+
+  </div>
+
+</div><!-- /#myPage -->
 
 
 <!-- ══ LECTURE PLAYER PAGE ══ -->
@@ -4902,15 +5054,15 @@
 
   <!-- Top bar -->
   <div class="lp-topbar">
-    <button class="lp-back" onclick="showPage('myLectures')">
+    <button class="lp-back" onclick="openMyLectures()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       목록으로 돌아가기
     </button>
     <div class="lp-topbar-center">
-      <span class="lp-topbar-lecture-num">제 10강</span>
-      <span class="lp-topbar-lecture-title">대조적 관점에서의 비판적 읽기</span>
+      <span class="lp-topbar-lecture-num" id="lpLectureNum"></span>
+      <span class="lp-topbar-lecture-title" id="lpLectureTitle"></span>
     </div>
-    <span class="lp-course-name"><strong>경찰대 편입</strong> · 언어논리 5월 신규반</span>
+    <span class="lp-course-name" id="lpCourseName"></span>
   </div>
 
   <div class="lp-body">
@@ -4934,94 +5086,14 @@
 
       <!-- Lecture info -->
       <div class="lp-info">
-        <div class="lp-info-num">10강 · 경찰대 언어논리 5월 신규반</div>
-        <h2 class="lp-info-title">대조적 관점에서의 비판적 읽기</h2>
-        <p class="lp-info-desc">논술의 핵심인 다각도 분석 능력을 기르기 위해, 서로 대립하는 두 제시문을 어떻게 대조하고 자신만의 논거를 구축하는지 핵심을 학습합니다.</p>
+        <div class="lp-info-num" id="lpInfoNum"></div>
+        <h2 class="lp-info-title" id="lpInfoTitle"></h2>
       </div>
 
       <!-- Curriculum list -->
       <div class="lp-curriculum">
         <div class="lp-curriculum-title">커리큘럼 &amp; 챕터 리스트</div>
-
-        <div class="lp-item done">
-          <span class="lp-item-num">01</span>
-          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
-          <div class="lp-item-info"><div class="lp-item-name">개강 OT · 편입 논술의 전략적 접근</div></div>
-          <span class="lp-item-dur">45:00</span>
-        </div>
-        <div class="lp-item done">
-          <span class="lp-item-num">02</span>
-          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
-          <div class="lp-item-info"><div class="lp-item-name">제시문 독해의 기초 · 핵심 키워드 추출</div></div>
-          <span class="lp-item-dur">48:00</span>
-        </div>
-        <div class="lp-item done">
-          <span class="lp-item-num">03</span>
-          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
-          <div class="lp-item-info"><div class="lp-item-name">논리적 연결 · 단락 간 유기적 구성법</div></div>
-          <span class="lp-item-dur">52:20</span>
-        </div>
-        <div class="lp-item done">
-          <span class="lp-item-num">04</span>
-          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
-          <div class="lp-item-info"><div class="lp-item-name">요약 훈련 · 300자 압축 기법</div></div>
-          <span class="lp-item-dur">55:10</span>
-        </div>
-        <div class="lp-item done">
-          <span class="lp-item-num">05</span>
-          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
-          <div class="lp-item-info"><div class="lp-item-name">주장 구성 · 논거의 타당성 판별</div></div>
-          <span class="lp-item-dur">49:30</span>
-        </div>
-        <div class="lp-item done">
-          <span class="lp-item-num">06</span>
-          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
-          <div class="lp-item-info"><div class="lp-item-name">실전 연습 · 2024 경찰대 기출 분석 ①</div></div>
-          <span class="lp-item-dur">62:00</span>
-        </div>
-        <div class="lp-item done">
-          <span class="lp-item-num">07</span>
-          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
-          <div class="lp-item-info"><div class="lp-item-name">실전 연습 · 2024 경찰대 기출 분석 ②</div></div>
-          <span class="lp-item-dur">58:40</span>
-        </div>
-        <div class="lp-item done">
-          <span class="lp-item-num">08</span>
-          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
-          <div class="lp-item-info"><div class="lp-item-name">심화 독해 · 인문·사회 복합 제시문 읽기</div></div>
-          <span class="lp-item-dur">54:15</span>
-        </div>
-        <div class="lp-item done">
-          <span class="lp-item-num">09</span>
-          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="#C9A84C" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></span>
-          <div class="lp-item-info"><div class="lp-item-name">비교·대조 · 유사 개념 간 경계 설정법</div></div>
-          <span class="lp-item-dur">51:00</span>
-        </div>
-        <div class="lp-item current">
-          <span class="lp-item-num">10</span>
-          <span class="lp-item-check"><svg viewBox="0 0 12 12"><polygon points="3,2 9,6 3,10" fill="#000"/></svg></span>
-          <div class="lp-item-info"><div class="lp-item-name">대조적 관점에서의 비판적 읽기</div></div>
-          <span class="lp-item-dur">58:00</span>
-        </div>
-        <div class="lp-item locked">
-          <span class="lp-item-num">11</span>
-          <span class="lp-item-check"></span>
-          <div class="lp-item-info"><div class="lp-item-name">논증 심화 · 반론 수용과 재반박 구조</div></div>
-          <span class="lp-item-dur">56:30</span>
-        </div>
-        <div class="lp-item locked">
-          <span class="lp-item-num">12</span>
-          <span class="lp-item-check"></span>
-          <div class="lp-item-info"><div class="lp-item-name">자기소개서 연계 · 학업역량 서술법</div></div>
-          <span class="lp-item-dur">44:00</span>
-        </div>
-        <div class="lp-item locked">
-          <span class="lp-item-num">13 – 26</span>
-          <span class="lp-item-check"></span>
-          <div class="lp-item-info"><div class="lp-item-name">이후 강의 (16강 남음)</div></div>
-          <span class="lp-item-dur">—</span>
-        </div>
-
+        <div id="lpCurriculumList"></div>
       </div>
     </div><!-- /.lp-video-col -->
 
@@ -5033,12 +5105,12 @@
         <div class="lp-sidebar-title">수강 진도</div>
         <div class="lp-progress-summary">
           <span class="lp-progress-label">전체 강의</span>
-          <span class="lp-progress-count">10 / 26강</span>
+          <span class="lp-progress-count" id="lpProgressCount"></span>
         </div>
         <div class="lp-sidebar-bar-bg">
-          <div class="lp-sidebar-bar-fill"></div>
+          <div class="lp-sidebar-bar-fill" id="lpProgressBarFill"></div>
         </div>
-        <button class="lp-next-btn">
+        <button class="lp-next-btn" onclick="nextLecture()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="5,3 15,12 5,21" fill="currentColor"/><line x1="19" y1="3" x2="19" y2="21"/></svg>
           다음 강의로
         </button>
@@ -5047,34 +5119,7 @@
       <!-- Learning materials -->
       <div class="lp-sidebar-section">
         <div class="lp-sidebar-title">학습 자료실</div>
-        <div class="lp-file-item">
-          <div class="lp-file-icon">PDF</div>
-          <div>
-            <div class="lp-file-name">10강 강의 노트</div>
-            <div class="lp-file-size">1.2 MB · PDF</div>
-          </div>
-        </div>
-        <div class="lp-file-item">
-          <div class="lp-file-icon">HW</div>
-          <div>
-            <div class="lp-file-name">실전 연습 문제지</div>
-            <div class="lp-file-size">842 KB · PDF</div>
-          </div>
-        </div>
-        <div class="lp-file-item">
-          <div class="lp-file-icon">PPT</div>
-          <div>
-            <div class="lp-file-name">강의 슬라이드</div>
-            <div class="lp-file-size">3.8 MB · PPTX</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Q&A -->
-      <div class="lp-sidebar-section">
-        <div class="lp-sidebar-title">질문하기</div>
-        <textarea class="lp-qna-input" placeholder="강의 내용에 대해 질문을 남겨주세요."></textarea>
-        <button class="lp-qna-btn">질문 등록하기</button>
+        <div id="lpMaterialsList"></div>
       </div>
 
     </div><!-- /.lp-sidebar -->
@@ -5086,13 +5131,31 @@
 
     <script src="script.js"></script>
     <script>
-      function showPage(id) {
+      // 페이지 id <-> 실제 주소 매핑. 뒤로/앞으로가기 및 새로고침 시 이 매핑으로 어느 페이지인지 복원한다.
+      const PAGE_PATHS = {
+        home: '/',
+        notice: '/notice',
+        category: '/category',
+        classes: '/classes',
+        classDetail: '/classDetail',
+        classDetailNew: '/classDetailNew',
+        classDetailDynamic: '/classDetailDynamic',
+        textbook: '/textbook',
+        lecture: '/lecture',
+        lecturePlayer: '/lecturePlayer',
+        myLectures: '/myLectures',
+        myPage: '/myPage'
+      };
+      const PATH_TO_PAGE = Object.fromEntries(Object.entries(PAGE_PATHS).map(([id, path]) => [path, id]));
+
+      function renderPage(id) {
+        if (!document.getElementById(id)) id = 'home';
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
         window.scrollTo({ top: 0, behavior: 'instant' });
-        const whiteBg = ['notice', 'textbook', 'classes', 'classDetail', 'classDetailNew', 'category'];
+        const whiteBg = ['notice', 'textbook', 'classes', 'classDetail', 'classDetailNew', 'classDetailDynamic', 'category'];
         if (id === 'home') {
           document.body.style.background = '';
         } else {
@@ -5101,7 +5164,30 @@
         document.querySelector('.navbar').style.display = id === 'lecturePlayer' ? 'none' : '';
       }
 
-      function goToClassDetail(pageId, introId, curriculumId) {
+      function showPage(id) {
+        renderPage(id);
+        const path = PAGE_PATHS[id] || '/';
+        if (location.pathname === path) {
+          history.replaceState({ pageId: id }, '', path);
+        } else {
+          history.pushState({ pageId: id }, '', path);
+        }
+      }
+
+      // 뒤로/앞으로가기: 브라우저가 이동시킨 주소에 맞는 페이지를 다시 그릴 뿐, 히스토리를 또 쌓지 않는다.
+      window.addEventListener('popstate', (e) => {
+        const id = (e.state && e.state.pageId) || PATH_TO_PAGE[location.pathname] || 'home';
+        renderPage(id);
+      });
+
+      // 새로고침이나 직접 주소 접근 시 현재 주소에 맞는 페이지로 초기 진입한다.
+      (function initRouting() {
+        const initialId = PATH_TO_PAGE[location.pathname] || 'home';
+        history.replaceState({ pageId: initialId }, '', PAGE_PATHS[initialId] || '/');
+        if (initialId !== 'home') renderPage(initialId);
+      })();
+
+      function goToClassDetail(pageId, introId, curriculumId, classId) {
         pageId = pageId || 'classDetail';
         introId = introId || 'cdIntro';
         curriculumId = curriculumId || 'cdCurriculum';
@@ -5111,6 +5197,9 @@
         if (tabs[0]) tabs[0].classList.add('active');
         document.getElementById(introId).style.display = 'block';
         document.getElementById(curriculumId).style.display = 'none';
+        if (pageId === 'classDetailDynamic' && classId) {
+          loadDynamicClassDetail(classId, introId, curriculumId);
+        }
       }
 
       function cdTab(el, targetId, otherId) {

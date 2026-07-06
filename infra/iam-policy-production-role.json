@@ -21,6 +21,12 @@
       "Effect": "Allow",
       "Action": ["sqs:SendMessage", "sqs:GetQueueAttributes"],
       "Resource": "arn:aws:sqs:ap-northeast-2:*:dockteacher-video-jobs"
+    },
+    {
+      "Sid": "SendMemberEmail",
+      "Effect": "Allow",
+      "Action": ["ses:SendEmail"],
+      "Resource": "arn:aws:ses:ap-northeast-2:*:identity/mail.dockteacher.co.kr"
     }
   ]
 }

@@ -63,6 +63,7 @@ body {
 }
 
 .nav-logo {
+    grid-column: 1;
     font-family: var(--font-en);
     font-size: 13px;
     font-weight: 600;
@@ -72,6 +73,7 @@ body {
 }
 
 .nav-links {
+    grid-column: 2;
     display: flex;
     gap: 36px;
     list-style: none;
@@ -1655,6 +1657,7 @@ body {
    NAV ACTIONS (로그인 시스템)
 ═══════════════════════════ */
 .nav-actions {
+    grid-column: 3;
     display: flex;
     align-items: center;
     justify-content: flex-end;

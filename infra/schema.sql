@@ -23,10 +23,27 @@ CREATE TABLE IF NOT EXISTS lecture_videos (
 -- GRANT SELECT, INSERT, UPDATE ON dockteacher.lecture_videos TO 'dockteacher_worker'@'<워커_인스턴스_사설IP>';
 -- FLUSH PRIVILEGES;
 
+-- 카테고리 (수강신청 페이지 필터탭 겸 클래스 폼의 "카테고리" 선택지, 관리자 페이지에서 CRUD)
+CREATE TABLE IF NOT EXISTS class_categories (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(50) NOT NULL UNIQUE,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+INSERT INTO class_categories (name, sort_order)
+SELECT * FROM (
+  SELECT '경찰대 편입' AS name, 1 AS sort_order UNION ALL
+  SELECT '연고대 논술', 2 UNION ALL
+  SELECT '파이널반', 3 UNION ALL
+  SELECT '인강', 4
+) AS seed
+WHERE NOT EXISTS (SELECT 1 FROM class_categories);
+
 -- 클래스 (수강신청 페이지 카드, 관리자 페이지에서 CRUD)
 CREATE TABLE IF NOT EXISTS classes (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  filter_tab VARCHAR(50) NOT NULL DEFAULT '전체',      -- 필터 탭: 경찰대 편입 / 연고대 논술 / 파이널반 / 인강
+  filter_tab VARCHAR(50) NOT NULL DEFAULT '전체',      -- 카테고리(class_categories.name의 사본, 이름 변경 시 서버가 일괄 반영)
   category VARCHAR(100) NOT NULL,                      -- 썸네일 좌상단 카테고리 라벨
   badge_style ENUM('enroll', 'hot', 'new') NOT NULL DEFAULT 'new',
   badge_text VARCHAR(50) NOT NULL DEFAULT 'NEW',
@@ -40,7 +57,17 @@ CREATE TABLE IF NOT EXISTS classes (
   discount VARCHAR(20),                                -- 할인율 표기 (예: 25%)
   price VARCHAR(50) NOT NULL,                          -- 예: 280,000원 / 가격 문의
   original_price VARCHAR(50),                          -- 할인 전 가격
-  detail_page VARCHAR(50),                             -- 상세페이지 ID (기본 classDetail)
+  detail_page VARCHAR(50),                             -- 상세페이지 ID (기본 classDetail, 관리자 빠른등록으로 만든 클래스는 classDetailDynamic)
+  intro_content LONGTEXT,                              -- 강의 소개 탭 JSON ({ sections: [{heading, paragraph, groups:[{subheading, bullets}]}] })
+  curriculum_content LONGTEXT,                         -- 커리큘럼 탭 JSON ({ totalLabel, chapters: [{label, lessonTitle, sections:[...]}] })
+  banner_tag VARCHAR(200),                             -- 상세페이지 배너 상단 태그 (예: 대상 : 연세대·고려대 편입논술 준비생)
+  banner_subtitle VARCHAR(100),                        -- 상세페이지 배너 부제목
+  banner_title_accent VARCHAR(100),                    -- 배너 제목 중 강조 표시할 부분
+  banner_title_rest VARCHAR(100),                      -- 배너 제목 중 나머지 부분
+  banner_instructor_name VARCHAR(100),                 -- 배너에 표시할 강사 정보
+  banner_card_type ENUM('gradient', 'image') NOT NULL DEFAULT 'gradient', -- 배너 우측 카드 비주얼 방식
+  banner_card_gradient VARCHAR(200),                   -- banner_card_type='gradient'일 때 사용할 CSS gradient
+  banner_image_url VARCHAR(500),                       -- banner_card_type='image'일 때 사용할 업로드 이미지 URL (R2 classes/{id}/ 경로)
   sort_order INT NOT NULL DEFAULT 0,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -84,4 +111,82 @@ CREATE TABLE IF NOT EXISTS members (
   consultation_notes TEXT,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_members_username (username)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 비밀번호 재설정 토큰 (2026-07 이메일 인증 도입 시 추가)
+ALTER TABLE members
+  ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS reset_token_expires DATETIME DEFAULT NULL;
+
+-- 마이페이지 기기 관리 (OTT 방식, 회원당 최대 3개 기기 등록 — server.js에서 강제)
+CREATE TABLE IF NOT EXISTS member_devices (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  member_id BIGINT NOT NULL,
+  device_id VARCHAR(191) NOT NULL,           -- 클라이언트 localStorage에 저장되는 고정 식별자
+  device_label VARCHAR(255),                 -- User-Agent에서 뽑아낸 "OS · 브라우저" 표기
+  user_agent VARCHAR(500),
+  ip_address VARCHAR(100),
+  session_id VARCHAR(255),
+  last_login_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_member_device (member_id, device_id),
+  CONSTRAINT fk_member_devices_member FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 내 강의실 등록 (관리자 수동 배정 또는 향후 결제 자동 등록 — server.js의 enrollMemberInClass가 공통 진입점)
+CREATE TABLE IF NOT EXISTS member_class_enrollments (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  member_id BIGINT NOT NULL,
+  class_id BIGINT NOT NULL,
+  status ENUM('진행중', '완료') NOT NULL DEFAULT '진행중',
+  progress_note VARCHAR(100),          -- 예: "10 / 26강" (자유 텍스트, 관리자가 직접 입력)
+  source ENUM('admin', 'payment') NOT NULL DEFAULT 'admin',
+  enrolled_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_member_class (member_id, class_id),
+  CONSTRAINT fk_enrollment_member FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
+  CONSTRAINT fk_enrollment_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 클래스별 강의 커리큘럼 (R2 courses/{course}/lectures/{번호 3자리}/video/ 경로와 1:1 대응)
+CREATE TABLE IF NOT EXISTS class_lectures (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  class_id BIGINT NOT NULL,
+  lecture_number INT NOT NULL,        -- 0 = OT
+  title VARCHAR(300) NOT NULL,
+  video_r2_key VARCHAR(512) NOT NULL, -- 버킷 dockteacher 기준 키 (URL 인코딩 전 원문)
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_class_lecture (class_id, lecture_number),
+  CONSTRAINT fk_class_lectures_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 강의별 수업자료 (같은 강의 번호의 .../materials/ 경로 아래 파일들)
+CREATE TABLE IF NOT EXISTS class_lecture_materials (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  class_lecture_id BIGINT NOT NULL,
+  title VARCHAR(300) NOT NULL,        -- 원본 파일명
+  file_r2_key VARCHAR(512) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_class_lecture_materials_lecture FOREIGN KEY (class_lecture_id) REFERENCES class_lectures(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 커리큘럼 챕터별 영상/자료 첨부 (관리자 클래스 콘텐츠 편집기의 "커리큘럼" 탭용, 목업 단계)
+-- chapter_key는 classes.curriculum_content JSON의 각 chapters[].key(UUID)와 매칭되는 안정적 식별자
+CREATE TABLE IF NOT EXISTS class_chapter_attachments (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  class_id BIGINT NOT NULL,
+  chapter_key VARCHAR(64) NOT NULL,
+  type ENUM('video', 'material') NOT NULL,
+  title VARCHAR(200) NOT NULL,          -- 표시용 파일명
+  file_url VARCHAR(500) NOT NULL,       -- 공개 서빙 경로 (/uploads/{file_key})
+  file_key VARCHAR(500) NOT NULL,       -- R2 오브젝트 key (classes/{class_id}/chapters/{chapter_key}/...)
+  mime_type VARCHAR(100),
+  file_size BIGINT,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+  INDEX idx_class_chapter (class_id, chapter_key)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

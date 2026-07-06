@@ -263,6 +263,13 @@
     justify-content: center;
     cursor: pointer;
 }
+.lp-vid-video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+    background: #000;
+}
 .lp-vid-text {
     position: absolute;
     inset: 0;
@@ -423,14 +430,33 @@
     color: #888;
 }
 @media (max-width: 900px) {
+    .sp-info {
+        padding: 56px 0;
+    }
+    .sp-info-title {
+        margin-bottom: 32px;
+    }
     .sp-info-grid {
         grid-template-columns: 1fr;
+        gap: 32px;
     }
     .sp-book-stack {
         gap: 8px;
     }
     .sp-side-box {
         display: none;
+    }
+}
+@media (max-width: 600px) {
+    /* 답안작성구조도 3장을 옆으로 욱여넣지 않고 세로로 쌓아 각 이미지를 읽을 수 있는 크기로 표시 */
+    .sp-book-stack {
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+    .sp-book {
+        width: 100%;
+        max-width: 340px;
     }
 }
 
@@ -1016,6 +1042,9 @@
     .hto-right {
         display: none;
     }
+    .hto-year {
+        font-size: 1rem;
+    }
     .hto-name {
         font-size: 2.2rem;
     }
@@ -1041,6 +1070,9 @@
     }
 }
 @media (max-width: 480px) {
+    .hto-year {
+        font-size: 0.85rem;
+    }
     .hto-name {
         font-size: 1.8rem;
     }
