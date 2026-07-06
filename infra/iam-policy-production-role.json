@@ -2,18 +2,18 @@
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "WakeWorkerInstance",
+      "Sid": "ScaleOutWorkerAsg",
       "Effect": "Allow",
-      "Action": ["ec2:StartInstances"],
+      "Action": ["autoscaling:SetDesiredCapacity"],
       "Resource": "*",
       "Condition": {
-        "StringEquals": { "ec2:ResourceTag/Project": "dockteacher-worker" }
+        "StringEquals": { "autoscaling:ResourceTag/Project": "dockteacher-worker" }
       }
     },
     {
-      "Sid": "CheckWorkerState",
+      "Sid": "DescribeWorkerAsg",
       "Effect": "Allow",
-      "Action": ["ec2:DescribeInstances", "ec2:DescribeInstanceStatus"],
+      "Action": ["autoscaling:DescribeAutoScalingGroups"],
       "Resource": "*"
     },
     {

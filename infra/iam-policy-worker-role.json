@@ -2,19 +2,13 @@
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "SelfStopOnly",
+      "Sid": "SelfTerminateViaAsg",
       "Effect": "Allow",
-      "Action": ["ec2:StopInstances"],
+      "Action": ["autoscaling:TerminateInstanceInAutoScalingGroup"],
       "Resource": "*",
       "Condition": {
-        "StringEquals": { "ec2:ResourceTag/Project": "dockteacher-worker" }
+        "StringEquals": { "autoscaling:ResourceTag/Project": "dockteacher-worker" }
       }
-    },
-    {
-      "Sid": "DescribeForHealthCheck",
-      "Effect": "Allow",
-      "Action": ["ec2:DescribeInstances", "ec2:DescribeInstanceStatus"],
-      "Resource": "*"
     },
     {
       "Sid": "ConsumeVideoJobQueue",
@@ -26,6 +20,12 @@
         "sqs:ChangeMessageVisibility"
       ],
       "Resource": "arn:aws:sqs:ap-northeast-2:*:dockteacher-video-jobs"
+    },
+    {
+      "Sid": "ReadWorkerSecrets",
+      "Effect": "Allow",
+      "Action": ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"],
+      "Resource": "arn:aws:ssm:ap-northeast-2:*:parameter/dockteacher/worker*"
     }
   ]
 }

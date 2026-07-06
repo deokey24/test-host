@@ -34,10 +34,10 @@ npm start   # http://localhost:3000
 
 관리자 페이지에서 20~30GB급 강의 영상을 업로드 → ffmpeg 압축 → Cloudflare R2 저장 → 경로를 MySQL에 기록하는 별도 파이프라인. 상세 설계는 `infra/README.md`와 바탕화면 `영상업로드-아키텍처.md` 참고.
 
-- `lib/` — 운영 서버(`server.js`)가 쓰는 R2 presigned URL(`r2.js`), SQS 발행(`sqs.js`), 워커 기동(`ec2.js`), MySQL(`db.js`) 헬퍼
+- `lib/` — 운영 서버(`server.js`)가 쓰는 R2 presigned URL(`r2.js`), SQS 발행(`sqs.js`), 워커 ASG 스케일아웃(`asg.js`), MySQL(`db.js`) 헬퍼
 - `admin/index.html` — 파일 선택 → R2 멀티파트 presigned URL로 브라우저가 R2에 직접 업로드 → 완료 시 SQS에 작업 발행
-- `worker/` — 별도 EC2 인스턴스에 배포되는 독립 Node 프로젝트. SQS 컨슈머, ffmpeg 압축(동시 5개 캡핑), R2 재업로드, DB 갱신, 유휴 시 자기 자신 `stop-instances`
-- `infra/` — IAM 정책, AWS CLI 프로비저닝 스크립트, MySQL 스키마, systemd 유닛, 워커 인스턴스 부트스트랩 스크립트
+- `worker/` — 골든 AMI로 구워 ASG(min=0, max=3)로 운영되는 독립 Node 프로젝트. SQS 컨슈머, ffmpeg 압축(동시 5개 캡핑), R2 재업로드, DB 갱신, 유휴 시 ASG를 통해 자기 자신 terminate. 스케일아웃은 운영 서버가 presign/complete 시점에 desired capacity를 올려서 수행. 상세 설계: `infra/autoscaling-design.md`
+- `infra/` — IAM 정책, AWS CLI 프로비저닝 스크립트(`provision-asg.sh`), MySQL 스키마, systemd 유닛, 골든 AMI 셋업(`install-worker-instance.sh`)·부팅 user-data(`worker-user-data.sh`) 스크립트
 - 운영 서버와 워커 인스턴스는 원본 대용량 파일이 오가지 않도록 분리되어 있고 (브라우저 ↔ R2 직접 통신), 완료 신호는 SQS 메타데이터만 오간다
 
 ### SPA 페이지 전환 방식

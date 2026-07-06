@@ -1,16 +1,6 @@
-const { EC2Client, StopInstancesCommand } = require('@aws-sdk/client-ec2');
-
-let client;
+// IMDSv2로 이 인스턴스 자신의 instance-id를 조회
 let cachedInstanceId;
 
-function getEc2Client() {
-  if (!client) {
-    client = new EC2Client({ region: process.env.AWS_REGION || 'ap-northeast-2' });
-  }
-  return client;
-}
-
-// IMDSv2로 이 인스턴스 자신의 instance-id를 조회
 async function getSelfInstanceId() {
   if (cachedInstanceId) return cachedInstanceId;
 
@@ -27,9 +17,4 @@ async function getSelfInstanceId() {
   return cachedInstanceId;
 }
 
-async function stopSelf() {
-  const instanceId = await getSelfInstanceId();
-  return getEc2Client().send(new StopInstancesCommand({ InstanceIds: [instanceId] }));
-}
-
-module.exports = { getSelfInstanceId, stopSelf };
+module.exports = { getSelfInstanceId };

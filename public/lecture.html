@@ -5051,6 +5051,11 @@
     <script src="script.js"></script>
     <script>
       function showPage(id) {
+        const current = document.querySelector('.page.active');
+        if (current && current.id === 'lecturePlayer' && id !== 'lecturePlayer') {
+          const prevVideo = document.getElementById('lectureVideo');
+          if (prevVideo) prevVideo.pause();
+        }
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         document.documentElement.scrollTop = 0;
@@ -5063,6 +5068,16 @@
           document.body.style.background = whiteBg.includes(id) ? '#f5f3ef' : '#0D0D0D';
         }
         document.querySelector('.navbar').style.display = id === 'lecturePlayer' ? 'none' : '';
+        if (id === 'lecturePlayer') {
+          const videoEl = document.getElementById('lectureVideo');
+          if (videoEl) {
+            videoEl.play().catch(err => {
+              console.warn('자동재생 차단됨, 음소거 후 재시도:', err && err.name);
+              videoEl.muted = true;
+              videoEl.play().catch(() => {});
+            });
+          }
+        }
       }
 
       function goToClassDetail(pageId, introId, curriculumId) {

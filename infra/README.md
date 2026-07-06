@@ -55,6 +55,8 @@
 
 ## 2. 프로비저닝 순서 (자격증명 확보 후 실행)
 
+워커는 단일 인스턴스가 아니라 **Auto Scaling Group(min=0)** 으로 운영한다. 전체 설계와 근거는 `infra/autoscaling-design.md` 참고.
+
 ```bash
 # 0. AWS CLI 자격증명 등록 확인
 aws sts get-caller-identity
@@ -72,31 +74,42 @@ aws ec2 describe-instances --filters "Name=ip-address,Values=54.116.171.96" \
 
 # 4. 워커 전용 보안그룹 생성 (인바운드: 관리자 IP의 SSH만, 아웃바운드: 전체 허용)
 
-# 5. 워커 인스턴스 생성 (같은 VPC/서브넷, Project=dockteacher-worker 태그 필수 — IAM 정책의 태그 조건과 매칭)
-aws ec2 run-instances \
-  --image-id <UBUNTU_22_04_AMI_ID> \
-  --instance-type c6i.8xlarge \
-  --key-name <기존 dockteacher-web 키페어 이름> \
-  --security-group-ids <워커 보안그룹ID> \
-  --subnet-id <운영서버와 동일 서브넷ID> \
-  --iam-instance-profile Name=dockteacher-worker-role \
-  --block-device-mappings '[{"DeviceName":"/dev/sda1","Ebs":{"VolumeSize":1024,"VolumeType":"gp3","Throughput":700,"Iops":8000}}]' \
-  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=dockteacher-worker},{Key=Project,Value=dockteacher-worker}]'
-
-# 6. 운영 서버 보안그룹에 "워커 보안그룹 → 3306(MySQL)" 인바운드 규칙 추가
+# 5. 운영 서버 보안그룹에 "워커 보안그룹 → 3306(MySQL)" 인바운드 규칙 추가
+#    (SG 단위 참조이므로 ASG가 몇 대를 띄우든 자동 적용)
 aws ec2 authorize-security-group-ingress \
   --group-id <운영서버 보안그룹ID> \
   --protocol tcp --port 3306 \
   --source-group <워커 보안그룹ID>
 
-# 7. SQS 큐 생성
+# 6. SQS 큐 생성 (DLQ는 provision-asg.sh가 생성)
 aws sqs create-queue --queue-name dockteacher-video-jobs --region ap-northeast-2 \
   --tags Project=dockteacher-worker
+
+# 7. 워커 시크릿을 SSM Parameter Store에 등록 (worker/.env.example의 각 키를
+#    /dockteacher/worker/<KEY> 이름의 SecureString으로 — 부팅 시 user-data가 .env로 변환)
+aws ssm put-parameter --region ap-northeast-2 --type SecureString \
+  --name /dockteacher/worker/R2_ACCESS_KEY_ID --value '<값>'
+aws ssm put-parameter --region ap-northeast-2 --type SecureString \
+  --name /dockteacher/worker/R2_SECRET_ACCESS_KEY --value '<값>'
+# ... DB_HOST(운영 서버 사설 IP), DB_USER, DB_PASSWORD, DB_NAME,
+#     R2_ACCOUNT_ID, R2_BUCKET, R2_ENDPOINT, SQS_QUEUE_URL 등 나머지 키도 동일하게
+
+# 8. 골든 AMI 베이크: 베이스 인스턴스(Ubuntu 22.04, 임시로 run-instances) 하나에
+#    install-worker-instance.sh 실행 → 정지 → create-image (스크립트 말미 안내 참고)
+ssh -i dockteacher-web.pem ubuntu@<베이스 인스턴스 IP> 'bash -s' < infra/install-worker-instance.sh
+
+# 9. DLQ + Launch Template + ASG + 백업 CloudWatch 경보 생성
+#    (provision-asg.sh 상단의 AMI_ID/SUBNET_IDS/WORKER_SG_ID/KEY_NAME을 채운 뒤)
+bash infra/provision-asg.sh
 ```
 
-이후 단계(MySQL 스키마 적용, 애플리케이션 코드 배포, systemd 서비스 등록)는 각각 `worker/README.md`, `lib/`, `server.js`의 관련 코드를 참고.
+이후 단계(MySQL 스키마 적용, 운영 서버 코드 배포)는 각각 `worker/README.md`, `lib/`, `server.js`의 관련 코드를 참고. 운영 서버 `.env`에서 `WORKER_INSTANCE_ID`는 제거됐고, ASG 이름/최대 대수를 바꿀 때만 `WORKER_ASG_NAME`/`WORKER_ASG_MAX`를 설정한다.
+
+### 워커 코드 업데이트 배포
+git push만 하면 된다 — 다음에 뜨는 인스턴스부터 user-data의 `git pull`이 반영한다. OS/ffmpeg/Node 버전을 올릴 때만 AMI를 다시 베이크하고 Launch Template 새 버전을 발행한다.
 
 ## 3. 왜 이렇게 나눴는가 (요약)
 - 프로비저닝용 IAM 사용자는 **작업 후 폐기 가능한 임시 권한**으로 최소화
-- 워커/운영 서버 각각의 **런타임 역할**은 필요한 액션만 최소 권한으로 분리 (worker는 SQS 소비 + 자기 자신 stop만, 운영 서버는 SQS 발행 + 워커 start만)
-- `Project=dockteacher-worker` 태그를 기준으로 조건을 걸어, 인스턴스 ID가 생성되기 전에도 정책을 미리 작성할 수 있도록 함
+- 워커/운영 서버 각각의 **런타임 역할**은 필요한 액션만 최소 권한으로 분리 (worker는 SQS 소비 + SSM 읽기 + ASG를 통한 자기 종료만, 운영 서버는 SQS 발행 + ASG desired 올리기만)
+- `Project=dockteacher-worker` 태그를 기준으로 조건을 걸어, 인스턴스/ASG가 생성되기 전에도 정책을 미리 작성할 수 있도록 함
+- 시크릿은 AMI에 굽지 않고 SSM SecureString으로 — 키 로테이션은 SSM 값 교체만으로 끝나고, AMI 유출 시에도 시크릿이 새지 않음

@@ -11,6 +11,8 @@ EnvironmentFile=/home/ubuntu/dockteacher-web/worker/.env
 ExecStart=/usr/bin/node /home/ubuntu/dockteacher-web/worker/index.js
 Restart=always
 RestartSec=5
+# SIGTERM 드레인: 진행 중인 트랜스코딩(최대 수십 분)이 끝날 때까지 강제 kill하지 않는다
+TimeoutStopSec=7200
 
 [Install]
 WantedBy=multi-user.target

@@ -7,7 +7,7 @@ const bcrypt = require('bcryptjs');
 const { getPool } = require('./lib/db');
 const r2 = require('./lib/r2');
 const { sendVideoJob } = require('./lib/sqs');
-const { wakeWorkerInstance } = require('./lib/ec2');
+const { ensureWorkerCapacity } = require('./lib/asg');
 const { sendEmail } = require('./lib/ses');
 
 const app = express();
@@ -102,6 +102,10 @@ app.post('/admin/api/videos/presign', requireAdminApi, async (req, res) => {
     });
   }
 
+  // 워커 선기동: 20~30GB 업로드가 수십 분 걸리므로 지금 띄우면 부팅(~2분)이 업로드 시간에 숨는다.
+  // 실패해도 업로드는 진행 가능 — complete 시점 재시도 + CloudWatch 백업 경보가 커버.
+  ensureWorkerCapacity(1).catch((err) => console.error('워커 선기동 실패:', err));
+
   res.json({ videoId, partSize: PART_SIZE, urls });
 });
 
@@ -119,7 +123,9 @@ app.post('/admin/api/videos/:id/complete', requireAdminApi, async (req, res) => 
   await r2.completeMultipartUpload(video.raw_r2_key, video.raw_upload_id, parts);
   await getPool().query('UPDATE lecture_videos SET status = ? WHERE id = ?', ['queued', id]);
 
-  await wakeWorkerInstance();
+  // 큐 깊이 기준 desired 재계산(다중 동시 업로드 대응). 실패해도 발행은 진행 —
+  // 큐에 쌓인 메시지는 CloudWatch 백업 경보(step scaling)가 처리한다.
+  await ensureWorkerCapacity(1).catch((err) => console.error('워커 스케일아웃 실패:', err));
   await sendVideoJob({ videoId: video.id, rawKey: video.raw_r2_key, title: video.title });
 
   res.json({ ok: true });

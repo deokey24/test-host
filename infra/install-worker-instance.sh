@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# 워커 EC2 인스턴스에 SSH로 접속한 뒤 최초 1회 실행하는 부트스트랩 스크립트
-# 실행: ssh -i dockteacher-web.pem ubuntu@<워커 인스턴스 IP> 'bash -s' < infra/install-worker-instance.sh
+# 골든 AMI 베이크용 셋업 스크립트 — 베이스 인스턴스(Ubuntu 22.04)에 1회 실행한 뒤 AMI로 굽는다.
+# 실행: ssh -i dockteacher-web.pem ubuntu@<베이스 인스턴스 IP> 'bash -s' < infra/install-worker-instance.sh
+#
+# AMI에 포함되는 것: ffmpeg, Node, 워커 코드+의존성, systemd 유닛(disabled)
+# AMI에 포함되면 안 되는 것: worker/.env (시크릿은 부팅 시 user-data가 SSM에서 로드)
 
 set -euo pipefail
 
@@ -26,16 +29,17 @@ fi
 
 echo "== 워커 의존성 설치 =="
 cd "$REPO_DIR/worker"
-npm install --omit=dev
+npm ci --omit=dev
 
-echo "== .env 파일을 아직 만들지 않았다면 worker/.env.example을 참고해 worker/.env를 직접 작성하세요 =="
-
-echo "== systemd 서비스 등록 =="
+echo "== systemd 서비스 등록 (enable하지 않음 — 부팅 시 user-data가 .env 생성 후 start) =="
 sudo cp "$REPO_DIR/infra/dockteacher-worker.service" /etc/systemd/system/dockteacher-worker.service
 sudo systemctl daemon-reload
-sudo systemctl enable dockteacher-worker
 
-echo "완료. worker/.env 작성 후 다음 명령으로 서비스를 시작하세요:"
-echo "  sudo systemctl start dockteacher-worker"
-echo "  sudo systemctl status dockteacher-worker"
-echo "  journalctl -u dockteacher-worker -f"
+echo "== AMI 베이크 전 정리 (시크릿/호스트 고유 파일 제거) =="
+rm -f "$REPO_DIR/worker/.env"
+sudo cloud-init clean --logs || true   # 다음 부팅에서 user-data가 다시 실행되도록
+
+echo "완료. 이 인스턴스를 정지한 뒤 AMI로 생성하세요:"
+echo "  aws ec2 stop-instances --instance-ids <이 인스턴스 ID>"
+echo "  aws ec2 create-image --instance-id <이 인스턴스 ID> --name dockteacher-worker-\$(date +%Y%m%d)"
+echo "이후 infra/provision-asg.sh의 AMI_ID에 새 AMI를 넣고 실행."
