@@ -816,11 +816,31 @@
       loadVideos();
     });
 
+    const PART_TIMEOUT_MS = 120000;
+    const PART_MAX_RETRIES = 3;
+
     async function uploadPart(url, blob, partNumber, onProgress) {
-      const res = await fetch(url, { method: 'PUT', body: blob });
-      if (!res.ok) throw new Error(`파트 ${partNumber} 업로드 실패`);
-      onProgress(blob.size);
-      return { PartNumber: partNumber, ETag: res.headers.get('ETag') };
+      let lastErr;
+      for (let attempt = 1; attempt <= PART_MAX_RETRIES; attempt++) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), PART_TIMEOUT_MS);
+        try {
+          const res = await fetch(url, { method: 'PUT', body: blob, signal: controller.signal });
+          if (!res.ok) throw new Error(`파트 ${partNumber} 업로드 실패 (HTTP ${res.status})`);
+          onProgress(blob.size);
+          return { PartNumber: partNumber, ETag: res.headers.get('ETag') };
+        } catch (err) {
+          lastErr = err.name === 'AbortError'
+            ? new Error(`파트 ${partNumber} 응답 없음 (${PART_TIMEOUT_MS / 1000}초 초과)`)
+            : err;
+          if (attempt < PART_MAX_RETRIES) {
+            await new Promise(r => setTimeout(r, 1000 * attempt));
+          }
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+      throw lastErr;
     }
 
     async function uploadInParallel(items, worker, concurrency) {
