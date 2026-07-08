@@ -12,8 +12,8 @@
 4. **작업이 끝나면 이 사용자를 삭제하거나 키를 폐기(rotate)할 것**
 
 ### 1-2. Cloudflare R2 버킷 + API 토큰
-1. Cloudflare 대시보드 → R2 → 버킷 생성: `dockteacher-videos`
-2. R2 API 토큰 발급 시 **이 버킷에 한정된** Object Read & Write 권한만 부여 (Global API Key 전체 공유 금지)
+1. (2026-07-08 확정) 별도 버킷 대신 **기존 `dockteacher` 버킷**을 사용 — 강의 CDN(img.wecandoeat.com)이 이 버킷에 연결되어 있어 `final/` 압축본을 바로 서빙 가능. 영상 파이프라인은 `raw/`, `final/` 프리픽스로 격리
+2. R2 API 토큰은 버킷 한정 Object Read & Write 권한만 부여 (Global API Key 전체 공유 금지)
 3. Account ID, Access Key ID, Secret Access Key, 엔드포인트 URL(`https://<ACCOUNT_ID>.r2.cloudflarestorage.com`)을 전달
 
 준비가 끝나면 두 가지(AWS Access Key, R2 자격증명)를 `.env`에만 등록하고 커밋하지 않는다 (`.gitignore`에 이미 포함됨).
