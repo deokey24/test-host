@@ -247,6 +247,7 @@
   .row-btn:hover { background: rgba(58,52,44,0.06); }
   .row-btn.danger { background: #9B3B33; border-color: #9B3B33; color: #FBF7EF; }
   .row-btn.danger:hover { filter: brightness(1.1); }
+  .row-btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
   .badge-active-yes { background: #E4ECDE; color: #4C6B4A; }
   .badge-active-no { background: #E4DDCC; color: #7A7267; }
   .cat-drag-handle {
@@ -493,7 +494,7 @@
           <div class="card">
             <h2>업로드된 영상</h2>
             <table>
-              <thead><tr><th>제목</th><th>상태</th><th>등록일</th></tr></thead>
+              <thead><tr><th>제목</th><th>상태</th><th>등록일</th><th>관리</th></tr></thead>
               <tbody id="videoList"></tbody>
             </table>
           </div>
@@ -786,18 +787,34 @@
 
     const PART_CONCURRENCY = 4;
 
+    let videoCache = [];
+
     async function loadVideos() {
       const res = await fetch('/admin/api/videos');
       const videos = await res.json();
+      videoCache = videos;
       const tbody = document.getElementById('videoList');
       tbody.innerHTML = videos.map(v => `
         <tr>
           <td>${v.title}</td>
           <td><span class="badge badge-${v.status}">${v.status}</span></td>
           <td>${new Date(v.created_at).toLocaleString('ko-KR')}</td>
+          <td><button class="row-btn danger" data-delete-video="${v.id}"
+            ${v.status === 'processing' ? 'disabled title="인코딩이 진행 중인 영상은 삭제할 수 없습니다"' : ''}>삭제</button></td>
         </tr>
       `).join('');
     }
+
+    document.getElementById('videoList').addEventListener('click', async (e) => {
+      const deleteId = e.target.dataset.deleteVideo;
+      if (!deleteId) return;
+      const video = videoCache.find(v => String(v.id) === deleteId);
+      if (!video || !confirm(`"${video.title}" 영상을 삭제할까요?\nR2에 저장된 원본과 압축본도 함께 삭제되며 되돌릴 수 없습니다.`)) return;
+      const res = await fetch(`/admin/api/videos/${deleteId}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { alert(data.error || '삭제에 실패했습니다.'); return; }
+      loadVideos();
+    });
 
     async function uploadPart(url, blob, partNumber, onProgress) {
       const res = await fetch(url, { method: 'PUT', body: blob });

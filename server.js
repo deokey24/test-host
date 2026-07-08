@@ -131,6 +131,34 @@ app.post('/admin/api/videos/:id/complete', requireAdminApi, wrapAsync(async (req
   res.json({ ok: true });
 }));
 
+app.delete('/admin/api/videos/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const [rows] = await getPool().query('SELECT * FROM lecture_videos WHERE id = ?', [id]);
+  const video = rows[0];
+  if (!video) {
+    res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
+    return;
+  }
+  // 인코딩 중엔 워커가 파일을 만들고 있어 삭제하면 R2에 고아 파일이 남는다 — 완료/실패 후에만 허용
+  if (video.status === 'processing') {
+    res.status(409).json({ error: '인코딩이 진행 중인 영상은 삭제할 수 없습니다. 완료 후 다시 시도하세요.' });
+    return;
+  }
+
+  // 업로드가 완료되지 않은 멀티파트가 남아 있으면 중단 (이미 완료/중단된 경우의 에러는 무시)
+  if (video.status === 'uploading' && video.raw_upload_id) {
+    await r2.abortMultipartUpload(video.raw_r2_key, video.raw_upload_id).catch(() => {});
+  }
+  if (video.raw_r2_key) await r2.deleteObject(video.raw_r2_key);
+  if (video.final_r2_key) await r2.deleteObject(video.final_r2_key);
+
+  // DB 행을 지우면 큐에 남은 작업 메시지는 워커가 "행 없음"으로 판단해 스킵한다 (queued 상태도 안전)
+  await getPool().query('DELETE FROM lecture_videos WHERE id = ?', [id]);
+
+  res.json({ ok: true });
+}));
+
 // Express 4는 async 라우트의 reject를 잡지 못하므로 명시적으로 500 처리
 function wrapAsync(handler) {
   return (req, res) => {
