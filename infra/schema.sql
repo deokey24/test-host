@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS lecture_videos (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   raw_r2_key VARCHAR(512) NOT NULL,
-  raw_upload_id VARCHAR(255),
+  raw_upload_id VARCHAR(1024),  -- R2 멀티파트 UploadId는 300자 이상 (255면 ER_DATA_TOO_LONG)
   final_r2_key VARCHAR(512),
   status ENUM('uploading', 'queued', 'processing', 'done', 'failed') NOT NULL DEFAULT 'uploading',
   error_message TEXT,

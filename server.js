@@ -70,14 +70,14 @@ app.post('/admin/logout', requireAdmin, (req, res) => {
   req.session.destroy(() => res.redirect('/admin'));
 });
 
-app.get('/admin/api/videos', requireAdminApi, async (req, res) => {
+app.get('/admin/api/videos', requireAdminApi, wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
     'SELECT id, title, status, final_r2_key, error_message, created_at FROM lecture_videos ORDER BY created_at DESC'
   );
   res.json(rows);
-});
+}));
 
-app.post('/admin/api/videos/presign', requireAdminApi, async (req, res) => {
+app.post('/admin/api/videos/presign', requireAdminApi, wrapAsync(async (req, res) => {
   const { title, fileSize } = req.body;
   if (!title || !fileSize) {
     res.status(400).json({ error: 'title과 fileSize가 필요합니다.' });
@@ -107,9 +107,9 @@ app.post('/admin/api/videos/presign', requireAdminApi, async (req, res) => {
   ensureWorkerCapacity(1).catch((err) => console.error('워커 선기동 실패:', err));
 
   res.json({ videoId, partSize: PART_SIZE, urls });
-});
+}));
 
-app.post('/admin/api/videos/:id/complete', requireAdminApi, async (req, res) => {
+app.post('/admin/api/videos/:id/complete', requireAdminApi, wrapAsync(async (req, res) => {
   const { id } = req.params;
   const { parts } = req.body;
 
@@ -129,7 +129,7 @@ app.post('/admin/api/videos/:id/complete', requireAdminApi, async (req, res) => 
   await sendVideoJob({ videoId: video.id, rawKey: video.raw_r2_key, title: video.title });
 
   res.json({ ok: true });
-});
+}));
 
 // Express 4는 async 라우트의 reject를 잡지 못하므로 명시적으로 500 처리
 function wrapAsync(handler) {
