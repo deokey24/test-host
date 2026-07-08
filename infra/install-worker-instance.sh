@@ -18,6 +18,13 @@ echo "== Node.js 20 설치 =="
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
+echo "== AWS CLI v2 설치 (user-data가 SSM에서 시크릿을 받을 때 필요) =="
+sudo apt-get install -y unzip
+curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+unzip -q -o /tmp/awscliv2.zip -d /tmp
+sudo /tmp/aws/install --update
+rm -rf /tmp/awscliv2.zip /tmp/aws
+
 echo "== 임시 작업 디렉터리 준비 (EBS 볼륨) =="
 sudo mkdir -p /mnt/worker-tmp
 sudo chown ubuntu:ubuntu /mnt/worker-tmp
