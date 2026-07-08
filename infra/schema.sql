@@ -18,9 +18,12 @@ CREATE TABLE IF NOT EXISTS lecture_videos (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- 워커 인스턴스 전용 계정 생성 (운영 서버 실행 후 아래 IP를 워커 인스턴스의 "사설 IP"로 교체)
--- CREATE USER 'dockteacher_worker'@'<워커_인스턴스_사설IP>' IDENTIFIED BY '<강한_비밀번호>';
--- GRANT SELECT, INSERT, UPDATE ON dockteacher.lecture_videos TO 'dockteacher_worker'@'<워커_인스턴스_사설IP>';
+-- 워커 인스턴스 전용 계정 생성
+-- 워커는 ASG로 뜨므로 IP가 매번 달라진다 → 특정 IP가 아니라 VPC 사설 대역 와일드카드로 허용.
+-- (실제 접근 차단은 보안그룹이 담당: 운영 서버 3306은 "워커 SG에서만" 인바운드 허용)
+-- 아래 '172.31.%'는 운영 서버 VPC의 CIDR에 맞춰 교체 (예: VPC가 10.0.0.0/16이면 '10.0.%')
+-- CREATE USER 'dockteacher_worker'@'172.31.%' IDENTIFIED BY '<강한_비밀번호>';
+-- GRANT SELECT, INSERT, UPDATE ON dockteacher.lecture_videos TO 'dockteacher_worker'@'172.31.%';
 -- FLUSH PRIVILEGES;
 
 -- 카테고리 (수강신청 페이지 필터탭 겸 클래스 폼의 "카테고리" 선택지, 관리자 페이지에서 CRUD)

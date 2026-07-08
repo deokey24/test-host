@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-REPO_URL="<이 저장소의 git remote URL로 교체>"
+REPO_URL="https://github.com/deokey24/test-host.git"
 REPO_DIR="/home/ubuntu/dockteacher-web"
 
 echo "== ffmpeg 설치 =="

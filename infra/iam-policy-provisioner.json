@@ -12,18 +12,79 @@
         "ec2:CreateTags",
         "ec2:CreateVolume",
         "ec2:AttachVolume",
+        "ec2:CreateImage",
+        "ec2:CreateLaunchTemplate",
+        "ec2:CreateLaunchTemplateVersion",
         "ec2:DescribeInstances",
         "ec2:DescribeInstanceStatus",
         "ec2:DescribeSecurityGroups",
         "ec2:DescribeSubnets",
         "ec2:DescribeVpcs",
         "ec2:DescribeImages",
+        "ec2:DescribeSnapshots",
         "ec2:DescribeAvailabilityZones",
         "ec2:DescribeKeyPairs",
         "ec2:DescribeVolumes",
-        "ec2:DescribeInstanceTypes"
+        "ec2:DescribeInstanceTypes",
+        "ec2:DescribeLaunchTemplates",
+        "ec2:DescribeLaunchTemplateVersions"
       ],
       "Resource": "*"
+    },
+    {
+      "Sid": "ManageWorkerTaggedInstances",
+      "Effect": "Allow",
+      "Action": ["ec2:StopInstances", "ec2:TerminateInstances"],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": { "ec2:ResourceTag/Project": "dockteacher-worker" }
+      }
+    },
+    {
+      "Sid": "AttachProductionInstanceProfile",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AssociateIamInstanceProfile",
+        "ec2:ReplaceIamInstanceProfileAssociation",
+        "ec2:DescribeIamInstanceProfileAssociations"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AsgProvisioning",
+      "Effect": "Allow",
+      "Action": [
+        "autoscaling:CreateAutoScalingGroup",
+        "autoscaling:UpdateAutoScalingGroup",
+        "autoscaling:CreateOrUpdateTags",
+        "autoscaling:PutScalingPolicy",
+        "autoscaling:DescribeAutoScalingGroups",
+        "autoscaling:DescribeScalingActivities",
+        "autoscaling:DescribePolicies",
+        "autoscaling:SetDesiredCapacity"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AsgServiceLinkedRole",
+      "Effect": "Allow",
+      "Action": "iam:CreateServiceLinkedRole",
+      "Resource": "arn:aws:iam::*:role/aws-service-role/autoscaling.amazonaws.com/*",
+      "Condition": {
+        "StringEquals": { "iam:AWSServiceName": "autoscaling.amazonaws.com" }
+      }
+    },
+    {
+      "Sid": "BackupAlarmProvisioning",
+      "Effect": "Allow",
+      "Action": ["cloudwatch:PutMetricAlarm", "cloudwatch:DescribeAlarms"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "WorkerSecretsProvisioning",
+      "Effect": "Allow",
+      "Action": ["ssm:PutParameter", "ssm:GetParametersByPath", "ssm:AddTagsToResource"],
+      "Resource": "arn:aws:ssm:ap-northeast-2:*:parameter/dockteacher/*"
     },
     {
       "Sid": "InstanceRoleSetup",
@@ -31,6 +92,7 @@
       "Action": [
         "iam:CreateRole",
         "iam:CreatePolicy",
+        "iam:CreatePolicyVersion",
         "iam:AttachRolePolicy",
         "iam:PutRolePolicy",
         "iam:CreateInstanceProfile",
@@ -38,6 +100,7 @@
         "iam:GetRole",
         "iam:GetInstanceProfile",
         "iam:GetPolicy",
+        "iam:GetPolicyVersion",
         "iam:ListRolePolicies",
         "iam:ListAttachedRolePolicies"
       ],
@@ -68,6 +131,7 @@
         "sqs:CreateQueue",
         "sqs:SetQueueAttributes",
         "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
         "sqs:TagQueue"
       ],
       "Resource": "arn:aws:sqs:ap-northeast-2:*:dockteacher-video-jobs*"

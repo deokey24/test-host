@@ -10,13 +10,13 @@ LAUNCH_TEMPLATE_NAME=dockteacher-worker
 QUEUE_NAME=dockteacher-video-jobs
 DLQ_NAME=dockteacher-video-jobs-dlq
 
-# ── 반드시 채워야 하는 값 ─────────────────────────────────────────
-AMI_ID="<골든 AMI ID>"
-SUBNET_IDS="<운영서버와 동일 VPC의 서브넷 ID (쉼표 구분으로 복수 가능)>"
-WORKER_SG_ID="<워커 보안그룹 ID>"
-KEY_NAME="<기존 dockteacher-web 키페어 이름>"
+# ── 실제 적용된 값 (2026-07-08 프로비저닝 완료 — 재실행 시 이미 존재하는 리소스는 에러) ──
+AMI_ID="ami-0969855cc5bfa4bdd"                                    # dockteacher-worker-20260708
+SUBNET_IDS="subnet-0109ada050a369bf8,subnet-0c4d1fd6de7c5d45b"    # ap-northeast-2a, 2c (운영 서버 VPC)
+WORKER_SG_ID="sg-0dd2ee218e9d4fa56"                               # dockteacher-worker-sg
+KEY_NAME="dockteacher-web"
 MAX_WORKERS=3
-# ────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────
 
 echo "== 1. DLQ 생성 + 본 큐에 redrive policy(maxReceiveCount=3) 연결 =="
 DLQ_URL=$(aws sqs create-queue --queue-name "$DLQ_NAME" --region "$REGION" \
