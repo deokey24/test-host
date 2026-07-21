@@ -60,7 +60,7 @@ async function loadVideos() {
       <td><span class="badge badge-${v.status}"${v.status === 'failed' && v.error_message ? ` title="${escapeHtml(v.error_message)}"` : ''}>${VIDEO_STATUS_LABELS[v.status] || v.status}</span></td>
       <td>${new Date(v.created_at).toLocaleString('ko-KR')}</td>
       <td>${v.status === 'done' && v.final_url
-        ? `<a href="${escapeHtml(v.final_url)}" target="_blank" rel="noopener" class="row-btn">링크</a>`
+        ? `<a href="${escapeHtml(v.final_url)}" target="_blank" rel="noopener" style="word-break:break-all; font-size:12px;">${escapeHtml(v.final_url)}</a>`
         : '<span class="field-hint">-</span>'}</td>
       <td>${v.status === 'done' && v.final_url ? `<button class="row-btn" data-copy-url="${escapeHtml(v.final_url)}" type="button">복사</button>` : ''}<button class="row-btn danger" data-delete-video="${v.id}" type="button"
         ${v.status === 'processing' ? 'disabled title="인코딩이 진행 중인 영상은 삭제할 수 없습니다"' : ''}>삭제</button></td>
