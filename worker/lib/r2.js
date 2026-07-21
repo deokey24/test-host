@@ -38,7 +38,8 @@ async function uploadFromFile(key, srcPath) {
     params: {
       Bucket: process.env.R2_BUCKET,
       Key: key,
-      Body: fs.createReadStream(srcPath)
+      Body: fs.createReadStream(srcPath),
+      ContentType: 'video/mp4'
     }
   });
   await upload.done();
