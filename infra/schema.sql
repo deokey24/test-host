@@ -256,6 +256,31 @@ CREATE TABLE IF NOT EXISTS faq_items (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- 공지사항 카테고리 (faq.html "공지사항" 탭 배지, 관리자 페이지에서 CRUD) — class_categories와 동일 패턴
+CREATE TABLE IF NOT EXISTS notice_categories (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(50) NOT NULL UNIQUE,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 공지사항 (faq.html "공지사항" 탭 — dock-pass 관리자의 공지사항 기능 이식)
+-- category는 NULL 허용: 관리자가 카테고리 없이 작성할 수 있고, 이 경우 목록에 빈 칸으로 노출된다.
+CREATE TABLE IF NOT EXISTS notices (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  category VARCHAR(50) DEFAULT NULL,
+  title VARCHAR(255) NOT NULL,
+  body LONGTEXT,
+  pinned TINYINT(1) NOT NULL DEFAULT 0,
+  notice_date DATE NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_notices_pinned_date (pinned, notice_date)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 기존에 이미 테이블이 생성된 환경(운영 DB)에서는 CREATE TABLE IF NOT EXISTS가 무시되므로 직접 반영.
+ALTER TABLE notices MODIFY COLUMN category VARCHAR(50) DEFAULT NULL;
+
 -- vod_courses/curriculum.html이 CMS 하이드레이션 전환 후 빈 화면으로 뜨지 않도록 기존 하드코딩 6개 강좌를 시드
 INSERT INTO vod_courses
   (tag, category_label, title, description, meta_text, is_best, color_variant, old_price, new_price, sort_order)
@@ -467,3 +492,17 @@ SELECT * FROM (
     6
 ) AS seed
 WHERE NOT EXISTS (SELECT 1 FROM faq_items);
+
+-- 공지사항 카테고리 시드 (dock-pass 참고 — 공지/이벤트/업데이트 기본 3종)
+INSERT INTO notice_categories (name, sort_order)
+SELECT * FROM (
+  SELECT '공지' AS name, 1 AS sort_order UNION ALL
+  SELECT '이벤트', 2 UNION ALL
+  SELECT '업데이트', 3
+) AS seed
+WHERE NOT EXISTS (SELECT 1 FROM notice_categories);
+
+-- 공지사항 1건 시드 (관리자 페이지 신규 탭이 빈 화면으로 뜨지 않도록)
+INSERT INTO notices (category, title, body, pinned, notice_date)
+SELECT '공지', '독편사 DOCK PASS 서비스 오픈 안내', '프리미엄 VOD 서비스가 정식 오픈했습니다. 많은 이용 바랍니다.', 1, CURDATE()
+WHERE NOT EXISTS (SELECT 1 FROM notices);

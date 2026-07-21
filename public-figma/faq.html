@@ -38,15 +38,14 @@
         </div>
       </div>
       <div class="faq-tabs">
-        <button type="button" class="active">자주 묻는 질문</button>
-        <button type="button">공지사항</button>
+        <button type="button" class="active" data-tab="faq">자주 묻는 질문</button>
+        <button type="button" data-tab="notice">공지사항</button>
       </div>
     </div>
   </section>
 
   <section class="faq-body">
-    <div class="faq-section-label">프리미엄 VOD · 환불 규정 FAQ</div>
-
+    <div id="faqPanel">
     <div class="faq-list" data-cms-faq-list>
       <template>
         <div class="faq-item">
@@ -128,6 +127,27 @@
     </div>
 
     <p class="faq-footnote">※ 실제 환불 금액은 결제일·환불 요청일·콘텐츠 이용 여부·첨삭권 사용 여부 및 관계 법령(학원법 시행령·소비자분쟁해결기준)에 따라 달라질 수 있습니다.</p>
+    </div>
+
+    <div id="noticePanel" style="display:none;">
+      <div class="notice-board" data-cms-notice-list>
+        <div class="notice-board-head">
+          <span class="notice-col-cat">카테고리</span>
+          <span class="notice-col-title">제목</span>
+          <span class="notice-col-date">날짜</span>
+        </div>
+        <template>
+          <div class="notice-row">
+            <button type="button" class="notice-row-head">
+              <span class="notice-cat"></span>
+              <span class="notice-title"></span>
+              <span class="notice-date"></span>
+            </button>
+            <div class="notice-body"></div>
+          </div>
+        </template>
+      </div>
+    </div>
   </section>
 
   <footer class="site-footer">
@@ -150,10 +170,21 @@
   <a class="kakao-float" href="#" target="_blank" rel="noopener">카카오톡 상담</a>
 
   <script>
-    document.querySelector('.faq-list').addEventListener('click', function (e) {
+    document.querySelector('.faq-body').addEventListener('click', function (e) {
       const btn = e.target.closest('.faq-question');
-      if (!btn) return;
-      btn.closest('.faq-item').classList.toggle('open');
+      if (btn) { btn.closest('.faq-item').classList.toggle('open'); return; }
+      const row = e.target.closest('.notice-row-head');
+      if (row) { row.closest('.notice-row').classList.toggle('open'); }
+    });
+
+    document.querySelectorAll('.faq-tabs button').forEach(function (tabBtn) {
+      tabBtn.addEventListener('click', function () {
+        document.querySelectorAll('.faq-tabs button').forEach(function (b) { b.classList.remove('active'); });
+        tabBtn.classList.add('active');
+        const tab = tabBtn.dataset.tab;
+        document.getElementById('faqPanel').style.display = tab === 'notice' ? 'none' : '';
+        document.getElementById('noticePanel').style.display = tab === 'notice' ? '' : 'none';
+      });
     });
   </script>
 

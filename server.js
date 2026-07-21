@@ -27,7 +27,7 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'dockteacher-admin-session',
   resave: false,
   saveUninitialized: false,
-  cookie: { httpOnly: true, maxAge: 1000 * 60 * 60 * 2 }
+  cookie: { httpOnly: true, maxAge: 1000 * 60 * 60 * 12 }
 }));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
@@ -1112,7 +1112,7 @@ app.delete('/api/members/devices/:id', requireMember, wrapAsync(async (req, res)
 // ══════════════════════════════════════════════════════════════════
 
 const ALLOWED_UPLOAD_SCOPES = [
-  'home-hero', 'home-online-class', 'home-why', 'vod-course', 'cert-gallery'
+  'home-hero', 'home-online-class', 'home-why', 'vod-course', 'cert-gallery', 'notice'
 ];
 
 app.post('/admin/api/site/upload/presign', requireAdminApi, wrapAsync(async (req, res) => {
@@ -1430,6 +1430,151 @@ app.delete('/admin/api/faq-items/:id', requireAdminApi, wrapAsync(async (req, re
   res.json({ ok: true });
 }));
 
+// ── notice_categories (class_categories와 동일 패턴) ──
+app.get('/api/notice-categories', wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query('SELECT id, name, sort_order FROM notice_categories ORDER BY sort_order, id');
+  res.json(rows);
+}));
+
+app.get('/admin/api/notice-categories', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT c.id, c.name, c.sort_order,
+            (SELECT COUNT(*) FROM notices WHERE category = c.name) AS notice_count
+     FROM notice_categories c
+     ORDER BY c.sort_order, c.id`
+  );
+  res.json(rows);
+}));
+
+app.post('/admin/api/notice-categories', requireAdminApi, wrapAsync(async (req, res) => {
+  const { name, sort_order } = req.body;
+  if (!name || !String(name).trim()) {
+    res.status(400).json({ error: '카테고리 이름을 입력해주세요.' });
+    return;
+  }
+  try {
+    const [result] = await getPool().query(
+      'INSERT INTO notice_categories (name, sort_order) VALUES (?, ?)',
+      [String(name).trim(), parseInt(sort_order, 10) || 0]
+    );
+    res.json({ ok: true, id: result.insertId });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      res.status(409).json({ error: '이미 존재하는 카테고리입니다.' });
+      return;
+    }
+    throw err;
+  }
+}));
+
+app.put('/admin/api/notice-categories/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const { name, sort_order } = req.body;
+  const [rows] = await getPool().query('SELECT name FROM notice_categories WHERE id = ?', [req.params.id]);
+  const existing = rows[0];
+  if (!existing) {
+    res.status(404).json({ error: '카테고리를 찾을 수 없습니다.' });
+    return;
+  }
+
+  const fields = [];
+  const values = [];
+  const newName = name !== undefined ? String(name).trim() : null;
+  if (newName) { fields.push('name = ?'); values.push(newName); }
+  if (sort_order !== undefined) { fields.push('sort_order = ?'); values.push(parseInt(sort_order, 10) || 0); }
+  if (fields.length === 0) {
+    res.status(400).json({ error: '변경할 값이 없습니다.' });
+    return;
+  }
+
+  try {
+    values.push(req.params.id);
+    await getPool().query(`UPDATE notice_categories SET ${fields.join(', ')} WHERE id = ?`, values);
+    if (newName && newName !== existing.name) {
+      // 이름이 바뀌면 이 카테고리를 쓰던 기존 공지들도 같은 이름으로 따라간다.
+      await getPool().query('UPDATE notices SET category = ? WHERE category = ?', [newName, existing.name]);
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      res.status(409).json({ error: '이미 존재하는 카테고리입니다.' });
+      return;
+    }
+    throw err;
+  }
+}));
+
+app.delete('/admin/api/notice-categories/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query('SELECT name FROM notice_categories WHERE id = ?', [req.params.id]);
+  const category = rows[0];
+  if (!category) {
+    res.status(404).json({ error: '카테고리를 찾을 수 없습니다.' });
+    return;
+  }
+  const [[{ cnt }]] = await getPool().query('SELECT COUNT(*) AS cnt FROM notices WHERE category = ?', [category.name]);
+  if (cnt > 0) {
+    res.status(409).json({ error: `이 카테고리를 사용 중인 공지가 ${cnt}개 있습니다. 먼저 해당 공지의 카테고리를 변경해주세요.` });
+    return;
+  }
+  await getPool().query('DELETE FROM notice_categories WHERE id = ?', [req.params.id]);
+  res.json({ ok: true });
+}));
+
+// ── notices (dock-pass 관리자 공지사항 기능 이식) ──
+app.get('/api/notices', wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT id, category, title, body, pinned, DATE_FORMAT(notice_date, '%Y.%m.%d') AS date
+     FROM notices ORDER BY pinned DESC, notice_date DESC, id DESC`
+  );
+  res.json(rows);
+}));
+
+app.get('/admin/api/notices', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT id, category, title, body, pinned, DATE_FORMAT(notice_date, '%Y.%m.%d') AS date, created_at
+     FROM notices ORDER BY pinned DESC, notice_date DESC, id DESC`
+  );
+  res.json(rows);
+}));
+
+app.post('/admin/api/notices', requireAdminApi, wrapAsync(async (req, res) => {
+  const { category, title, body } = req.body;
+  const pinned = req.body.pinned;
+  if (!title || !String(title).trim()) {
+    res.status(400).json({ error: '제목을 입력해주세요.' });
+    return;
+  }
+  const categoryValue = category && String(category).trim() ? String(category).trim() : null;
+  const [result] = await getPool().query(
+    'INSERT INTO notices (category, title, body, pinned, notice_date) VALUES (?, ?, ?, ?, CURDATE())',
+    [categoryValue, String(title).trim(), body ? String(body) : null, pinned ? 1 : 0]
+  );
+  res.json({ ok: true, id: result.insertId });
+}));
+
+app.put('/admin/api/notices/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const { category, title, body, pinned } = req.body;
+  const fields = [];
+  const values = [];
+  if (category !== undefined) {
+    const trimmed = String(category).trim();
+    fields.push('category = ?'); values.push(trimmed ? trimmed : null);
+  }
+  if (title !== undefined) { fields.push('title = ?'); values.push(String(title).trim()); }
+  if (body !== undefined) { fields.push('body = ?'); values.push(String(body)); }
+  if (pinned !== undefined) { fields.push('pinned = ?'); values.push(pinned ? 1 : 0); }
+  if (fields.length === 0) { res.status(400).json({ error: '변경할 값이 없습니다.' }); return; }
+  values.push(req.params.id);
+  const [result] = await getPool().query(`UPDATE notices SET ${fields.join(', ')} WHERE id = ?`, values);
+  if (result.affectedRows === 0) { res.status(404).json({ error: '공지를 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+app.delete('/admin/api/notices/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const [result] = await getPool().query('DELETE FROM notices WHERE id = ?', [req.params.id]);
+  if (result.affectedRows === 0) { res.status(404).json({ error: '공지를 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
 // 기존 사이트(public/)는 /v1 하위로 이전. 신규 루트(피그마 디자인)와 분리.
 app.use('/v1', express.static(path.join(__dirname, 'public')));
 
@@ -1440,6 +1585,11 @@ app.get(/^\/v1(\/.*)?$/, (req, res, next) => {
 
 // 신규 루트: 피그마 디자인 기반 페이지
 app.use(express.static(path.join(__dirname, 'public-figma')));
+
+// 강의 상세페이지 시안 (확장자 없이 /classDetail로 접근)
+app.get('/classDetail', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public-figma', 'classDetail.html'));
+});
 
 // 클라이언트 라우팅(history.pushState)으로만 존재하는 가상 경로 새로고침/직접 접근 대응.
 // 정적 파일로 못 찾은 경로 중 확장자 없는(=페이지) 요청은 index.html을 내려 SPA가 알아서 그리게 한다.

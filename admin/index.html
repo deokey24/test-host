@@ -5,21 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>관리자 - DOCK PASS</title>
 <link rel="stylesheet" href="/admin/cms.css">
+<link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css">
+<script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
 </head>
 <body>
 <div class="layout">
 
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <span class="sidebar-logo-mark">◆</span>
-      <span class="sidebar-logo-text">DOCK PASS<br><small>ADMIN</small></span>
+      <span class="sidebar-logo-text">DOCK-TEACHER<br><small>ADMIN</small></span>
     </div>
     <nav class="sidebar-nav">
       <button class="side-link active" data-target="homeSection">메인 페이지</button>
-      <button class="side-link" data-target="vodSection">VOD강의</button>
+      <button class="side-link" data-target="vodSection">VOD 강의</button>
       <button class="side-link" data-target="certSection">합격 인증</button>
       <button class="side-link" data-target="curriculumSection">커리큘럼</button>
       <button class="side-link" data-target="faqSection">FAQ</button>
+      <button class="side-link" data-target="noticeSection">공지사항</button>
       <button class="side-link" data-target="settingsSection">사이트 설정</button>
       <div class="sidebar-divider"></div>
       <button class="side-link" data-target="videoSection">영상 업로드</button>
@@ -389,6 +391,86 @@
         </div>
       </section>
 
+      <div class="modal-overlay" id="faqModalOverlay">
+        <div class="modal-box">
+          <div class="modal-head">
+            <h2>FAQ 항목 추가</h2>
+            <button class="row-btn" id="faqModalCloseBtn" type="button">닫기</button>
+          </div>
+          <div class="field-grid">
+            <div class="field-row full">
+              <label class="field-label">질문 *</label>
+              <input type="text" id="ffQuestion">
+            </div>
+            <div class="field-row full">
+              <label class="field-label">답변</label>
+              <textarea id="ffAnswer" rows="4"></textarea>
+            </div>
+          </div>
+          <button class="btn" id="faqModalSaveBtn" type="button">추가</button>
+          <div class="status-text" id="faqModalStatus"></div>
+        </div>
+      </div>
+
+      <section id="noticeSection" class="admin-section">
+        <div class="card">
+          <div class="card-head-row">
+            <h2>공지사항 카테고리</h2>
+            <button class="row-btn" id="notice-cat-toggle" type="button">펼치기</button>
+          </div>
+          <div id="notice-cat-body" style="display:none;">
+            <p class="field-hint" style="margin-bottom:10px;">FAQ 페이지 "공지사항" 탭에 노출되는 배지입니다. 순서는 드래그로 바꿀 수 있습니다.</p>
+            <ul class="drag-list" id="notice-cat-list"></ul>
+            <div style="display:flex; gap:8px; margin-top:6px;">
+              <input type="text" id="notice-cat-new" placeholder="새 카테고리 이름" style="flex:1;">
+              <button class="btn-outline" id="notice-cat-add" type="button">추가</button>
+            </div>
+            <div class="status-text" id="notice-cat-status"></div>
+          </div>
+        </div>
+
+        <div class="card" id="noticeWriteCard">
+          <div class="card-head-row">
+            <h2 id="noticeFormTitle" style="display:none;">새 공지 작성</h2>
+            <button class="btn" id="notice-add" type="button">+ 새 공지 작성</button>
+          </div>
+          <div class="field-grid" id="noticeFormBody" style="display:none; margin-top:4px;">
+            <div class="field-row">
+              <label class="field-label">카테고리</label>
+              <select id="nfCategory"></select>
+            </div>
+            <div class="field-row">
+              <label class="check-row" style="align-self:flex-end; padding-bottom:9px;"><input type="checkbox" id="nfPinned"> 상단 고정</label>
+            </div>
+            <div class="field-row full">
+              <label class="field-label">제목 *</label>
+              <input type="text" id="nfTitle">
+            </div>
+            <div class="field-row full">
+              <label class="field-label">내용</label>
+              <div id="nfBodyEditor"></div>
+            </div>
+          </div>
+          <div class="status-text" id="noticeFormStatus"></div>
+          <div id="noticeFormActions" style="display:none; gap:8px; margin-top:14px;">
+            <button class="btn" id="noticeSaveBtn" type="button">저장</button>
+            <button class="btn-outline" id="noticeCancelBtn" type="button">취소</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h2>공지사항 (<span id="noticeTotal">0</span>개)</h2>
+          </div>
+          <p class="field-hint" style="margin-bottom:14px;">상단 고정 공지가 먼저, 그 다음은 날짜 최신순으로 사이트에 노출됩니다.</p>
+          <table>
+            <thead><tr><th>카테고리</th><th>제목</th><th>상단고정</th><th>날짜</th><th>작업</th></tr></thead>
+            <tbody id="notice-list"></tbody>
+          </table>
+          <div class="status-text" id="notice-status"></div>
+        </div>
+      </section>
+
       <section id="settingsSection" class="admin-section">
         <div class="card">
           <h2>사이트 설정</h2>
@@ -439,7 +521,7 @@
         <div class="card">
           <h2>업로드된 영상 (<span id="videoTotal">0</span>개)</h2>
           <table>
-            <thead><tr><th>제목</th><th>상태</th><th>등록일</th><th>결과 링크</th><th>관리</th></tr></thead>
+            <thead><tr><th>제목</th><th>상태</th><th>등록일</th><th>영상 링크</th><th>관리</th></tr></thead>
             <tbody id="videoList"></tbody>
           </table>
         </div>
@@ -511,6 +593,7 @@
 <script src="/admin/cert.js"></script>
 <script src="/admin/curriculum.js"></script>
 <script src="/admin/faq.js"></script>
+<script src="/admin/notice.js"></script>
 <script src="/admin/settings.js"></script>
 <script src="/admin/video.js"></script>
 <script src="/admin/members.js"></script>

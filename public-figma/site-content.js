@@ -308,6 +308,44 @@ async function hydrateFaqList() {
   });
 }
 
+// ── 공지사항(notices) ──
+async function fetchNotices() {
+  try {
+    const res = await fetch('/api/notices');
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : null;
+  } catch {
+    return null;
+  }
+}
+
+async function hydrateNoticeList() {
+  const wrap = document.querySelector('[data-cms-notice-list]');
+  if (!wrap) return;
+  const rows = await fetchNotices();
+  if (!rows) return;
+  const template = wrap.querySelector('template');
+  if (!template) return;
+  // 헤더 행(.notice-board-head)과 template은 남기고 렌더된 행만 제거한다.
+  [...wrap.children].filter(c => c.tagName !== 'TEMPLATE' && !c.classList.contains('notice-board-head')).forEach(c => c.remove());
+  if (!rows.length) {
+    const empty = document.createElement('p');
+    empty.className = 'faq-footnote';
+    empty.textContent = '등록된 공지사항이 없습니다.';
+    wrap.appendChild(empty);
+    return;
+  }
+  rows.forEach((item) => {
+    const node = template.content.firstElementChild.cloneNode(true);
+    node.querySelector('.notice-cat').textContent = item.category || '';
+    node.querySelector('.notice-title').textContent = item.title || '';
+    node.querySelector('.notice-date').textContent = item.date || '';
+    node.querySelector('.notice-body').innerHTML = item.body || '';
+    wrap.appendChild(node);
+  });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const page = document.body.dataset.page;
 
@@ -315,7 +353,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (page === 'curriculum') hydrateVodCurriculum();
   if (page === 'home') { hydrateHomeVodPreview(); hydrateHomeGalleryPreview(); }
   if (page === 'cert') hydrateCertGallery();
-  if (page === 'faq') hydrateFaqList();
+  if (page === 'faq') { hydrateFaqList(); hydrateNoticeList(); }
 
   if (page) {
     try {

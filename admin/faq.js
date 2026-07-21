@@ -51,19 +51,45 @@ async function loadFaqItems() {
   });
 }
 
+function openFaqModal() {
+  document.getElementById('ffQuestion').value = '';
+  document.getElementById('ffAnswer').value = '';
+  setStatus(document.getElementById('faqModalStatus'), '');
+  document.getElementById('faqModalOverlay').classList.add('open');
+  document.getElementById('ffQuestion').focus();
+}
+
+function closeFaqModal() {
+  document.getElementById('faqModalOverlay').classList.remove('open');
+}
+
 function initFaqItems() {
   const listEl = document.getElementById('faq-item-list');
   const status = document.getElementById('faq-item-status');
 
-  document.getElementById('faq-item-add').addEventListener('click', async () => {
+  document.getElementById('faq-item-add').addEventListener('click', openFaqModal);
+  document.getElementById('faqModalCloseBtn').addEventListener('click', closeFaqModal);
+  document.getElementById('faqModalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'faqModalOverlay') closeFaqModal();
+  });
+
+  document.getElementById('faqModalSaveBtn').addEventListener('click', async () => {
+    const modalStatus = document.getElementById('faqModalStatus');
+    const question = document.getElementById('ffQuestion').value.trim();
+    const answer = document.getElementById('ffAnswer').value.trim();
+    if (!question) {
+      setStatus(modalStatus, '질문을 입력해주세요.', 'error');
+      return;
+    }
     try {
       await apiFetch('/admin/api/faq-items', {
         method: 'POST',
-        body: JSON.stringify({ question: '새 질문', answer: '답변을 입력하세요.', sort_order: listEl.children.length })
+        body: JSON.stringify({ question, answer, sort_order: listEl.children.length })
       });
       await loadFaqItems();
+      closeFaqModal();
     } catch (err) {
-      setStatus(status, err.message, 'error');
+      setStatus(modalStatus, err.message, 'error');
     }
   });
 
