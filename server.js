@@ -70,11 +70,20 @@ app.post('/admin/logout', requireAdmin, (req, res) => {
   req.session.destroy(() => res.redirect('/admin'));
 });
 
+// 기존(브라운/골드 테마) 관리자 화면 — 새 셸의 "v1" 탭이 iframe으로 띄운다. 로그인은 상위 /admin에서만 처리.
+app.get('/admin/v1', requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin', 'v1.html'));
+});
+
+// 관리자 셸의 정적 자산(cms.css/cms.js/home.js 등). 위의 명시적 /admin, /admin/v1, /admin/api/* 라우트가
+// 먼저 매칭되므로 이 미들웨어는 그 외의 admin/ 하위 파일 요청만 처리한다.
+app.use('/admin', express.static(path.join(__dirname, 'admin')));
+
 app.get('/admin/api/videos', requireAdminApi, wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
     'SELECT id, title, status, final_r2_key, error_message, created_at FROM lecture_videos ORDER BY created_at DESC'
   );
-  res.json(rows);
+  res.json(rows.map(v => ({ ...v, final_url: v.final_r2_key ? buildCdnUrl(v.final_r2_key) : null })));
 }));
 
 app.post('/admin/api/videos/presign', requireAdminApi, wrapAsync(async (req, res) => {
@@ -126,7 +135,20 @@ app.post('/admin/api/videos/:id/complete', requireAdminApi, wrapAsync(async (req
   // 큐 깊이 기준 desired 재계산(다중 동시 업로드 대응). 실패해도 발행은 진행 —
   // 큐에 쌓인 메시지는 CloudWatch 백업 경보(step scaling)가 처리한다.
   await ensureWorkerCapacity(1).catch((err) => console.error('워커 스케일아웃 실패:', err));
-  await sendVideoJob({ videoId: video.id, rawKey: video.raw_r2_key, title: video.title });
+
+  try {
+    await sendVideoJob({ videoId: video.id, rawKey: video.raw_r2_key, title: video.title });
+  } catch (err) {
+    // SQS 발행 실패를 여기서 못 잡으면 DB는 이미 queued인데 워커에 갈 메시지가 없어
+    // 영원히 대기 상태로 남는다 — failed로 남겨 관리자 화면에서 바로 보이게 한다
+    console.error('SQS 작업 발행 실패:', err);
+    await getPool().query(
+      'UPDATE lecture_videos SET status = ?, error_message = ? WHERE id = ?',
+      ['failed', String(err.message || err).slice(0, 2000), id]
+    );
+    res.status(500).json({ error: '압축 대기열 등록에 실패했습니다.' });
+    return;
+  }
 
   res.json({ ok: true });
 }));
@@ -144,6 +166,17 @@ app.delete('/admin/api/videos/:id', requireAdminApi, wrapAsync(async (req, res) 
   if (video.status === 'processing') {
     res.status(409).json({ error: '인코딩이 진행 중인 영상은 삭제할 수 없습니다. 완료 후 다시 시도하세요.' });
     return;
+  }
+  // 클래스 강의로 연결된 영상을 지우면 수강생 재생이 깨진다 — 연결 해제 후에만 삭제 허용
+  if (video.final_r2_key) {
+    const [[{ cnt }]] = await getPool().query(
+      'SELECT COUNT(*) AS cnt FROM class_lectures WHERE video_r2_key = ?',
+      [video.final_r2_key]
+    );
+    if (cnt > 0) {
+      res.status(409).json({ error: `클래스 강의 ${cnt}개에 연결된 영상입니다. 클래스 편집의 "강의 영상" 탭에서 연결을 해제한 후 삭제해주세요.` });
+      return;
+    }
   }
 
   // 업로드가 완료되지 않은 멀티파트가 남아 있으면 중단 (이미 완료/중단된 경우의 에러는 무시)
@@ -388,6 +421,113 @@ app.delete('/admin/api/classes/:id/chapter-attachments/:attachmentId', requireAd
   );
   if (result.affectedRows === 0) {
     res.status(404).json({ error: '첨부파일을 찾을 수 없습니다.' });
+    return;
+  }
+  res.json({ ok: true });
+}));
+
+// ── 클래스 ↔ 업로드 영상 연결 (class_lectures) — 시청 페이지가 읽는 실제 강의 목록 ──
+app.get('/admin/api/classes/:id/lectures', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT l.id, l.lecture_number, l.title, l.video_r2_key, l.sort_order,
+            v.id AS video_id, v.title AS video_title
+     FROM class_lectures l
+     LEFT JOIN lecture_videos v ON v.final_r2_key = l.video_r2_key
+     WHERE l.class_id = ?
+     ORDER BY l.sort_order, l.lecture_number`,
+    [req.params.id]
+  );
+  res.json(rows);
+}));
+
+app.post('/admin/api/classes/:id/lectures', requireAdminApi, wrapAsync(async (req, res) => {
+  const { videoId, lectureNumber, title } = req.body;
+  const num = parseInt(lectureNumber, 10);
+  if (!videoId || Number.isNaN(num) || num < 0) {
+    res.status(400).json({ error: 'videoId와 0 이상의 lectureNumber가 필요합니다.' });
+    return;
+  }
+  const [[video]] = await getPool().query('SELECT id, title, status, final_r2_key FROM lecture_videos WHERE id = ?', [videoId]);
+  if (!video) {
+    res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
+    return;
+  }
+  if (video.status !== 'done' || !video.final_r2_key) {
+    res.status(409).json({ error: '인코딩이 완료된(done) 영상만 클래스에 연결할 수 있습니다.' });
+    return;
+  }
+  try {
+    const [result] = await getPool().query(
+      'INSERT INTO class_lectures (class_id, lecture_number, title, video_r2_key, sort_order) VALUES (?, ?, ?, ?, ?)',
+      [req.params.id, num, String(title || video.title).trim(), video.final_r2_key, num]
+    );
+    res.json({ ok: true, id: result.insertId });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      res.status(409).json({ error: `${num}강은 이미 등록되어 있습니다. 다른 번호를 사용하거나 기존 강의를 해제해주세요.` });
+      return;
+    }
+    if (err.code === 'ER_NO_REFERENCED_ROW_2') {
+      res.status(404).json({ error: '클래스를 찾을 수 없습니다.' });
+      return;
+    }
+    throw err;
+  }
+}));
+
+app.put('/admin/api/classes/:id/lectures/:lectureId', requireAdminApi, wrapAsync(async (req, res) => {
+  const { lectureNumber, title } = req.body;
+  const fields = [];
+  const values = [];
+  if (lectureNumber !== undefined) {
+    const num = parseInt(lectureNumber, 10);
+    if (Number.isNaN(num) || num < 0) {
+      res.status(400).json({ error: '강의 번호는 0 이상의 숫자여야 합니다.' });
+      return;
+    }
+    fields.push('lecture_number = ?', 'sort_order = ?');
+    values.push(num, num);
+  }
+  if (title !== undefined) {
+    if (!String(title).trim()) {
+      res.status(400).json({ error: '제목을 입력해주세요.' });
+      return;
+    }
+    fields.push('title = ?');
+    values.push(String(title).trim());
+  }
+  if (fields.length === 0) {
+    res.status(400).json({ error: '변경할 값이 없습니다.' });
+    return;
+  }
+  try {
+    values.push(req.params.lectureId, req.params.id);
+    const [result] = await getPool().query(
+      `UPDATE class_lectures SET ${fields.join(', ')} WHERE id = ? AND class_id = ?`,
+      values
+    );
+    if (result.affectedRows === 0) {
+      res.status(404).json({ error: '강의를 찾을 수 없습니다.' });
+      return;
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      res.status(409).json({ error: '해당 번호의 강의가 이미 있습니다.' });
+      return;
+    }
+    throw err;
+  }
+}));
+
+// 연결 해제만 수행 — R2 파일과 lecture_videos 행은 그대로 남는다 (수업자료 행은 FK cascade로 함께 삭제)
+app.delete('/admin/api/classes/:id/lectures/:lectureId', requireAdminApi, wrapAsync(async (req, res) => {
+  const [result] = await getPool().query(
+    'DELETE FROM class_lectures WHERE id = ? AND class_id = ?',
+    [req.params.lectureId, req.params.id]
+  );
+  if (result.affectedRows === 0) {
+    res.status(404).json({ error: '강의를 찾을 수 없습니다.' });
     return;
   }
   res.json({ ok: true });
@@ -967,13 +1107,345 @@ app.delete('/api/members/devices/:id', requireMember, wrapAsync(async (req, res)
   res.json({ ok: true });
 }));
 
-app.use(express.static(path.join(__dirname, 'public')));
+// ══════════════════════════════════════════════════════════════════
+// 신규 Figma 사이트(public-figma) CMS — site_sections / vod_courses / cert_gallery_images / faq_items
+// ══════════════════════════════════════════════════════════════════
+
+const ALLOWED_UPLOAD_SCOPES = [
+  'home-hero', 'home-online-class', 'home-why', 'vod-course', 'cert-gallery'
+];
+
+app.post('/admin/api/site/upload/presign', requireAdminApi, wrapAsync(async (req, res) => {
+  const { scope, resourceId, contentType } = req.body;
+  if (!ALLOWED_UPLOAD_SCOPES.includes(scope)) {
+    res.status(400).json({ error: `scope는 ${ALLOWED_UPLOAD_SCOPES.join(', ')} 중 하나여야 합니다.` });
+    return;
+  }
+  if (!contentType || !contentType.startsWith('image/')) {
+    res.status(400).json({ error: 'contentType이 이미지 형식이어야 합니다.' });
+    return;
+  }
+  const ext = contentType.split('/')[1].replace(/[^a-z0-9]/gi, '') || 'jpg';
+  const safeResourceId = resourceId ? String(resourceId).replace(/[^\w-]/g, '') : String(Date.now());
+  const key = `site/${scope}/${safeResourceId}/${crypto.randomUUID()}.${ext}`;
+  const uploadUrl = await r2.presignPutObject(key, contentType);
+  res.json({ key, uploadUrl, url: `/uploads/${key}` });
+}));
+
+// ── site_sections: 페이지별 단일 섹션 콘텐츠 (JSON blob) ──
+app.get('/api/site/:page', wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    'SELECT section_key, content FROM site_sections WHERE page = ?',
+    [req.params.page]
+  );
+  const result = {};
+  for (const row of rows) {
+    try { result[row.section_key] = JSON.parse(row.content); } catch { /* 손상된 값은 무시 */ }
+  }
+  res.json(result);
+}));
+
+app.get('/admin/api/site/:page/:section', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    'SELECT content FROM site_sections WHERE page = ? AND section_key = ?',
+    [req.params.page, req.params.section]
+  );
+  if (!rows[0]) { res.json({}); return; }
+  try { res.json(JSON.parse(rows[0].content)); } catch { res.json({}); }
+}));
+
+app.put('/admin/api/site/:page/:section', requireAdminApi, wrapAsync(async (req, res) => {
+  const content = JSON.stringify(req.body || {});
+  await getPool().query(
+    `INSERT INTO site_sections (page, section_key, content) VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE content = VALUES(content)`,
+    [req.params.page, req.params.section, content]
+  );
+  res.json({ ok: true });
+}));
+
+// ── vod_courses: VOD 강의 상품 (vod.html/curriculum.html/홈 미리보기 공용 소스) ──
+const VOD_COURSE_FIELDS = [
+  'tag', 'category_label', 'title', 'description', 'meta_text', 'is_best',
+  'color_variant', 'old_price', 'new_price', 'thumbnail_url', 'sort_order', 'is_active'
+];
+
+function validateVodCourseBody(body) {
+  if (!body.title || !String(body.title).trim()) return 'title은 필수 항목입니다.';
+  if (!body.new_price || !String(body.new_price).trim()) return 'new_price는 필수 항목입니다.';
+  if (body.color_variant && !['default', 'green'].includes(body.color_variant)) {
+    return 'color_variant는 default, green 중 하나여야 합니다.';
+  }
+  return null;
+}
+
+function vodCourseValues(body) {
+  return VOD_COURSE_FIELDS.map(field => {
+    if (field === 'sort_order') return parseInt(body.sort_order, 10) || 0;
+    if (field === 'is_best') return body.is_best ? 1 : 0;
+    if (field === 'is_active') return body.is_active === false || body.is_active === 0 || body.is_active === '0' ? 0 : 1;
+    if (field === 'color_variant') return body.color_variant || 'default';
+    const value = body[field];
+    return value === undefined || value === null || String(value).trim() === '' ? null : String(value).trim();
+  });
+}
+
+app.get('/api/vod-courses', wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    'SELECT * FROM vod_courses WHERE is_active = 1 ORDER BY sort_order, id'
+  );
+  res.json(rows);
+}));
+
+app.get('/admin/api/vod-courses', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query('SELECT * FROM vod_courses ORDER BY sort_order, id');
+  res.json(rows);
+}));
+
+app.post('/admin/api/vod-courses', requireAdminApi, wrapAsync(async (req, res) => {
+  const error = validateVodCourseBody(req.body);
+  if (error) { res.status(400).json({ error }); return; }
+  const [result] = await getPool().query(
+    `INSERT INTO vod_courses (${VOD_COURSE_FIELDS.join(', ')}) VALUES (${VOD_COURSE_FIELDS.map(() => '?').join(', ')})`,
+    vodCourseValues(req.body)
+  );
+  res.json({ ok: true, id: result.insertId });
+}));
+
+app.put('/admin/api/vod-courses/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const error = validateVodCourseBody(req.body);
+  if (error) { res.status(400).json({ error }); return; }
+  const [result] = await getPool().query(
+    `UPDATE vod_courses SET ${VOD_COURSE_FIELDS.map(f => `${f} = ?`).join(', ')} WHERE id = ?`,
+    [...vodCourseValues(req.body), req.params.id]
+  );
+  if (result.affectedRows === 0) { res.status(404).json({ error: 'VOD 강의를 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+app.delete('/admin/api/vod-courses/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const [result] = await getPool().query('DELETE FROM vod_courses WHERE id = ?', [req.params.id]);
+  if (result.affectedRows === 0) { res.status(404).json({ error: 'VOD 강의를 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+// vod_course_lectures — class_lectures와 동일한 패턴. 커리큘럼 스텝 목록 겸 영상 연결 목록.
+app.get('/api/vod-courses/:id/lectures', wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    'SELECT lecture_number, title, video_r2_key FROM vod_course_lectures WHERE vod_course_id = ? ORDER BY sort_order, lecture_number',
+    [req.params.id]
+  );
+  res.json(rows);
+}));
+
+app.get('/admin/api/vod-courses/:id/lectures', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT l.id, l.lecture_number, l.title, l.video_r2_key, l.sort_order,
+            v.id AS video_id, v.title AS video_title
+     FROM vod_course_lectures l
+     LEFT JOIN lecture_videos v ON v.final_r2_key = l.video_r2_key
+     WHERE l.vod_course_id = ?
+     ORDER BY l.sort_order, l.lecture_number`,
+    [req.params.id]
+  );
+  res.json(rows);
+}));
+
+app.post('/admin/api/vod-courses/:id/lectures', requireAdminApi, wrapAsync(async (req, res) => {
+  const { videoId, lectureNumber, title } = req.body;
+  const num = parseInt(lectureNumber, 10);
+  if (!title || Number.isNaN(num) || num < 0) {
+    res.status(400).json({ error: 'title과 0 이상의 lectureNumber가 필요합니다.' });
+    return;
+  }
+  let videoR2Key = null;
+  if (videoId) {
+    const [[video]] = await getPool().query('SELECT id, status, final_r2_key FROM lecture_videos WHERE id = ?', [videoId]);
+    if (!video) { res.status(404).json({ error: '영상을 찾을 수 없습니다.' }); return; }
+    if (video.status !== 'done' || !video.final_r2_key) {
+      res.status(409).json({ error: '인코딩이 완료된(done) 영상만 연결할 수 있습니다.' });
+      return;
+    }
+    videoR2Key = video.final_r2_key;
+  }
+  try {
+    const [result] = await getPool().query(
+      'INSERT INTO vod_course_lectures (vod_course_id, lecture_number, title, video_r2_key, sort_order) VALUES (?, ?, ?, ?, ?)',
+      [req.params.id, num, String(title).trim(), videoR2Key, num]
+    );
+    res.json({ ok: true, id: result.insertId });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      res.status(409).json({ error: `${num}강은 이미 등록되어 있습니다.` });
+      return;
+    }
+    if (err.code === 'ER_NO_REFERENCED_ROW_2') {
+      res.status(404).json({ error: 'VOD 강의를 찾을 수 없습니다.' });
+      return;
+    }
+    throw err;
+  }
+}));
+
+app.put('/admin/api/vod-courses/:id/lectures/:lectureId', requireAdminApi, wrapAsync(async (req, res) => {
+  const { videoId, lectureNumber, title } = req.body;
+  const fields = [];
+  const values = [];
+  if (lectureNumber !== undefined) {
+    const num = parseInt(lectureNumber, 10);
+    if (Number.isNaN(num) || num < 0) { res.status(400).json({ error: '강의 번호는 0 이상의 숫자여야 합니다.' }); return; }
+    fields.push('lecture_number = ?', 'sort_order = ?');
+    values.push(num, num);
+  }
+  if (title !== undefined) {
+    if (!String(title).trim()) { res.status(400).json({ error: '제목을 입력해주세요.' }); return; }
+    fields.push('title = ?');
+    values.push(String(title).trim());
+  }
+  if (videoId !== undefined) {
+    if (videoId === null || videoId === '') {
+      fields.push('video_r2_key = ?');
+      values.push(null);
+    } else {
+      const [[video]] = await getPool().query('SELECT id, status, final_r2_key FROM lecture_videos WHERE id = ?', [videoId]);
+      if (!video) { res.status(404).json({ error: '영상을 찾을 수 없습니다.' }); return; }
+      if (video.status !== 'done' || !video.final_r2_key) {
+        res.status(409).json({ error: '인코딩이 완료된(done) 영상만 연결할 수 있습니다.' });
+        return;
+      }
+      fields.push('video_r2_key = ?');
+      values.push(video.final_r2_key);
+    }
+  }
+  if (fields.length === 0) { res.status(400).json({ error: '변경할 값이 없습니다.' }); return; }
+  try {
+    values.push(req.params.lectureId, req.params.id);
+    const [result] = await getPool().query(
+      `UPDATE vod_course_lectures SET ${fields.join(', ')} WHERE id = ? AND vod_course_id = ?`,
+      values
+    );
+    if (result.affectedRows === 0) { res.status(404).json({ error: '강의를 찾을 수 없습니다.' }); return; }
+    res.json({ ok: true });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') { res.status(409).json({ error: '해당 번호의 강의가 이미 있습니다.' }); return; }
+    throw err;
+  }
+}));
+
+app.delete('/admin/api/vod-courses/:id/lectures/:lectureId', requireAdminApi, wrapAsync(async (req, res) => {
+  const [result] = await getPool().query(
+    'DELETE FROM vod_course_lectures WHERE id = ? AND vod_course_id = ?',
+    [req.params.lectureId, req.params.id]
+  );
+  if (result.affectedRows === 0) { res.status(404).json({ error: '강의를 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+// ── cert_gallery_images ──
+app.get('/api/cert-gallery', wrapAsync(async (req, res) => {
+  const limit = parseInt(req.query.limit, 10);
+  if (limit > 0) {
+    const [rows] = await getPool().query('SELECT id, image_url, sort_order FROM cert_gallery_images ORDER BY id DESC LIMIT ?', [limit]);
+    res.json(rows);
+    return;
+  }
+  const [rows] = await getPool().query('SELECT id, image_url, sort_order FROM cert_gallery_images ORDER BY sort_order, id');
+  res.json(rows);
+}));
+
+app.get('/admin/api/cert-gallery', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query('SELECT id, image_url, sort_order FROM cert_gallery_images ORDER BY sort_order, id');
+  res.json(rows);
+}));
+
+app.post('/admin/api/cert-gallery', requireAdminApi, wrapAsync(async (req, res) => {
+  const { image_url, sort_order } = req.body;
+  if (!image_url || !String(image_url).trim()) { res.status(400).json({ error: 'image_url이 필요합니다.' }); return; }
+  const [result] = await getPool().query(
+    'INSERT INTO cert_gallery_images (image_url, sort_order) VALUES (?, ?)',
+    [String(image_url).trim(), parseInt(sort_order, 10) || 0]
+  );
+  res.json({ ok: true, id: result.insertId });
+}));
+
+app.put('/admin/api/cert-gallery/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const { sort_order } = req.body;
+  if (sort_order === undefined) { res.status(400).json({ error: 'sort_order가 필요합니다.' }); return; }
+  const [result] = await getPool().query(
+    'UPDATE cert_gallery_images SET sort_order = ? WHERE id = ?',
+    [parseInt(sort_order, 10) || 0, req.params.id]
+  );
+  if (result.affectedRows === 0) { res.status(404).json({ error: '이미지를 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+app.delete('/admin/api/cert-gallery/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const [result] = await getPool().query('DELETE FROM cert_gallery_images WHERE id = ?', [req.params.id]);
+  if (result.affectedRows === 0) { res.status(404).json({ error: '이미지를 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+// ── faq_items ──
+app.get('/api/faq-items', wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query('SELECT id, question, answer, sort_order FROM faq_items WHERE is_active = 1 ORDER BY sort_order, id');
+  res.json(rows);
+}));
+
+app.get('/admin/api/faq-items', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query('SELECT * FROM faq_items ORDER BY sort_order, id');
+  res.json(rows);
+}));
+
+app.post('/admin/api/faq-items', requireAdminApi, wrapAsync(async (req, res) => {
+  const { question, answer, sort_order } = req.body;
+  if (!question || !String(question).trim() || !answer || !String(answer).trim()) {
+    res.status(400).json({ error: 'question과 answer가 필요합니다.' });
+    return;
+  }
+  const [result] = await getPool().query(
+    'INSERT INTO faq_items (question, answer, sort_order) VALUES (?, ?, ?)',
+    [String(question).trim(), String(answer).trim(), parseInt(sort_order, 10) || 0]
+  );
+  res.json({ ok: true, id: result.insertId });
+}));
+
+app.put('/admin/api/faq-items/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const { question, answer, sort_order, is_active } = req.body;
+  const fields = [];
+  const values = [];
+  if (question !== undefined) { fields.push('question = ?'); values.push(String(question).trim()); }
+  if (answer !== undefined) { fields.push('answer = ?'); values.push(String(answer).trim()); }
+  if (sort_order !== undefined) { fields.push('sort_order = ?'); values.push(parseInt(sort_order, 10) || 0); }
+  if (is_active !== undefined) { fields.push('is_active = ?'); values.push(is_active ? 1 : 0); }
+  if (fields.length === 0) { res.status(400).json({ error: '변경할 값이 없습니다.' }); return; }
+  values.push(req.params.id);
+  const [result] = await getPool().query(`UPDATE faq_items SET ${fields.join(', ')} WHERE id = ?`, values);
+  if (result.affectedRows === 0) { res.status(404).json({ error: '항목을 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+app.delete('/admin/api/faq-items/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const [result] = await getPool().query('DELETE FROM faq_items WHERE id = ?', [req.params.id]);
+  if (result.affectedRows === 0) { res.status(404).json({ error: '항목을 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+// 기존 사이트(public/)는 /v1 하위로 이전. 신규 루트(피그마 디자인)와 분리.
+app.use('/v1', express.static(path.join(__dirname, 'public')));
+
+app.get(/^\/v1(\/.*)?$/, (req, res, next) => {
+  if (path.extname(req.path)) return next();
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 신규 루트: 피그마 디자인 기반 페이지
+app.use(express.static(path.join(__dirname, 'public-figma')));
 
 // 클라이언트 라우팅(history.pushState)으로만 존재하는 가상 경로 새로고침/직접 접근 대응.
 // 정적 파일로 못 찾은 경로 중 확장자 없는(=페이지) 요청은 index.html을 내려 SPA가 알아서 그리게 한다.
-app.get(/^\/(?!api|admin).*/, (req, res, next) => {
+app.get(/^\/(?!v1|api|admin|uploads).*/, (req, res, next) => {
   if (path.extname(req.path)) return next();
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public-figma', 'index.html'));
 });
 
 app.listen(PORT, () => {

@@ -193,3 +193,277 @@ CREATE TABLE IF NOT EXISTS class_chapter_attachments (
   FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
   INDEX idx_class_chapter (class_id, chapter_key)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- ── 신규 Figma 사이트(public-figma) CMS — 관리자 페이지 개편 (2026-07) ──
+
+-- 페이지별 단일 섹션 콘텐츠 (제목/본문/버튼/색상 등 자유 형식 JSON)
+CREATE TABLE IF NOT EXISTS site_sections (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  page VARCHAR(30) NOT NULL,          -- home, vod, cert, curriculum, faq, settings
+  section_key VARCHAR(40) NOT NULL,   -- hero, online_class, certified, vod_list, why, reviews, footer ...
+  content LONGTEXT NOT NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_page_section (page, section_key)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- VOD 강의 상품 (vod.html 카드 / curriculum.html 행 / 홈 미리보기 카드 공용 소스)
+CREATE TABLE IF NOT EXISTS vod_courses (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  tag VARCHAR(50),                    -- 영문 라벨, 예: READING THEORY
+  category_label VARCHAR(50),         -- 한글 태그, 예: 독해
+  title VARCHAR(200) NOT NULL,
+  description TEXT,
+  meta_text VARCHAR(200),             -- 예: 12강 · 수강 무제한
+  is_best TINYINT(1) NOT NULL DEFAULT 0,
+  color_variant ENUM('default', 'green') NOT NULL DEFAULT 'default',
+  old_price VARCHAR(50),
+  new_price VARCHAR(50) NOT NULL,
+  thumbnail_url VARCHAR(500),
+  sort_order INT NOT NULL DEFAULT 0,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- VOD 강의별 커리큘럼 스텝 겸 영상 연결 (class_lectures와 동일 구조/역할)
+CREATE TABLE IF NOT EXISTS vod_course_lectures (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  vod_course_id BIGINT NOT NULL,
+  lecture_number INT NOT NULL,
+  title VARCHAR(300) NOT NULL,
+  video_r2_key VARCHAR(512),          -- NULL 허용: 목차만 먼저 등록하고 영상은 나중에 연결 가능
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_vod_course_lecture (vod_course_id, lecture_number),
+  CONSTRAINT fk_vcl_course FOREIGN KEY (vod_course_id) REFERENCES vod_courses(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 합격 인증 갤러리 이미지 (cert.html 갤러리 + 홈 certified 섹션 공용)
+CREATE TABLE IF NOT EXISTS cert_gallery_images (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  image_url VARCHAR(500) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- FAQ 항목 (faq.html 자주 묻는 질문 탭)
+CREATE TABLE IF NOT EXISTS faq_items (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  question VARCHAR(300) NOT NULL,
+  answer LONGTEXT NOT NULL,           -- 줄바꿈 포함 텍스트, 빈 줄로 문단 구분
+  sort_order INT NOT NULL DEFAULT 0,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- vod_courses/curriculum.html이 CMS 하이드레이션 전환 후 빈 화면으로 뜨지 않도록 기존 하드코딩 6개 강좌를 시드
+INSERT INTO vod_courses
+  (tag, category_label, title, description, meta_text, is_best, color_variant, old_price, new_price, sort_order)
+SELECT * FROM (
+  SELECT 'READING THEORY' AS tag, '독해' AS category_label, '독해학개론' AS title,
+         '연고대 논술 3대 독해 스킬 — 차원 구획·기능어·연결 독해를 실전 기출로 완성합니다.' AS description,
+         '12강 · 수강 무제한' AS meta_text, 0 AS is_best, 'default' AS color_variant,
+         '250,000원' AS old_price, '210,000원' AS new_price, 1 AS sort_order UNION ALL
+  SELECT 'PREMIUM CLASS', '프리미엄', '연고대 편입논술 프리미엄반',
+         '라이브 + VOD + 1:1 첨삭 + 실시간 모의고사까지, 1년 전 과정을 밀착 관리합니다.',
+         '라이브+VOD · 1:1 첨삭 · 16강+', 1, 'green', '6,000,000원', '4,000,000원', 2 UNION ALL
+  SELECT 'TYPE MASTER', '유형별', '논술 유형별 대처법',
+         '요약형·비교형·적용형 3대 유형의 패턴과 답안 공식을 유형별로 완성합니다.',
+         '요약·비교·적용 6강 · 수강 무제한', 0, 'default', NULL, '320,000원', 3 UNION ALL
+  SELECT '1-YEAR COMPLETE', '완성', '연고대 편입논술 완성',
+         'OT부터 독해 원리·3대 유형·실전 기출까지 1년 커리큘럼을 하나로 완성합니다.',
+         'OT + 12강 · 1년 커리큘럼', 0, 'green', NULL, '가격 문의', 4 UNION ALL
+  SELECT 'YONSEI SPECIAL', '연세대', '연세대 특별반',
+         '연세대 출제 원리·다면형 사고·상위 개념 독해를 집중 훈련하는 특화 과정입니다.',
+         '5강 · 연세대 출제 원리 특화', 0, 'default', NULL, '600,000원', 5 UNION ALL
+  SELECT 'DATA ANALYSIS', '자료해석', '자료해석특강',
+         '도표·그래프 자료해석 — 변수·인과·회귀모형을 실제 기출로 훈련합니다.',
+         '4강 · 도표·그래프 자료해석', 0, 'green', NULL, '200,000원', 6
+) AS seed
+WHERE NOT EXISTS (SELECT 1 FROM vod_courses);
+
+INSERT INTO vod_course_lectures (vod_course_id, lecture_number, title, sort_order)
+SELECT * FROM (
+  SELECT (SELECT id FROM vod_courses WHERE title = '독해학개론') AS vod_course_id, 1 AS lecture_number, '지문 핵심 독해법 — 차원 구획과 기능어 마스터' AS title, 1 AS sort_order UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '독해학개론'), 2, '거시 독해 실전과 이론·사례 연결 독해', 2 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '독해학개론'), 3, '실전 독해 테스트와 기능어·추론 메커니즘', 3 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '독해학개론'), 4, '분배적 정의와 인과관계 오류 추론', 4 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '독해학개론'), 5, '형식 논리학 기초와 실전 변수·구조 추론', 5 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '독해학개론'), 6, '논술 배경지식의 뼈대와 문학 지문 독해', 6 UNION ALL
+
+  SELECT (SELECT id FROM vod_courses WHERE title = '연고대 편입논술 프리미엄반'), 1, '독해학개론(1) — 3대 원리와 맞춤형 서류 전략', 1 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '연고대 편입논술 프리미엄반'), 2, '출제 기조 분석과 인과관계 도식화 독해', 2 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '연고대 편입논술 프리미엄반'), 3, '문학작품 독해 — 사건·정서·태도로 시사점', 3 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '연고대 편입논술 프리미엄반'), 4, '개념지식 기반 하향식 독해와 실전 논증', 4 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '연고대 편입논술 프리미엄반'), 5, '연고대편입반 OT — 연간 커리큘럼과 독해 원리', 5 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '연고대 편입논술 프리미엄반'), 6, '독해의 핵심 원리 — 연결·차원 구획·기능어', 6 UNION ALL
+
+  SELECT (SELECT id FROM vod_courses WHERE title = '논술 유형별 대처법'), 1, '요약형 1강 — 논술 독해의 본질과 합격 전략', 1 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '논술 유형별 대처법'), 2, '요약형 2강 — 유형별 요약 패턴과 구조 독해', 2 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '논술 유형별 대처법'), 3, '비교형 1강 — 비교 기준 설정과 학술적 범주화', 3 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '논술 유형별 대처법'), 4, '비교형 2강 — P-S 구조와 Frame Map 개요 설계', 4 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '논술 유형별 대처법'), 5, '적용형 1강 — 기준→대상 평가 방법론', 5 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '논술 유형별 대처법'), 6, '적용형 2강 — 3단계 변형 원리와 기출 적용', 6 UNION ALL
+
+  SELECT (SELECT id FROM vod_courses WHERE title = '연고대 편입논술 완성'), 1, '0강 — 2027 연고대 편입논술 OT', 1 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '연고대 편입논술 완성'), 2, '1강 — 독해의 핵심 원리 1 (차원 구획·기능어)', 2 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '연고대 편입논술 완성'), 3, '2강 — 독해의 핵심 원리 2 (대립 구조 요약법)', 3 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '연고대 편입논술 완성'), 4, '3강 — 독해 TEST 및 기능어 실전 적용', 4 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '연고대 편입논술 완성'), 5, '4강 — 유비추론과 문학 작품 실전 독해', 5 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '연고대 편입논술 완성'), 6, '5강 — 요약형의 본질과 비문학 9가지 구조', 6 UNION ALL
+
+  SELECT (SELECT id FROM vod_courses WHERE title = '연세대 특별반'), 1, '1강 — 연세대 논술 출제 원리와 문제 접근법', 1 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '연세대 특별반'), 2, '2강 — 상위 개념 독해법과 제시문 분석', 2 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '연세대 특별반'), 3, '3강 — 온건한 대립항과 연세대식 다면형 사고', 3 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '연세대 특별반'), 4, '4강 — 도표·그래프 해석과 사회과학 변수 분석', 4 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '연세대 특별반'), 5, '5강 — 실전 기출 분석과 답안 작성 원리', 5 UNION ALL
+
+  SELECT (SELECT id FROM vod_courses WHERE title = '자료해석특강'), 1, '1강 — 도표·그래프 해석 원리와 자료분석 기초', 1 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '자료해석특강'), 2, '2강 — 집단 비교 실전 적용과 도표 해석 작성', 2 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '자료해석특강'), 3, '3강 — 상관·인과관계 분석과 회귀모형 실전', 3 UNION ALL
+  SELECT (SELECT id FROM vod_courses WHERE title = '자료해석특강'), 4, '4강 — 연세대·고려대 사회계열 기출 적용', 4
+) AS seed
+WHERE NOT EXISTS (SELECT 1 FROM vod_course_lectures);
+
+-- site_sections/cert_gallery_images/faq_items도 위와 같은 이유로 시드: 관리자 페이지 신규 CMS 탭이
+-- 빈 값만 보여주지 않도록, public-figma/*.html에 하드코딩되어 있던 문구를 그대로 최초 값으로 채운다.
+-- (각 section_key는 UNIQUE(page, section_key)라 항목별로 개별 가드)
+INSERT INTO site_sections (page, section_key, content)
+SELECT 'home', 'hero', JSON_OBJECT(
+  'badge', 'CERTIFIED · 2026 최종 합격',
+  'accentColor', '#0ea968',
+  'title', '결과로 증명하는\n연고대 편입 합격',
+  'body', '말이 아니라 실제 합격 인증으로 확인하세요.\n연세대·고려대 최종 합격 88명 · 1차 222명.',
+  'button', JSON_OBJECT('enabled', true, 'text', '합격 인증 보기 →'),
+  'image', JSON_OBJECT('url', 'assets/home/hero-cert.jpg', 'ratio', '3:4')
+) FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM site_sections WHERE page = 'home' AND section_key = 'hero');
+
+INSERT INTO site_sections (page, section_key, content)
+SELECT 'home', 'online_class', JSON_OBJECT(
+  'badge', 'ONLINE CLASS · 현강을 그대로',
+  'title', '강의실에 오지 못해도,\n합격까지는 조금도 멀지 않습니다',
+  'body', '직장인, 군인, 재학생 — 오프라인 수업이 어려운 학생들을 위해 독편사가 현강 수업을 그대로 온라인에 옮겼습니다. 같은 강의, 같은 첨삭, 같은 관리. 이제 장소가 아니라 실력으로 승부하세요.',
+  'cards', JSON_ARRAY(
+    JSON_OBJECT('image', 'assets/home/class-card-1.png', 'title', '현강과 100% 동일한 커리큘럼', 'body', '오프라인에서 진행하는 강의를 순서도 밀도도 그대로. 온라인이라고 덜어낸 것은 없습니다.'),
+    JSON_OBJECT('image', 'assets/home/class-card-2.png', 'title', '1:1 실시간 첨삭 관리', 'body', '제출한 답안을 강사가 직접 첨삭하고, 주간 피드백으로 합격까지 끝까지 관리합니다.'),
+    JSON_OBJECT('image', 'assets/home/class-card-3.png', 'title', '시간과 장소의 제약 없이', 'body', '배수·횟수 제한 없는 무제한 반복 수강. 새벽에도, 부대에서도, 퇴근 후에도.')
+  )
+) FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM site_sections WHERE page = 'home' AND section_key = 'online_class');
+
+INSERT INTO site_sections (page, section_key, content)
+SELECT 'home', 'certified', JSON_OBJECT('badge', 'CERTIFIED PASS', 'title', '합격생들의 생생한 인증') FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM site_sections WHERE page = 'home' AND section_key = 'certified');
+
+INSERT INTO site_sections (page, section_key, content)
+SELECT 'home', 'vod_list', JSON_OBJECT('badge', 'VOD CLASS', 'title', '지금 수강 가능한 VOD 강의') FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM site_sections WHERE page = 'home' AND section_key = 'vod_list');
+
+INSERT INTO site_sections (page, section_key, content)
+SELECT 'home', 'why', JSON_OBJECT(
+  'title', '왜 독편사 VOD인가',
+  'ctaText', '입학 TEST 신청 →',
+  'cards', JSON_ARRAY(
+    JSON_OBJECT('title', '완벽한 풀 첨삭 시스템', 'body', '인강의 최대 단점인 ''피드백 부재''를 해결합니다. 강사가 직접 첨삭하여 답안의 논리력을 실시간으로 교정합니다.'),
+    JSON_OBJECT('title', '100% 복원 기출문제', 'body', '인터넷의 불완전한 기출이 아닙니다. 교수진이 직접 응시·복원한 가장 신뢰도 높은 자료로 공부합니다.')
+  )
+) FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM site_sections WHERE page = 'home' AND section_key = 'why');
+
+INSERT INTO site_sections (page, section_key, content)
+SELECT 'home', 'reviews', JSON_OBJECT(
+  'badge', 'REVIEWS',
+  'title', '수강생들이 남긴 이야기',
+  'cards', JSON_ARRAY(
+    JSON_OBJECT('quote', '지방이라 걱정 많았는데 VOD로 연대 합격했어요. 현강\n그대로의 밀도였습니다.', 'author', '연세대 편입 합격 · 2026'),
+    JSON_OBJECT('quote', '직장 다니면서 준비했는데 첨삭 피드백이 정말 꼼꼼했어요.\n방향이 명확해졌습니다.', 'author', '고려대 편입 합격 · 2026'),
+    JSON_OBJECT('quote', '복원 기출문제 덕분에 시험장 분위기에 완벽히\n적응했습니다. 실전 감각이 달랐어요.', 'author', '연세대 편입 합격 · 2025')
+  )
+) FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM site_sections WHERE page = 'home' AND section_key = 'reviews');
+
+INSERT INTO site_sections (page, section_key, content)
+SELECT 'cert', 'hero', JSON_OBJECT('title', '합격 인증', 'body', '데이터가 아닌, 합격생들의 실제 인증. 연세대·고려대 최종 합격 기준입니다.') FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM site_sections WHERE page = 'cert' AND section_key = 'hero');
+
+INSERT INTO site_sections (page, section_key, content)
+SELECT 'cert', 'chart', JSON_OBJECT(
+  'kicker', 'GROWTH · 최종 합격자 추이',
+  'percent', 87,
+  'title', '연고대 최종합격자',
+  'highlight', '4년간 폭발적',
+  'body', '연세대·고려대 최종 합격자 수\n2023년 47명 → 2026년 88명',
+  'bars', JSON_ARRAY(
+    JSON_OBJECT('year', '2023', 'count', 47),
+    JSON_OBJECT('year', '2024', 'count', 74),
+    JSON_OBJECT('year', '2025', 'count', 80),
+    JSON_OBJECT('year', '2026', 'count', 88)
+  )
+) FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM site_sections WHERE page = 'cert' AND section_key = 'chart');
+
+INSERT INTO site_sections (page, section_key, content)
+SELECT 'faq', 'hero', JSON_OBJECT('title', 'FAQ', 'body', '프리미엄 VOD 관련 자주 묻는 질문과 공지사항을 확인하세요.') FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM site_sections WHERE page = 'faq' AND section_key = 'hero');
+
+INSERT INTO site_sections (page, section_key, content)
+SELECT 'curriculum', 'hero', JSON_OBJECT('title', '커리큘럼', 'body', '강좌별 상세 커리큘럼입니다. 독해 원리부터 유형별 실전, 대학별 특화까지 단계적으로 구성했습니다.') FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM site_sections WHERE page = 'curriculum' AND section_key = 'hero');
+
+-- 카카오톡 상담 링크는 원본 사이트에도 실제 채널 URL 없이 '#' 자리표시자였다 — 관리자 페이지에서 실제 링크로 교체 필요.
+INSERT INTO site_sections (page, section_key, content)
+SELECT 'settings', 'footer', JSON_OBJECT(
+  'kakaoUrl', '#',
+  'phone', '02-6404-1018',
+  'hours', '상담 월~금 15:00–20:00',
+  'footerLines', JSON_ARRAY(
+    '서울특별시 서대문구 신촌로 221 엠앤씨빌딩 2층 201호',
+    '학원설립·운영등록번호 제2020-0006호 · 사업자등록번호 104-94-47747',
+    '평일 운영 월~금 14:00–22:00 · 상담 월~금 15:00–20:00'
+  ),
+  'copyright', 'Copyright © 독편사편입학원 All Rights Reserved'
+) FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM site_sections WHERE page = 'settings' AND section_key = 'footer');
+
+-- cert.html/홈 갤러리 미리보기가 공용으로 쓰던 기존 정적 이미지 12장을 그대로 시드
+INSERT INTO cert_gallery_images (image_url, sort_order)
+SELECT * FROM (
+  SELECT 'assets/pass/gallery-1.jpg' AS image_url, 1 AS sort_order UNION ALL
+  SELECT 'assets/pass/gallery-2.jpg', 2 UNION ALL
+  SELECT 'assets/pass/gallery-3.jpg', 3 UNION ALL
+  SELECT 'assets/pass/gallery-4.jpg', 4 UNION ALL
+  SELECT 'assets/pass/gallery-5.jpg', 5 UNION ALL
+  SELECT 'assets/pass/gallery-6.jpg', 6 UNION ALL
+  SELECT 'assets/pass/gallery-7.jpg', 7 UNION ALL
+  SELECT 'assets/pass/gallery-8.jpg', 8 UNION ALL
+  SELECT 'assets/pass/gallery-9.jpg', 9 UNION ALL
+  SELECT 'assets/pass/gallery-10.jpg', 10 UNION ALL
+  SELECT 'assets/pass/gallery-11.jpg', 11 UNION ALL
+  SELECT 'assets/pass/gallery-12.jpg', 12
+) AS seed
+WHERE NOT EXISTS (SELECT 1 FROM cert_gallery_images);
+
+-- faq.html에 하드코딩되어 있던 환불 규정 FAQ 6개 시드
+INSERT INTO faq_items (question, answer, sort_order)
+SELECT * FROM (
+  SELECT '중도 환불이 가능한가요?' AS question,
+    '본 상품은 등록 즉시 프리미엄 VOD, 자체 제작 모의논술, 학교별 분석자료, 학습 시스템 이용권이 개방되는 즉시 제공형 연간 패키지 상품입니다.\n\n환불 요청 시 관계 법령 및 소비자분쟁해결기준에 따라 처리하되, 이미 제공되었거나 개방된 콘텐츠·자료·시스템 세팅 비용·사용된 첨삭권은 제공분으로 산정되어 공제될 수 있습니다.\n\n학원법 시행령은 수강을 포기한 경우 반환사유가 발생한 것으로 보고, 발생일부터 5일 이내 별표 기준에 따라 반환하도록 정하며, 원격교습은 실제 수강했거나 저장한 부분을 제외하고 반환하도록 규정합니다.' AS answer,
+    1 AS sort_order UNION ALL
+  SELECT '7월에 등록하고 8월에 환불을 요청하면 어떻게 계산되나요?',
+    '결제일과 환불 요청일 사이의 이용 기간, 열람한 콘텐츠, 사용한 첨삭권을 기준으로 관계 법령에 따라 공제 후 정산됩니다.',
+    2 UNION ALL
+  SELECT 'VOD를 아직 많이 보지 않았어도 공제되나요?',
+    '시청 여부와 관계없이 등록 즉시 개방된 콘텐츠·시스템 이용권은 제공분으로 산정되어 공제될 수 있습니다.',
+    3 UNION ALL
+  SELECT '첨삭권은 사용하지 않으면 환불되나요?',
+    '사용하지 않은 첨삭권은 환불 산정 시 반영되며, 이미 사용된 첨삭권은 제공분으로 공제됩니다.',
+    4 UNION ALL
+  SELECT '첨삭권은 다음 달로 이월되나요?',
+    '첨삭권 이월 여부는 상품별 이용 약관에 따라 다르므로 고객센터로 문의해주세요.',
+    5 UNION ALL
+  SELECT '단순 변심으로도 환불이 가능한가요?',
+    '관계 법령 및 소비자분쟁해결기준에 따라 단순 변심의 경우에도 환불 요청이 가능하나, 이미 제공된 콘텐츠·자료·시스템 세팅 비용은 공제될 수 있습니다.',
+    6
+) AS seed
+WHERE NOT EXISTS (SELECT 1 FROM faq_items);

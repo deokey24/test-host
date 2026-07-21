@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VOD 강의 · 독편사 DOCK PASS</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="vod">
+<div class="page">
+
+  <header class="site-header">
+    <a class="logo" href="/">
+      <img src="assets/home/header-logo.png" alt="DOCK PASS">
+    </a>
+    <nav class="site-nav">
+      <a href="vod.html" class="active">VOD 강의</a>
+      <a href="cert.html">합격 인증</a>
+      <a href="curriculum.html">커리큘럼</a>
+      <a href="faq.html">FAQ</a>
+    </nav>
+    <div class="header-right">
+      <span class="login-link">로그인</span>
+      <button class="hamburger" type="button" aria-label="메뉴 열기" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <section class="hero-wrap">
+    <div class="vod-hero">
+      <img class="vod-hero-decor" src="assets/vod/decor.png" alt="">
+      <div class="breadcrumb">HOME / VOD 강의</div>
+      <div class="vod-hero-row">
+        <div>
+          <h1>VOD 강의</h1>
+          <p>현강과 동일한 수업을 온라인에서. 수강기간·배수 제한 없이 반복 수강할 수 있습니다.</p>
+        </div>
+        <div class="vod-hero-count">총 <b data-cms-vod-count>6</b>개 강좌</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="vod-body">
+    <div class="filter-pills" style="margin-bottom:0;" data-cms-vod-pills>
+      <button type="button" class="active">전체</button>
+    </div>
+
+    <div class="vod-page-grid" data-cms-vod-courses="grid">
+      <template>
+        <div class="vod-course-card">
+          <div class="vod-course-thumb">
+            <img class="decor" src="assets/vod/decor.png" alt="">
+            <span class="badge-best">BEST</span>
+            <span class="tag"></span>
+            <span class="eng"></span>
+          </div>
+          <div class="vod-course-body">
+            <h3></h3>
+            <p class="desc"></p>
+            <div class="meta"></div>
+            <div class="vod-course-foot">
+              <div><span class="old"></span><span class="new"></span></div>
+              <a class="curriculum-link" href="curriculum.html">커리큘럼 →</a>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <img src="assets/home/footer-logo.png" alt="DOCK PASS">
+        <p>서울특별시 서대문구 신촌로 221 엠앤씨빌딩 2층 201호<br>
+        학원설립·운영등록번호 제2020-0006호 · 사업자등록번호 104-94-47747<br>
+        평일 운영 월~금 14:00–22:00 · 상담 월~금 15:00–20:00</p>
+      </div>
+      <div class="footer-contact">
+        <div class="label">CONTACT</div>
+        <div class="phone">02-6404-1018</div>
+        <div class="hours">상담 월~금 15:00–20:00</div>
+      </div>
+    </div>
+    <div class="copyright">Copyright © 독편사편입학원 All Rights Reserved</div>
+  </footer>
+
+  <a class="kakao-float" href="#" target="_blank" rel="noopener">카카오톡 상담</a>
+
+</div>
+<script src="nav.js"></script>
+<script src="site-content.js"></script>
+</body>
+</html>

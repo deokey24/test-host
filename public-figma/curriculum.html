@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>커리큘럼 · 독편사 DOCK PASS</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="curriculum">
+<div class="page">
+
+  <header class="site-header">
+    <a class="logo" href="/">
+      <img src="assets/home/header-logo.png" alt="DOCK PASS">
+    </a>
+    <nav class="site-nav">
+      <a href="vod.html">VOD 강의</a>
+      <a href="cert.html">합격 인증</a>
+      <a href="curriculum.html" class="active">커리큘럼</a>
+      <a href="faq.html">FAQ</a>
+    </nav>
+    <div class="header-right">
+      <span class="login-link">로그인</span>
+      <button class="hamburger" type="button" aria-label="메뉴 열기" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <section class="hero-wrap">
+    <div class="vod-hero">
+      <img class="vod-hero-decor" src="assets/curriculum/decor.png" alt="">
+      <div class="breadcrumb">HOME / 커리큘럼</div>
+      <div class="vod-hero-row" style="align-items:flex-start;">
+        <div>
+          <h1 data-cms="hero.title">커리큘럼</h1>
+          <p style="max-width:620px;" data-cms="hero.body">강좌별 상세 커리큘럼입니다. 독해 원리부터 유형별 실전, 대학별 특화까지 단계적으로 구성했습니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="curriculum-body" data-cms-vod-curriculum="grid">
+    <template>
+      <div class="curriculum-row">
+        <div class="curriculum-summary">
+          <img class="decor" src="assets/curriculum/decor.png" alt="">
+          <div>
+            <div class="eng"></div>
+            <h3></h3>
+            <p></p>
+          </div>
+          <div class="price-row">
+            <span class="old-price"></span>
+            <span class="new-price"></span>
+          </div>
+        </div>
+        <div class="curriculum-detail">
+          <div class="curriculum-detail-head">
+            <span class="label">CURRICULUM</span>
+            <span class="meta"></span>
+          </div>
+          <ul class="curriculum-steps"></ul>
+          <a class="curriculum-more" href="vod.html">전체 보기 +</a>
+        </div>
+      </div>
+    </template>
+  </section>
+
+  <footer class="site-footer">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <img src="assets/home/footer-logo.png" alt="DOCK PASS">
+        <p>서울특별시 서대문구 신촌로 221 엠앤씨빌딩 2층 201호<br>
+        학원설립·운영등록번호 제2020-0006호 · 사업자등록번호 104-94-47747<br>
+        평일 운영 월~금 14:00–22:00 · 상담 월~금 15:00–20:00</p>
+      </div>
+      <div class="footer-contact">
+        <div class="label">CONTACT</div>
+        <div class="phone">02-6404-1018</div>
+        <div class="hours">상담 월~금 15:00–20:00</div>
+      </div>
+    </div>
+    <div class="copyright">Copyright © 독편사편입학원 All Rights Reserved</div>
+  </footer>
+
+  <a class="kakao-float" href="#" target="_blank" rel="noopener">카카오톡 상담</a>
+
+</div>
+<script src="nav.js"></script>
+<script src="site-content.js"></script>
+</body>
+</html>

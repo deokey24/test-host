@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 페이지 - DOCKTEACHER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #EDE6D9;
+    color: #3A342C;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.5;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.23  0 0 0 0 0.20  0 0 0 0 0.17  0 0 0 0.4 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: #E5DCC8;
+    border-right: 1px solid rgba(58,52,44,0.14);
+    padding: 28px 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 0 20px 28px;
+  }
+  .sidebar-logo-divider {
+    width: 1px;
+    height: 22px;
+    background: linear-gradient(to bottom, transparent, rgba(58,52,44,0.35), transparent);
+  }
+  .sidebar-logo-text {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #8B5E34;
+    letter-spacing: 0.15em;
+  }
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 12px;
+  }
+  .side-link {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 12px 16px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: #5A5245;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .side-link:hover { background: rgba(139,94,52,0.1); color: #3A342C; }
+  .side-link.active {
+    background: #8B5E34;
+    color: #FBF7EF;
+    font-weight: 600;
+  }
+  .main-wrap {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: #F7F2E7;
+    border-bottom: 1px solid rgba(58,52,44,0.14);
+  }
+  header h1 { font-family: 'Noto Serif KR', serif; font-size: 17px; margin: 0; color: #3A342C; font-weight: 600; }
+  header form { margin: 0; }
+  header button {
+    padding: 8px 14px;
+    border: 1px solid rgba(58,52,44,0.18);
+    border-radius: 8px;
+    background: transparent;
+    color: #3A342C;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  header button:hover { background: rgba(58,52,44,0.06); }
+  main {
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 28px 40px 60px;
+  }
+  @media (max-width: 1500px) {
+    main { max-width: 1100px; }
+  }
+  @media (max-width: 900px) {
+    .layout { flex-direction: column; }
+    .sidebar {
+      width: 100%;
+      flex-direction: row;
+      align-items: center;
+      padding: 10px 12px;
+      border-right: none;
+      border-bottom: 1px solid rgba(58,52,44,0.14);
+      overflow-x: auto;
+    }
+    .sidebar-logo { display: none; }
+    .sidebar-nav { flex-direction: row; gap: 4px; padding: 0; }
+    .side-link {
+      width: auto;
+      white-space: nowrap;
+      padding: 10px 14px;
+    }
+    main { padding: 20px 16px 40px; }
+  }
+  @media (max-width: 560px) {
+    header { padding: 12px 16px; }
+    .card { padding: 16px; }
+  }
+  .admin-section { display: none; }
+  .admin-section.active { display: block; }
+  .card {
+    background: #F7F2E7;
+    border: 1px solid rgba(58,52,44,0.12);
+    border-radius: 14px;
+    padding: 22px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(58,52,44,0.05);
+  }
+  .card h2 { font-family: 'Noto Serif KR', serif; font-size: 16px; margin: 0 0 14px; color: #3A342C; font-weight: 600; }
+  .card-head-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .card-head-row h2 { margin: 0; }
+  .card input[type="text"], .card input[type="file"], .card input[type="number"],
+  .card select, .card textarea,
+  .admin-modal-box input[type="text"], .admin-modal-box input[type="file"], .admin-modal-box input[type="number"],
+  .admin-modal-box select, .admin-modal-box textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid rgba(58,52,44,0.18);
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 10px;
+    background: #FBF7EF;
+    color: #3A342C;
+    font-family: inherit;
+  }
+  .card input::placeholder, .card textarea::placeholder,
+  .admin-modal-box input::placeholder, .admin-modal-box textarea::placeholder { color: #9C9282; }
+  .card input:focus, .card select:focus, .card textarea:focus,
+  .admin-modal-box input:focus, .admin-modal-box select:focus, .admin-modal-box textarea:focus {
+    outline: none;
+    border-color: #8B5E34;
+  }
+  .card textarea, .admin-modal-box textarea { resize: vertical; min-height: 60px; }
+  .card button:not(.row-btn):not(.content-subtab),
+  .admin-modal-box button:not(.row-btn):not(.content-subtab) {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    background: #8B5E34;
+    color: #FBF7EF;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .card button:not(.row-btn):not(.content-subtab):hover,
+  .admin-modal-box button:not(.row-btn):not(.content-subtab):hover { filter: brightness(1.08); }
+  .card button:not(.row-btn):not(.content-subtab):disabled,
+  .admin-modal-box button:not(.row-btn):not(.content-subtab):disabled { background: rgba(58,52,44,0.15); color: #9C9282; cursor: not-allowed; filter: none; }
+  .status-text { font-size: 12px; color: #8B7E63; margin-top: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid rgba(58,52,44,0.12); }
+  th { color: #8B7E63; font-weight: 500; }
+  td { color: #3A342C; }
+  .badge { padding: 2px 8px; border-radius: 999px; font-size: 11px; }
+  .class-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    column-gap: 16px;
+  }
+  .class-form-grid .full { grid-column: 1 / -1; }
+  .field-label {
+    display: block;
+    font-size: 12px;
+    color: #8B7E63;
+    margin-bottom: 4px;
+  }
+  .class-form-actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+  .check-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: #8B7E63; }
+  .check-row input { width: auto; margin: 0; }
+  .row-btn {
+    padding: 5px 10px;
+    border: 1px solid rgba(58,52,44,0.18);
+    border-radius: 8px;
+    background: transparent;
+    color: #3A342C;
+    font-size: 12px;
+    cursor: pointer;
+    margin-right: 4px;
+  }
+  .row-btn:hover { background: rgba(58,52,44,0.06); }
+  .row-btn.danger { background: #9B3B33; border-color: #9B3B33; color: #FBF7EF; }
+  .row-btn.danger:hover { filter: brightness(1.1); }
+  .row-btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+  .badge-active-yes { background: #E4ECDE; color: #4C6B4A; }
+  .badge-active-no { background: #E4DDCC; color: #7A7267; }
+  .cat-drag-handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    cursor: grab;
+    touch-action: none;
+    font-size: 16px;
+    color: #8B7E63;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .cat-drag-handle:active { cursor: grabbing; }
+  #categoryList tr.dragging { background: rgba(139,94,52,0.12); opacity: 0.7; }
+  .class-table-wrap { overflow-x: auto; }
+  .admin-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(58,52,44,0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+  }
+  .admin-modal-overlay.open { display: flex; }
+  .admin-modal-box {
+    background: #F7F2E7;
+    border: 1px solid rgba(58,52,44,0.12);
+    border-radius: 14px;
+    padding: 20px;
+    width: 620px;
+    max-width: 92vw;
+    max-height: 82vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 28px rgba(58,52,44,0.2);
+  }
+  .admin-modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .admin-modal-head h2 { font-family: 'Noto Serif KR', serif; margin: 0; font-size: 16px; color: #3A342C; }
+  .enroll-add-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .enroll-add-row select {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid rgba(58,52,44,0.18);
+    border-radius: 8px;
+    background: #FBF7EF;
+    color: #3A342C;
+    font-size: 14px;
+  }
+  .enroll-add-row button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    background: #8B5E34;
+    color: #FBF7EF;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .enroll-add-row button:hover { filter: brightness(1.08); }
+  .enroll-table-wrap { overflow-x: auto; }
+  .enroll-table-wrap select, .enroll-table-wrap input {
+    padding: 6px 8px;
+    border: 1px solid rgba(58,52,44,0.18);
+    border-radius: 8px;
+    background: #FBF7EF;
+    color: #3A342C;
+    font-size: 12px;
+  }
+  .class-name-link { color: #8B5E34; font-weight: 600; cursor: pointer; text-decoration: none; }
+  .class-name-link:hover { text-decoration: underline; }
+  .content-header-row { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .content-header-row h2 { margin: 0; }
+  .content-subtabs { display: flex; gap: 4px; margin-bottom: 18px; border-bottom: 1px solid rgba(58,52,44,0.14); }
+  .card .content-subtab {
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #8B7E63;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .card .content-subtab:hover { background: rgba(139,94,52,0.08); }
+  .card .content-subtab.active { color: #8B5E34; background: transparent; border-bottom-color: #8B5E34; font-weight: 600; }
+  .content-panel { display: none; }
+  .content-panel.active { display: block; }
+  .content-card {
+    background: #FBF7EF;
+    border: 1px solid rgba(58,52,44,0.14);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .content-card-head { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
+  .content-card-head input[type="text"] { flex: 1; margin-bottom: 0; }
+  .content-group { border-left: 2px solid rgba(139,94,52,0.3); padding-left: 12px; margin: 10px 0; }
+  .content-group-head { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
+  .content-group-head input[type="text"] { flex: 1; margin-bottom: 0; }
+  .content-bullet-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .content-bullet-row input[type="text"] { flex: 1; margin-bottom: 0; }
+  .cf-x-btn {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border: 1px solid rgba(58,52,44,0.18);
+    border-radius: 6px;
+    background: transparent;
+    color: #9B3B33;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .cf-x-btn:hover { background: rgba(155,59,51,0.1); }
+  .cf-add-btn {
+    padding: 6px 12px;
+    border: 1px dashed rgba(139,94,52,0.4);
+    border-radius: 8px;
+    background: transparent;
+    color: #8B5E34;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .cf-add-btn:hover { background: rgba(139,94,52,0.08); }
+  .cf-add-btn-main {
+    padding: 10px 16px;
+    border: 1px dashed rgba(139,94,52,0.5);
+    border-radius: 8px;
+    background: transparent;
+    color: #8B5E34;
+    font-size: 13px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 4px;
+  }
+  .cf-add-btn-main:hover { background: rgba(139,94,52,0.08); }
+  .content-chapter-card {
+    background: #F7F2E7;
+    border: 1px solid rgba(58,52,44,0.16);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .content-chapter-head { display: flex; gap: 8px; margin-bottom: 12px; }
+  .content-chapter-head input[type="text"] { margin-bottom: 0; }
+  .content-chapter-head .cf-label-input { flex: 0 0 100px; }
+  .content-chapter-head .cf-title-input { flex: 1; }
+  .content-attach-block {
+    background: #F0E9DC;
+    border: 1px solid rgba(58,52,44,0.14);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 14px;
+  }
+  .content-attach-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .content-attach-row:last-child { margin-bottom: 0; }
+  .content-attach-row input[type="file"] { margin-bottom: 0; font-size: 12px; }
+  .content-attach-chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .content-attach-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px 4px 10px;
+    background: #FBF7EF;
+    border: 1px solid rgba(58,52,44,0.18);
+    border-radius: 999px;
+    font-size: 12px;
+    color: #3A342C;
+  }
+  .content-attach-chip .cf-x-btn { width: 20px; height: 20px; font-size: 12px; border-radius: 50%; }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <span class="sidebar-logo-divider"></span>
+        <span class="sidebar-logo-text">독한선생들</span>
+        <span class="sidebar-logo-divider"></span>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="side-link active" data-target="classSection">클래스 관리</button>
+      </nav>
+    </aside>
+    <div class="main-wrap">
+      <header>
+        <h1 id="sectionTitle">클래스 관리</h1>
+        <form method="POST" action="/admin/logout">
+          <button type="submit">로그아웃</button>
+        </form>
+      </header>
+      <main>
+        <section id="classSection" class="admin-section active">
+          <div class="card">
+            <div class="card-head-row">
+              <h2>클래스 목록 (<span id="classTotal">0</span>개)</h2>
+              <div style="display:flex; gap:8px;">
+                <button id="categoryManageBtn" class="row-btn">카테고리 관리</button>
+                <button id="classAddBtn">+ 클래스 추가</button>
+              </div>
+            </div>
+            <div class="class-table-wrap">
+              <table>
+                <thead>
+                  <tr><th>순서</th><th>강좌명</th><th>카테고리</th><th>가격</th><th>노출</th><th>관리</th></tr>
+                </thead>
+                <tbody id="classList"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+        <section id="classContentSection" class="admin-section">
+          <div class="card">
+            <div class="content-header-row">
+              <button id="contentBackBtn" class="row-btn">← 목록으로</button>
+              <h2 id="contentClassTitle">강의 소개 · 커리큘럼 편집</h2>
+            </div>
+            <div class="content-subtabs">
+              <button class="content-subtab active" data-content-tab="contentBannerPanel">배너</button>
+              <button class="content-subtab" data-content-tab="contentIntroPanel">강의 소개</button>
+              <button class="content-subtab" data-content-tab="contentCurriculumPanel">커리큘럼</button>
+              <button class="content-subtab" data-content-tab="contentLecturesPanel">강의 영상</button>
+            </div>
+            <div id="contentBannerPanel" class="content-panel active">
+              <div>
+                <label class="field-label">대상 태그 (예: 대상 : 연세대·고려대 편입논술 준비생)</label>
+                <input type="text" id="bnTag" placeholder="대상 : ...">
+              </div>
+              <div>
+                <label class="field-label">부제목</label>
+                <input type="text" id="bnSubtitle" placeholder="예: 편입논술 완성">
+              </div>
+              <div style="display:flex; gap:16px;">
+                <div style="flex:1;">
+                  <label class="field-label">제목 강조 부분</label>
+                  <input type="text" id="bnTitleAccent" placeholder="예: 연고대 편입논술">
+                </div>
+                <div style="flex:1;">
+                  <label class="field-label">제목 나머지 부분</label>
+                  <input type="text" id="bnTitleRest" placeholder="예: 완성">
+                </div>
+              </div>
+              <div>
+                <label class="field-label">강사 정보</label>
+                <input type="text" id="bnInstructorName" placeholder="예: 편입논술 | 황성찬 선생님">
+              </div>
+              <hr class="cd-divider" style="border:none; border-top:1px solid rgba(58,52,44,0.14); margin:16px 0;">
+              <label class="field-label">우측 카드 비주얼</label>
+              <div class="check-row">
+                <label style="display:flex; align-items:center; gap:6px; margin:0;"><input type="radio" name="bnCardType" value="gradient" id="bnCardTypeGradient" style="width:auto;"> 그라데이션</label>
+                <label style="display:flex; align-items:center; gap:6px; margin:0;"><input type="radio" name="bnCardType" value="image" id="bnCardTypeImage" style="width:auto;"> 이미지 업로드</label>
+              </div>
+              <div id="bnGradientRow">
+                <label class="field-label">CSS 그라데이션</label>
+                <input type="text" id="bnCardGradient" placeholder="예: linear-gradient(135deg,#0d1b2a 0%,#1a2d40 100%)">
+              </div>
+              <div id="bnImageRow" style="display:none;">
+                <label class="field-label">배너 이미지</label>
+                <input type="file" id="bnImageFile" accept="image/*">
+                <button type="button" id="bnImageUploadBtn" class="row-btn">업로드</button>
+                <span class="status-text" id="bnImageStatus"></span>
+                <div id="bnImagePreviewWrap" style="margin-top:10px;"></div>
+              </div>
+            </div>
+            <div id="contentIntroPanel" class="content-panel">
+              <div id="introEditorBody"></div>
+            </div>
+            <div id="contentCurriculumPanel" class="content-panel">
+              <div>
+                <label class="field-label">전체 강의 수 표기</label>
+                <input type="text" id="curriculumTotalLabel" placeholder="예: 총 13개의 강의 (OT+12강)">
+              </div>
+              <div id="curriculumEditorBody"></div>
+            </div>
+            <div id="contentLecturesPanel" class="content-panel">
+              <p class="status-text" style="margin:0 0 12px;">업로드 후 인코딩이 완료된 영상을 이 클래스의 강의로 연결합니다. 연결된 목록이 수강생 시청 페이지에 그대로 노출됩니다. (저장 버튼 없이 즉시 반영)</p>
+              <div class="enroll-add-row">
+                <select id="lectureVideoSelect"></select>
+                <input type="number" id="lectureNumberInput" min="0" placeholder="강의 번호 (0 = OT)" style="flex:0 0 160px; width:auto; margin-bottom:0;">
+                <button id="lectureAddBtn">연결</button>
+              </div>
+              <div class="status-text" id="lectureLinkStatus" style="margin-bottom:12px;"></div>
+              <div class="enroll-table-wrap">
+                <table>
+                  <thead><tr><th style="width:70px;">번호</th><th>제목</th><th>R2 키</th><th></th></tr></thead>
+                  <tbody id="classLectureList"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="class-form-actions" style="margin-top:16px;">
+              <button id="contentSaveBtn">저장</button>
+              <span class="status-text" id="contentStatus" style="margin-top:0;"></span>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="admin-modal-overlay" id="quickClassModalOverlay">
+    <div class="admin-modal-box">
+      <div class="admin-modal-head">
+        <h2>클래스 추가</h2>
+        <button id="quickClassModalCloseBtn" class="row-btn">닫기</button>
+      </div>
+      <div>
+        <label class="field-label">강좌명 *</label>
+        <input type="text" id="qcName" placeholder="예: 연고대 편입논술 완성">
+      </div>
+      <div>
+        <label class="field-label">카테고리 *</label>
+        <select id="qcFilterTab"></select>
+      </div>
+      <div>
+        <label class="field-label">가격 *</label>
+        <input type="text" id="qcPrice" placeholder="예: 280,000원 / 가격 문의">
+      </div>
+      <label class="check-row"><input type="checkbox" id="qcIsActive" checked> 사이트에 노출</label>
+      <div class="class-form-actions">
+        <button id="quickClassSaveBtn">추가</button>
+        <span class="status-text" id="quickClassStatus" style="margin-top:0;"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-modal-overlay" id="classModalOverlay">
+    <div class="admin-modal-box" style="width:900px;">
+      <div class="admin-modal-head">
+        <h2 id="classFormTitle">클래스 수정</h2>
+        <button id="classModalCloseBtn" class="row-btn">닫기</button>
+      </div>
+      <div class="class-form-grid">
+        <div>
+          <label class="field-label">카테고리</label>
+          <select id="cfFilterTab"></select>
+        </div>
+        <div>
+          <label class="field-label">카테고리 라벨 *</label>
+          <input type="text" id="cfCategory" placeholder="예: 2027 경찰대 편입">
+        </div>
+        <div>
+          <label class="field-label">배지 스타일</label>
+          <select id="cfBadgeStyle">
+            <option value="new">NEW (초록)</option>
+            <option value="hot">HOT (빨강)</option>
+            <option value="enroll">수강신청 (파랑)</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">배지 문구</label>
+          <input type="text" id="cfBadgeText" placeholder="예: NEW / HOT / 수강신청">
+        </div>
+        <div class="full">
+          <label class="field-label">썸네일 제목 * (줄바꿈 그대로 반영)</label>
+          <textarea id="cfThumbTitle" rows="2" placeholder="예: 경찰대 언어논리&#10;4월 신규반"></textarea>
+        </div>
+        <div>
+          <label class="field-label">썸네일 과목·강사</label>
+          <input type="text" id="cfThumbSubject" placeholder="예: 언어논리 · 황성찬">
+        </div>
+        <div>
+          <label class="field-label">썸네일 배경 (CSS gradient)</label>
+          <input type="text" id="cfThumbGradient" placeholder="비우면 기본 네이비 그라데이션">
+        </div>
+        <div class="full">
+          <label class="field-label">강좌명 (카드 본문) *</label>
+          <input type="text" id="cfName" placeholder="예: [경찰대 편입] 2027년 대비 황성찬T 경찰대 언어논리 4월 신규반 개강">
+        </div>
+        <div>
+          <label class="field-label">수강 신청 기간</label>
+          <input type="text" id="cfEnrollPeriod" placeholder="예: 2026.03.20 ~ 2026.04.10">
+        </div>
+        <div>
+          <label class="field-label">수강 기간</label>
+          <input type="text" id="cfCoursePeriod" placeholder="예: 2026.04.01 ~ 2026.11.30">
+        </div>
+        <div>
+          <label class="field-label">모집인원 표기</label>
+          <input type="text" id="cfCapacityNote" placeholder="예: 선착순 마감 / N수생 25% 할인">
+        </div>
+        <div>
+          <label class="field-label">할인율 표기</label>
+          <input type="text" id="cfDiscount" placeholder="예: 25% (없으면 비움)">
+        </div>
+        <div>
+          <label class="field-label">가격 *</label>
+          <input type="text" id="cfPrice" placeholder="예: 280,000원 / 가격 문의">
+        </div>
+        <div>
+          <label class="field-label">할인 전 가격</label>
+          <input type="text" id="cfOriginalPrice" placeholder="예: 510,000원 (없으면 비움)">
+        </div>
+        <div>
+          <label class="field-label">상세페이지 ID</label>
+          <input type="text" id="cfDetailPage" placeholder="비우면 기본 상세페이지">
+        </div>
+        <div>
+          <label class="field-label">노출 순서</label>
+          <input type="number" id="cfSortOrder" value="0">
+        </div>
+      </div>
+      <label class="check-row"><input type="checkbox" id="cfIsActive" checked> 사이트에 노출</label>
+      <div class="class-form-actions">
+        <button id="classSaveBtn">저장</button>
+        <span class="status-text" id="classFormStatus" style="margin-top:0;"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-modal-overlay" id="categoryModalOverlay">
+    <div class="admin-modal-box">
+      <div class="admin-modal-head">
+        <h2>카테고리 관리</h2>
+        <button id="categoryModalCloseBtn" class="row-btn">닫기</button>
+      </div>
+      <div class="enroll-add-row">
+        <input type="text" id="categoryNameInput" placeholder="새 카테고리 이름">
+        <button id="categoryAddBtn">추가</button>
+      </div>
+      <div class="enroll-table-wrap">
+        <table>
+          <thead><tr><th>순서</th><th>이름</th><th>사용 중인 클래스</th><th></th></tr></thead>
+          <tbody id="categoryList"></tbody>
+        </table>
+      </div>
+      <div class="status-text" id="categoryStatus"></div>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.side-link').forEach(link => {
+      link.addEventListener('click', () => {
+        document.querySelectorAll('.side-link').forEach(l => l.classList.remove('active'));
+        document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+        link.classList.add('active');
+        document.getElementById(link.dataset.target).classList.add('active');
+        document.getElementById('sectionTitle').textContent = link.textContent;
+      });
+    });
+
+    function escapeHtml(str) {
+      return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // ── 클래스 관리 ──
+    const CLASS_FIELD_INPUTS = {
+      filter_tab: 'cfFilterTab',
+      category: 'cfCategory',
+      badge_style: 'cfBadgeStyle',
+      badge_text: 'cfBadgeText',
+      thumb_title: 'cfThumbTitle',
+      thumb_subject: 'cfThumbSubject',
+      thumb_gradient: 'cfThumbGradient',
+      name: 'cfName',
+      enroll_period: 'cfEnrollPeriod',
+      course_period: 'cfCoursePeriod',
+      capacity_note: 'cfCapacityNote',
+      discount: 'cfDiscount',
+      price: 'cfPrice',
+      original_price: 'cfOriginalPrice',
+      detail_page: 'cfDetailPage',
+      sort_order: 'cfSortOrder'
+    };
+    let editingClassId = null;
+    let classCache = [];
+    let classCategoryCache = [];
+
+    async function loadCategories() {
+      const res = await fetch('/admin/api/class-categories');
+      if (!res.ok) return;
+      classCategoryCache = await res.json();
+
+      const select = document.getElementById('cfFilterTab');
+      const prevValue = select.value;
+      select.innerHTML = classCategoryCache.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+      if (prevValue) select.value = prevValue;
+
+      document.getElementById('qcFilterTab').innerHTML = classCategoryCache.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+
+      document.getElementById('categoryList').innerHTML = classCategoryCache.map(c => `
+        <tr data-cat-id="${c.id}">
+          <td><span class="cat-drag-handle" title="드래그해서 순서 변경">☰</span></td>
+          <td><input type="text" data-name-id="${c.id}" value="${escapeHtml(c.name)}" style="width:140px;"></td>
+          <td>${c.class_count}개</td>
+          <td><button class="row-btn danger" data-delete-category="${c.id}">삭제</button></td>
+        </tr>
+      `).join('');
+      attachCategoryDragHandlers();
+    }
+
+    function attachCategoryDragHandlers() {
+      // 캡처는 드래그 중 실제로 이동하는 tr이 아니라, 이동하지 않는 tbody에 걸어야 한다.
+      // 캡처 대상 엘리먼트 자신을 insertBefore/appendChild로 DOM 안에서 옮기면
+      // 브라우저가 그 시점에 포인터 캡처를 잃어버려(lostpointercapture) 이후의
+      // pointerup이 엉뚱한 엘리먼트로 가버리고 드롭이 저장되지 않는다.
+      const tbody = document.getElementById('categoryList');
+      tbody.querySelectorAll('.cat-drag-handle').forEach(handle => {
+        handle.addEventListener('pointerdown', (e) => {
+          const dragRow = handle.closest('tr');
+          dragRow.classList.add('dragging');
+          tbody.setPointerCapture(e.pointerId);
+          e.preventDefault();
+
+          const onMove = (ev) => {
+            const rows = [...tbody.querySelectorAll('tr')];
+            const afterRow = rows.find(row => {
+              if (row === dragRow) return false;
+              const rect = row.getBoundingClientRect();
+              return ev.clientY < rect.top + rect.height / 2;
+            });
+            if (afterRow) tbody.insertBefore(dragRow, afterRow);
+            else tbody.appendChild(dragRow);
+          };
+
+          const onUp = async (ev) => {
+            tbody.releasePointerCapture(ev.pointerId);
+            tbody.removeEventListener('pointermove', onMove);
+            tbody.removeEventListener('pointerup', onUp);
+            tbody.removeEventListener('pointercancel', onUp);
+            dragRow.classList.remove('dragging');
+
+            const ids = [...tbody.querySelectorAll('tr')].map(r => r.dataset.catId);
+            const status = document.getElementById('categoryStatus');
+            status.textContent = '순서 저장 중...';
+            try {
+              await Promise.all(ids.map((id, idx) => fetch(`/admin/api/class-categories/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sort_order: idx })
+              })));
+              status.textContent = '순서가 저장되었습니다.';
+            } catch (err) {
+              status.textContent = '순서 저장에 실패했습니다.';
+            }
+            await loadCategories();
+            await loadClasses();
+          };
+
+          tbody.addEventListener('pointermove', onMove);
+          tbody.addEventListener('pointerup', onUp);
+          tbody.addEventListener('pointercancel', onUp);
+        });
+      });
+    }
+
+    function openCategoryModal() {
+      document.getElementById('categoryStatus').textContent = '';
+      document.getElementById('categoryModalOverlay').classList.add('open');
+      loadCategories();
+    }
+
+    function closeCategoryModal() {
+      document.getElementById('categoryModalOverlay').classList.remove('open');
+    }
+
+    document.getElementById('categoryManageBtn').addEventListener('click', openCategoryModal);
+    document.getElementById('categoryModalCloseBtn').addEventListener('click', closeCategoryModal);
+    document.getElementById('categoryModalOverlay').addEventListener('click', (e) => {
+      if (e.target.id === 'categoryModalOverlay') closeCategoryModal();
+    });
+
+    document.getElementById('categoryAddBtn').addEventListener('click', async () => {
+      const name = document.getElementById('categoryNameInput').value.trim();
+      const status = document.getElementById('categoryStatus');
+      if (!name) { status.textContent = '카테고리 이름을 입력해주세요.'; return; }
+      const res = await fetch('/admin/api/class-categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, sort_order: classCategoryCache.length })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { status.textContent = data.error || '추가에 실패했습니다.'; return; }
+      document.getElementById('categoryNameInput').value = '';
+      status.textContent = '추가되었습니다.';
+      await loadCategories();
+      await loadClasses();
+    });
+
+    document.getElementById('categoryList').addEventListener('change', async (e) => {
+      const status = document.getElementById('categoryStatus');
+      const nameId = e.target.dataset.nameId;
+      if (!nameId) return;
+      const body = { name: e.target.value.trim() };
+      const res = await fetch(`/admin/api/class-categories/${nameId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { status.textContent = data.error || '수정에 실패했습니다.'; return; }
+      status.textContent = '수정되었습니다.';
+      await loadCategories();
+      await loadClasses();
+    });
+
+    document.getElementById('categoryList').addEventListener('click', async (e) => {
+      const deleteId = e.target.dataset.deleteCategory;
+      if (!deleteId) return;
+      const cat = classCategoryCache.find(c => String(c.id) === deleteId);
+      if (!cat || !confirm(`"${cat.name}" 카테고리를 삭제할까요?`)) return;
+      const res = await fetch(`/admin/api/class-categories/${deleteId}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      const status = document.getElementById('categoryStatus');
+      if (!res.ok) { status.textContent = data.error || '삭제에 실패했습니다.'; return; }
+      status.textContent = '삭제되었습니다.';
+      await loadCategories();
+    });
+
+    function readClassForm() {
+      const body = {};
+      for (const [field, id] of Object.entries(CLASS_FIELD_INPUTS)) {
+        body[field] = document.getElementById(id).value.trim();
+      }
+      body.is_active = document.getElementById('cfIsActive').checked;
+      return body;
+    }
+
+    function fillClassForm(cls) {
+      for (const [field, id] of Object.entries(CLASS_FIELD_INPUTS)) {
+        document.getElementById(id).value = cls[field] ?? '';
+      }
+      document.getElementById('cfIsActive').checked = !!cls.is_active;
+    }
+
+    function openClassModal() {
+      document.getElementById('classModalOverlay').classList.add('open');
+    }
+
+    function closeClassModal() {
+      document.getElementById('classModalOverlay').classList.remove('open');
+    }
+
+    document.getElementById('classModalCloseBtn').addEventListener('click', closeClassModal);
+    document.getElementById('classModalOverlay').addEventListener('click', (e) => {
+      if (e.target.id === 'classModalOverlay') closeClassModal();
+    });
+
+    // ── 클래스 빠른 추가 (강좌명/카테고리/가격/노출) ──
+    function openQuickClassModal() {
+      document.getElementById('qcName').value = '';
+      document.getElementById('qcPrice').value = '';
+      document.getElementById('qcIsActive').checked = true;
+      document.getElementById('quickClassStatus').textContent = '';
+      document.getElementById('quickClassModalOverlay').classList.add('open');
+    }
+
+    function closeQuickClassModal() {
+      document.getElementById('quickClassModalOverlay').classList.remove('open');
+    }
+
+    document.getElementById('classAddBtn').addEventListener('click', openQuickClassModal);
+    document.getElementById('quickClassModalCloseBtn').addEventListener('click', closeQuickClassModal);
+    document.getElementById('quickClassModalOverlay').addEventListener('click', (e) => {
+      if (e.target.id === 'quickClassModalOverlay') closeQuickClassModal();
+    });
+
+    document.getElementById('quickClassSaveBtn').addEventListener('click', async () => {
+      const name = document.getElementById('qcName').value.trim();
+      const filterTab = document.getElementById('qcFilterTab').value;
+      const price = document.getElementById('qcPrice').value.trim();
+      const isActive = document.getElementById('qcIsActive').checked;
+      const status = document.getElementById('quickClassStatus');
+
+      if (!name || !filterTab || !price) {
+        status.textContent = '강좌명, 카테고리, 가격은 필수입니다.';
+        return;
+      }
+
+      const maxSortOrder = classCache.reduce((max, c) => Math.max(max, c.sort_order || 0), 0);
+      const body = {
+        filter_tab: filterTab,
+        category: filterTab,
+        thumb_title: name,
+        name,
+        price,
+        detail_page: 'classDetailDynamic',
+        sort_order: maxSortOrder + 1,
+        is_active: isActive
+      };
+      const res = await fetch('/admin/api/classes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { status.textContent = data.error || '추가에 실패했습니다.'; return; }
+      closeQuickClassModal();
+      await loadClasses();
+    });
+
+    async function loadClasses() {
+      const res = await fetch('/admin/api/classes');
+      if (!res.ok) return;
+      classCache = await res.json();
+      document.getElementById('classTotal').textContent = classCache.length;
+      document.getElementById('classList').innerHTML = classCache.map(c => `
+        <tr>
+          <td>${c.sort_order}</td>
+          <td><a href="#" class="class-name-link" data-content-class="${c.id}">${escapeHtml(c.name)}</a></td>
+          <td>${escapeHtml(c.filter_tab)}</td>
+          <td>${escapeHtml(c.price)}</td>
+          <td><span class="badge badge-active-${c.is_active ? 'yes' : 'no'}">${c.is_active ? '노출' : '숨김'}</span></td>
+          <td>
+            <button class="row-btn" data-edit-class="${c.id}">수정</button>
+            <button class="row-btn danger" data-delete-class="${c.id}">삭제</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('classList').addEventListener('click', async (e) => {
+      const editId = e.target.dataset.editClass;
+      const deleteId = e.target.dataset.deleteClass;
+      const contentId = e.target.dataset.contentClass;
+
+      if (contentId) {
+        e.preventDefault();
+        openClassContent(contentId);
+        return;
+      }
+
+      if (editId) {
+        const cls = classCache.find(c => String(c.id) === editId);
+        if (!cls) return;
+        editingClassId = cls.id;
+        fillClassForm(cls);
+        document.getElementById('classFormTitle').textContent = `클래스 수정 (#${cls.id})`;
+        document.getElementById('classSaveBtn').textContent = '수정 저장';
+        document.getElementById('classFormStatus').textContent = '';
+        openClassModal();
+      }
+
+      if (deleteId) {
+        const cls = classCache.find(c => String(c.id) === deleteId);
+        if (!cls || !confirm(`"${cls.name}" 클래스를 삭제할까요?\n삭제 후 되돌릴 수 없습니다.`)) return;
+        const res = await fetch(`/admin/api/classes/${deleteId}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          alert(data.error || '삭제에 실패했습니다.');
+          return;
+        }
+        if (String(editingClassId) === deleteId) { editingClassId = null; closeClassModal(); }
+        await loadClasses();
+      }
+    });
+
+    document.getElementById('classSaveBtn').addEventListener('click', async () => {
+      const body = readClassForm();
+      const status = document.getElementById('classFormStatus');
+
+      if (!body.category || !body.thumb_title || !body.name || !body.price) {
+        status.textContent = '카테고리, 썸네일 제목, 강좌명, 가격은 필수입니다.';
+        return;
+      }
+
+      const res = await fetch(`/admin/api/classes/${editingClassId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        status.textContent = data.error || '저장에 실패했습니다.';
+        return;
+      }
+
+      closeClassModal();
+      await loadClasses();
+    });
+
+    loadCategories();
+    loadClasses();
+
+    // ── 강의 소개 / 커리큘럼 편집 (강좌명 클릭 시 진입) ──
+    let contentClassId = null;
+    let contentState = { intro: { sections: [] }, curriculum: { totalLabel: '', chapters: [] } };
+    let chapterAttachmentsCache = [];
+
+    function makeChapterKey() {
+      return (crypto.randomUUID ? crypto.randomUUID() : `ch-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+    }
+
+    function newSection() { return { heading: '새 섹션', paragraph: '', groups: [] }; }
+    function newGroup() { return { subheading: '', bullets: [''] }; }
+    function newChapter() { return { key: makeChapterKey(), label: '', lessonTitle: '', sections: [] }; }
+
+    function getChapterAttachments(chapterKey, type) {
+      return chapterAttachmentsCache.filter(a => a.chapter_key === chapterKey && a.type === type);
+    }
+
+    async function uploadChapterAttachment(chapterKey, type, inputEl) {
+      const file = inputEl.files[0];
+      if (!file) { alert('파일을 선택해주세요.'); return; }
+      try {
+        const presignRes = await fetch(`/admin/api/classes/${contentClassId}/chapter-attachments/presign`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chapterKey, type, contentType: file.type || 'application/octet-stream', filename: file.name })
+        });
+        const presignData = await presignRes.json();
+        if (!presignRes.ok) throw new Error(presignData.error || 'presign 실패');
+
+        const putRes = await fetch(presignData.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type || 'application/octet-stream' },
+          body: file
+        });
+        if (!putRes.ok) throw new Error('업로드 실패');
+
+        const confirmRes = await fetch(`/admin/api/classes/${contentClassId}/chapter-attachments/confirm`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chapterKey, type, key: presignData.key, title: file.name, contentType: file.type, fileSize: file.size })
+        });
+        const confirmData = await confirmRes.json();
+        if (!confirmRes.ok) throw new Error(confirmData.error || '저장 실패');
+
+        chapterAttachmentsCache.push({ id: confirmData.id, class_id: contentClassId, chapter_key: chapterKey, type, title: file.name, file_url: confirmData.url });
+        renderContentEditor();
+      } catch (err) {
+        alert(err.message || '업로드에 실패했습니다.');
+      }
+    }
+
+    async function removeChapterAttachment(attachmentId) {
+      if (!confirm('이 첨부파일을 삭제할까요?')) return;
+      await fetch(`/admin/api/classes/${contentClassId}/chapter-attachments/${attachmentId}`, { method: 'DELETE' });
+      chapterAttachmentsCache = chapterAttachmentsCache.filter(a => a.id !== attachmentId);
+      renderContentEditor();
+    }
+
+    function getSectionsAtPath(pathStr) {
+      if (pathStr === 'intro') return contentState.intro.sections;
+      const m = pathStr.match(/^chapters\.(\d+)$/);
+      if (m) return contentState.curriculum.chapters[Number(m[1])].sections;
+      return null;
+    }
+
+    function addSection(pathStr) { getSectionsAtPath(pathStr).push(newSection()); renderContentEditor(); }
+    function removeSection(pathStr, secIdx) {
+      if (!confirm('이 섹션을 삭제할까요?')) return;
+      getSectionsAtPath(pathStr).splice(secIdx, 1);
+      renderContentEditor();
+    }
+    function updateSectionField(pathStr, secIdx, field, value) {
+      getSectionsAtPath(pathStr)[secIdx][field] = value;
+    }
+    function addGroup(pathStr, secIdx) {
+      getSectionsAtPath(pathStr)[secIdx].groups.push(newGroup());
+      renderContentEditor();
+    }
+    function removeGroup(pathStr, secIdx, grpIdx) {
+      getSectionsAtPath(pathStr)[secIdx].groups.splice(grpIdx, 1);
+      renderContentEditor();
+    }
+    function updateGroupField(pathStr, secIdx, grpIdx, field, value) {
+      getSectionsAtPath(pathStr)[secIdx].groups[grpIdx][field] = value;
+    }
+    function addBullet(pathStr, secIdx, grpIdx) {
+      getSectionsAtPath(pathStr)[secIdx].groups[grpIdx].bullets.push('');
+      renderContentEditor();
+    }
+    function removeBullet(pathStr, secIdx, grpIdx, bIdx) {
+      getSectionsAtPath(pathStr)[secIdx].groups[grpIdx].bullets.splice(bIdx, 1);
+      renderContentEditor();
+    }
+    function updateBullet(pathStr, secIdx, grpIdx, bIdx, value) {
+      getSectionsAtPath(pathStr)[secIdx].groups[grpIdx].bullets[bIdx] = value;
+    }
+
+    function addChapter() { contentState.curriculum.chapters.push(newChapter()); renderContentEditor(); }
+    function removeChapter(cIdx) {
+      if (!confirm('이 챕터를 삭제할까요?')) return;
+      contentState.curriculum.chapters.splice(cIdx, 1);
+      renderContentEditor();
+    }
+    function updateChapterField(cIdx, field, value) {
+      contentState.curriculum.chapters[cIdx][field] = value;
+    }
+    function updateTotalLabel(value) { contentState.curriculum.totalLabel = value; }
+
+    function renderSectionsEditor(sections, pathStr) {
+      const cardsHtml = sections.map((sec, secIdx) => `
+        <div class="content-card">
+          <div class="content-card-head">
+            <input type="text" value="${escapeHtml(sec.heading)}" placeholder="섹션 제목 (예: 강좌 개요)" oninput="updateSectionField('${pathStr}',${secIdx},'heading',this.value)">
+            <button type="button" class="row-btn danger" onclick="removeSection('${pathStr}',${secIdx})">섹션 삭제</button>
+          </div>
+          <textarea rows="2" placeholder="설명 문단 (선택)" oninput="updateSectionField('${pathStr}',${secIdx},'paragraph',this.value)">${escapeHtml(sec.paragraph)}</textarea>
+          ${sec.groups.map((grp, grpIdx) => `
+            <div class="content-group">
+              <div class="content-group-head">
+                <input type="text" value="${escapeHtml(grp.subheading)}" placeholder="소제목 (선택, 예: [Part 1] 논술 독해의 3대 핵심 역량)" oninput="updateGroupField('${pathStr}',${secIdx},${grpIdx},'subheading',this.value)">
+                <button type="button" class="cf-x-btn" onclick="removeGroup('${pathStr}',${secIdx},${grpIdx})" title="그룹 삭제">×</button>
+              </div>
+              ${grp.bullets.map((b, bIdx) => `
+                <div class="content-bullet-row">
+                  <input type="text" value="${escapeHtml(b)}" placeholder="항목 내용" oninput="updateBullet('${pathStr}',${secIdx},${grpIdx},${bIdx},this.value)">
+                  <button type="button" class="cf-x-btn" onclick="removeBullet('${pathStr}',${secIdx},${grpIdx},${bIdx})" title="항목 삭제">×</button>
+                </div>
+              `).join('')}
+              <button type="button" class="cf-add-btn" onclick="addBullet('${pathStr}',${secIdx},${grpIdx})">+ 항목 추가</button>
+            </div>
+          `).join('')}
+          <button type="button" class="cf-add-btn" onclick="addGroup('${pathStr}',${secIdx})">+ 목록 그룹 추가</button>
+        </div>
+      `).join('');
+      return cardsHtml + `<button type="button" class="cf-add-btn-main" onclick="addSection('${pathStr}')">+ 섹션 추가</button>`;
+    }
+
+    function renderContentEditor() {
+      document.getElementById('introEditorBody').innerHTML = renderSectionsEditor(contentState.intro.sections, 'intro');
+      document.getElementById('curriculumTotalLabel').value = contentState.curriculum.totalLabel || '';
+      document.getElementById('curriculumEditorBody').innerHTML = contentState.curriculum.chapters.map((ch, cIdx) => `
+        <div class="content-chapter-card">
+          <div class="content-chapter-head">
+            <input type="text" class="cf-label-input" value="${escapeHtml(ch.label)}" placeholder="예: 0강" oninput="updateChapterField(${cIdx},'label',this.value)">
+            <input type="text" class="cf-title-input" value="${escapeHtml(ch.lessonTitle)}" placeholder="강의 제목 (예: 0강 수업영상 — 2027 연고대 편입논술 OT)" oninput="updateChapterField(${cIdx},'lessonTitle',this.value)">
+            <button type="button" class="row-btn danger" onclick="removeChapter(${cIdx})">챕터 삭제</button>
+          </div>
+          ${renderChapterAttachments(ch.key)}
+          ${renderSectionsEditor(ch.sections, 'chapters.' + cIdx)}
+        </div>
+      `).join('') + `<button type="button" class="cf-add-btn-main" onclick="addChapter()">+ 챕터 추가</button>`;
+    }
+
+    function renderChapterAttachments(chapterKey) {
+      const video = getChapterAttachments(chapterKey, 'video')[0];
+      const materials = getChapterAttachments(chapterKey, 'material');
+      return `
+        <div class="content-attach-block">
+          <div class="content-attach-row">
+            <label class="field-label" style="margin:0; flex-shrink:0; width:70px;">영상 첨부</label>
+            ${video ? `
+              <span class="content-attach-chip">🎬 ${escapeHtml(video.title)}<button type="button" class="cf-x-btn" onclick="removeChapterAttachment(${video.id})">×</button></span>
+            ` : `
+              <input type="file" accept="video/*" id="video-input-${chapterKey}" style="flex:1;">
+              <button type="button" class="row-btn" onclick="uploadChapterAttachment('${chapterKey}','video',document.getElementById('video-input-${chapterKey}'))">업로드</button>
+            `}
+          </div>
+          <div class="content-attach-row">
+            <label class="field-label" style="margin:0; flex-shrink:0; width:70px;">자료 첨부</label>
+            <div class="content-attach-chip-list">
+              ${materials.map(m => `<span class="content-attach-chip">📎 ${escapeHtml(m.title)}<button type="button" class="cf-x-btn" onclick="removeChapterAttachment(${m.id})">×</button></span>`).join('')}
+            </div>
+          </div>
+          <div class="content-attach-row">
+            <label class="field-label" style="margin:0; flex-shrink:0; width:70px;"></label>
+            <input type="file" id="material-input-${chapterKey}" style="flex:1;">
+            <button type="button" class="row-btn" onclick="uploadChapterAttachment('${chapterKey}','material',document.getElementById('material-input-${chapterKey}'))">자료 추가</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function switchContentTab(target) {
+      document.querySelectorAll('.content-subtab').forEach(t => t.classList.toggle('active', t.dataset.contentTab === target));
+      document.querySelectorAll('.content-panel').forEach(p => p.classList.toggle('active', p.id === target));
+    }
+
+    document.querySelectorAll('.content-subtab').forEach(tab => {
+      tab.addEventListener('click', () => switchContentTab(tab.dataset.contentTab));
+    });
+
+    document.getElementById('curriculumTotalLabel').addEventListener('input', (e) => updateTotalLabel(e.target.value));
+
+    function renderBannerImagePreview() {
+      const wrap = document.getElementById('bnImagePreviewWrap');
+      wrap.innerHTML = contentState.banner.image_url
+        ? `<img src="${escapeHtml(contentState.banner.image_url)}" style="max-width:240px; border-radius:8px; display:block;">`
+        : '';
+    }
+
+    function setBannerCardTypeUI(cardType) {
+      document.getElementById('bnCardTypeGradient').checked = cardType !== 'image';
+      document.getElementById('bnCardTypeImage').checked = cardType === 'image';
+      document.getElementById('bnGradientRow').style.display = cardType === 'image' ? 'none' : 'block';
+      document.getElementById('bnImageRow').style.display = cardType === 'image' ? 'block' : 'none';
+    }
+
+    function fillBannerForm() {
+      const b = contentState.banner;
+      document.getElementById('bnTag').value = b.tag || '';
+      document.getElementById('bnSubtitle').value = b.subtitle || '';
+      document.getElementById('bnTitleAccent').value = b.title_accent || '';
+      document.getElementById('bnTitleRest').value = b.title_rest || '';
+      document.getElementById('bnInstructorName').value = b.instructor_name || '';
+      document.getElementById('bnCardGradient').value = b.card_gradient || '';
+      setBannerCardTypeUI(b.card_type);
+      renderBannerImagePreview();
+    }
+
+    document.querySelectorAll('input[name="bnCardType"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        contentState.banner.card_type = document.getElementById('bnCardTypeImage').checked ? 'image' : 'gradient';
+        setBannerCardTypeUI(contentState.banner.card_type);
+      });
+    });
+
+    document.getElementById('bnImageUploadBtn').addEventListener('click', async () => {
+      const fileInput = document.getElementById('bnImageFile');
+      const file = fileInput.files[0];
+      const status = document.getElementById('bnImageStatus');
+      if (!file) { status.textContent = '파일을 선택해주세요.'; return; }
+      status.textContent = '업로드 중...';
+      try {
+        const presignRes = await fetch(`/admin/api/classes/${contentClassId}/banner-image/presign`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contentType: file.type })
+        });
+        const presignData = await presignRes.json();
+        if (!presignRes.ok) throw new Error(presignData.error || 'presign 실패');
+
+        const putRes = await fetch(presignData.uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+        if (!putRes.ok) throw new Error('R2 업로드 실패');
+
+        const confirmRes = await fetch(`/admin/api/classes/${contentClassId}/banner-image/confirm`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: presignData.key })
+        });
+        const confirmData = await confirmRes.json();
+        if (!confirmRes.ok) throw new Error(confirmData.error || '저장 실패');
+
+        contentState.banner.card_type = 'image';
+        contentState.banner.image_url = confirmData.url;
+        setBannerCardTypeUI('image');
+        renderBannerImagePreview();
+        fileInput.value = '';
+        status.textContent = '업로드되었습니다.';
+      } catch (err) {
+        status.textContent = err.message || '업로드에 실패했습니다.';
+      }
+    });
+
+    async function openClassContent(classId) {
+      const res = await fetch(`/admin/api/classes/${classId}/content`);
+      if (!res.ok) { alert('불러오기에 실패했습니다.'); return; }
+      const data = await res.json();
+      contentClassId = classId;
+      contentState = {
+        intro: (data.intro_content && data.intro_content.sections) ? data.intro_content : { sections: [] },
+        curriculum: (data.curriculum_content && data.curriculum_content.chapters) ? data.curriculum_content : { totalLabel: '', chapters: [] },
+        banner: {
+          tag: data.banner_tag || '',
+          subtitle: data.banner_subtitle || '',
+          title_accent: data.banner_title_accent || '',
+          title_rest: data.banner_title_rest || '',
+          instructor_name: data.banner_instructor_name || '',
+          card_type: data.banner_card_type || 'gradient',
+          card_gradient: data.banner_card_gradient || '',
+          image_url: data.banner_image_url || ''
+        }
+      };
+      contentState.curriculum.chapters.forEach(ch => { if (!ch.key) ch.key = makeChapterKey(); });
+
+      const attachRes = await fetch(`/admin/api/classes/${classId}/chapter-attachments`);
+      chapterAttachmentsCache = attachRes.ok ? await attachRes.json() : [];
+
+      document.getElementById('lectureLinkStatus').textContent = '';
+      document.getElementById('lectureNumberInput').value = '';
+      await loadClassLectures();
+
+      document.getElementById('contentClassTitle').textContent = `${data.name} — 배너 · 강의 소개 · 커리큘럼 편집`;
+      document.getElementById('contentStatus').textContent = '';
+      document.getElementById('bnImageStatus').textContent = '';
+      fillBannerForm();
+      renderContentEditor();
+      switchContentTab('contentBannerPanel');
+      document.querySelectorAll('.side-link').forEach(l => l.classList.remove('active'));
+      document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+      document.getElementById('classContentSection').classList.add('active');
+      document.getElementById('sectionTitle').textContent = '강의 소개 · 커리큘럼';
+    }
+
+    document.getElementById('contentBackBtn').addEventListener('click', () => {
+      document.getElementById('classContentSection').classList.remove('active');
+      document.querySelector('.side-link[data-target="classSection"]').classList.add('active');
+      document.getElementById('classSection').classList.add('active');
+      document.getElementById('sectionTitle').textContent = '클래스 관리';
+    });
+
+    document.getElementById('contentSaveBtn').addEventListener('click', async () => {
+      const status = document.getElementById('contentStatus');
+      status.textContent = '저장 중...';
+      const res = await fetch(`/admin/api/classes/${contentClassId}/content`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          intro_content: contentState.intro,
+          curriculum_content: contentState.curriculum,
+          banner_tag: document.getElementById('bnTag').value.trim(),
+          banner_subtitle: document.getElementById('bnSubtitle').value.trim(),
+          banner_title_accent: document.getElementById('bnTitleAccent').value.trim(),
+          banner_title_rest: document.getElementById('bnTitleRest').value.trim(),
+          banner_instructor_name: document.getElementById('bnInstructorName').value.trim(),
+          banner_card_type: contentState.banner.card_type,
+          banner_card_gradient: document.getElementById('bnCardGradient').value.trim(),
+          banner_image_url: contentState.banner.image_url
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { status.textContent = data.error || '저장에 실패했습니다.'; return; }
+      status.textContent = '저장되었습니다.';
+    });
+
+    // ── 클래스 강의 영상 연결 (class_lectures) ──
+    let classLecturesCache = [];
+
+    async function loadClassLectures() {
+      const [lecturesRes, videosRes] = await Promise.all([
+        fetch(`/admin/api/classes/${contentClassId}/lectures`),
+        fetch('/admin/api/videos')
+      ]);
+      classLecturesCache = lecturesRes.ok ? await lecturesRes.json() : [];
+      const videos = videosRes.ok ? await videosRes.json() : [];
+
+      const linkedKeys = new Set(classLecturesCache.map(l => l.video_r2_key));
+      const doneVideos = videos.filter(v => v.status === 'done' && v.final_r2_key);
+      const select = document.getElementById('lectureVideoSelect');
+      select.innerHTML = doneVideos.length
+        ? doneVideos.map(v => `<option value="${v.id}">${linkedKeys.has(v.final_r2_key) ? '✓ ' : ''}${escapeHtml(v.title)}</option>`).join('')
+        : '<option value="">연결 가능한 영상이 없습니다 (인코딩 완료된 영상만 표시)</option>';
+
+      document.getElementById('classLectureList').innerHTML = classLecturesCache.length ? classLecturesCache.map(l => `
+        <tr>
+          <td><input type="number" data-lecture-num-id="${l.id}" value="${l.lecture_number}" min="0" style="width:60px; margin-bottom:0;"></td>
+          <td><input type="text" data-lecture-title-id="${l.id}" value="${escapeHtml(l.title)}" style="margin-bottom:0;"></td>
+          <td style="font-size:11px; color:#8B7E63; word-break:break-all;">${escapeHtml(l.video_r2_key)}</td>
+          <td><button class="row-btn danger" data-unlink-lecture="${l.id}">해제</button></td>
+        </tr>
+      `).join('') : '<tr><td colspan="4" style="color:#9C9282;">연결된 강의 영상이 없습니다.</td></tr>';
+    }
+
+    document.getElementById('lectureAddBtn').addEventListener('click', async () => {
+      const videoId = document.getElementById('lectureVideoSelect').value;
+      const numRaw = document.getElementById('lectureNumberInput').value;
+      const status = document.getElementById('lectureLinkStatus');
+      if (!videoId) { status.textContent = '연결할 영상을 선택해주세요.'; return; }
+      if (numRaw === '') { status.textContent = '강의 번호를 입력해주세요 (0 = OT).'; return; }
+      const res = await fetch(`/admin/api/classes/${contentClassId}/lectures`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId, lectureNumber: numRaw })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { status.textContent = data.error || '연결에 실패했습니다.'; return; }
+      status.textContent = '연결되었습니다.';
+      document.getElementById('lectureNumberInput').value = '';
+      await loadClassLectures();
+    });
+
+    document.getElementById('classLectureList').addEventListener('change', async (e) => {
+      const numId = e.target.dataset.lectureNumId;
+      const titleId = e.target.dataset.lectureTitleId;
+      const id = numId || titleId;
+      if (!id) return;
+      const status = document.getElementById('lectureLinkStatus');
+      const body = numId ? { lectureNumber: e.target.value } : { title: e.target.value };
+      const res = await fetch(`/admin/api/classes/${contentClassId}/lectures/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { status.textContent = data.error || '수정에 실패했습니다.'; await loadClassLectures(); return; }
+      status.textContent = '수정되었습니다.';
+      await loadClassLectures();
+    });
+
+    document.getElementById('classLectureList').addEventListener('click', async (e) => {
+      const unlinkId = e.target.dataset.unlinkLecture;
+      if (!unlinkId) return;
+      const lecture = classLecturesCache.find(l => String(l.id) === unlinkId);
+      if (!lecture || !confirm(`"${lecture.title}" 강의 연결을 해제할까요?\n이 강의에 연결된 수업자료 목록도 함께 해제됩니다. (R2의 영상 파일은 삭제되지 않습니다)`)) return;
+      const res = await fetch(`/admin/api/classes/${contentClassId}/lectures/${unlinkId}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      const status = document.getElementById('lectureLinkStatus');
+      if (!res.ok) { status.textContent = data.error || '해제에 실패했습니다.'; return; }
+      status.textContent = '연결이 해제되었습니다.';
+      await loadClassLectures();
+    });
+  </script>
+</body>
+</html>
