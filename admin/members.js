@@ -114,6 +114,12 @@ async function openEnrollModal(memberId, username) {
   const classes = await apiFetch('/admin/api/classes');
   select.innerHTML = classes.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
   await loadEnrollments();
+
+  const vodSelect = document.getElementById('enrollVodSelect');
+  vodSelect.innerHTML = '<option value="">불러오는 중...</option>';
+  const vodCourses = await apiFetch('/admin/api/vod-courses');
+  vodSelect.innerHTML = vodCourses.map(c => `<option value="${c.id}">${escapeHtml(c.title)}</option>`).join('');
+  await loadVodEnrollments();
 }
 
 function closeEnrollModal() {
@@ -177,6 +183,64 @@ document.getElementById('enrollList').addEventListener('click', async (e) => {
   if (!confirm('이 강의 등록을 삭제할까요?')) return;
   await apiFetch(`/admin/api/members/${enrollMemberId}/enrollments/${removeId}`, { method: 'DELETE' });
   await loadEnrollments();
+});
+
+async function loadVodEnrollments() {
+  const rows = await apiFetch(`/admin/api/members/${enrollMemberId}/vod-enrollments`);
+  document.getElementById('enrollVodList').innerHTML = rows.length ? rows.map(r => `
+    <tr>
+      <td>${escapeHtml(r.name)}</td>
+      <td>
+        <select data-vod-status-id="${r.id}">
+          <option value="진행중" ${r.status === '진행중' ? 'selected' : ''}>진행중</option>
+          <option value="완료" ${r.status === '완료' ? 'selected' : ''}>완료</option>
+        </select>
+      </td>
+      <td><input type="text" data-vod-note-id="${r.id}" value="${escapeHtml(r.progress_note || '')}" placeholder="예: 10 / 26강" style="width:100px;"></td>
+      <td>${r.source === 'payment' ? '결제' : '관리자'}</td>
+      <td><button class="row-btn danger" data-vod-remove-id="${r.id}" type="button">삭제</button></td>
+    </tr>
+  `).join('') : '<tr><td colspan="5" class="field-hint">등록된 VOD 강의가 없습니다.</td></tr>';
+}
+
+document.getElementById('enrollVodAddBtn').addEventListener('click', async () => {
+  const vodCourseId = document.getElementById('enrollVodSelect').value;
+  const status = document.getElementById('enrollVodStatus');
+  if (!vodCourseId) { setStatus(status, '등록할 VOD 강의를 선택해주세요.', 'error'); return; }
+  try {
+    await apiFetch(`/admin/api/members/${enrollMemberId}/vod-enrollments`, {
+      method: 'POST',
+      body: JSON.stringify({ vodCourseId })
+    });
+    setStatus(status, '등록되었습니다.', 'ok');
+    await loadVodEnrollments();
+  } catch (err) {
+    setStatus(status, err.message, 'error');
+  }
+});
+
+document.getElementById('enrollVodList').addEventListener('change', async (e) => {
+  const statusId = e.target.dataset.vodStatusId;
+  const noteId = e.target.dataset.vodNoteId;
+  if (statusId) {
+    await apiFetch(`/admin/api/members/${enrollMemberId}/vod-enrollments/${statusId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status: e.target.value })
+    });
+  } else if (noteId) {
+    await apiFetch(`/admin/api/members/${enrollMemberId}/vod-enrollments/${noteId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ progressNote: e.target.value })
+    });
+  }
+});
+
+document.getElementById('enrollVodList').addEventListener('click', async (e) => {
+  const removeId = e.target.dataset.vodRemoveId;
+  if (!removeId) return;
+  if (!confirm('이 VOD 강의 등록을 삭제할까요?')) return;
+  await apiFetch(`/admin/api/members/${enrollMemberId}/vod-enrollments/${removeId}`, { method: 'DELETE' });
+  await loadVodEnrollments();
 });
 
 document.getElementById('enrollModalCloseBtn').addEventListener('click', closeEnrollModal);

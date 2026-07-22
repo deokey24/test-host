@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>강의 수강 · 독편사 DOCK PASS</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css">
+<script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="lecturePlayer" class="lp2-page">
+
+  <div class="lp2-topbar">
+    <a class="lp2-back" id="lpBackBtn" href="vod.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      강의 목록
+    </a>
+    <div class="lp2-topbar-title">
+      <span class="lp2-topbar-course" id="lpTopbarCourse"></span>
+      <span class="lp2-topbar-lecture" id="lpTopbarLecture"></span>
+    </div>
+  </div>
+
+  <div class="lp2-layout">
+
+    <div class="lp2-main">
+      <div class="lp-video-wrap">
+        <video id="lpVideo" controls playsinline></video>
+      </div>
+      <h2 id="lpLectureTitle" class="lp-lecture-title"></h2>
+
+      <div class="lp2-tabs" id="lpTabs">
+        <button type="button" class="active" data-tab="lpTabContent">강의 내용</button>
+        <button type="button" data-tab="lpTabCurriculum">커리큘럼</button>
+      </div>
+
+      <div class="vod-info-card">
+        <div id="lpTabContent">
+          <div id="lpLectureContent" class="cd-markdown"></div>
+        </div>
+        <div id="lpTabCurriculum" style="display:none;">
+          <ul class="curriculum-list lp-curriculum-list" id="lpCurriculumList"></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="lp2-side">
+      <button type="button" class="lp2-next-btn" id="lpNextBtn">
+        다음 강의로
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+
+      <div class="vod-info-card">
+        <div class="cd-panel-title">수업 자료</div>
+        <div id="lpMaterialsList" class="lp2-materials-list"></div>
+      </div>
+    </div>
+
+  </div>
+
+<script src="site-content.js"></script>
+</body>
+</html>

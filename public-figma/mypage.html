@@ -21,8 +21,8 @@
       <a href="faq.html">FAQ</a>
     </nav>
     <div class="header-right">
-      <a class="my-info-link" id="myInfoBtn" href="mypage.html" style="display:none;">내정보</a>
       <span class="login-link" id="loginTrigger">로그인</span>
+      <a class="my-info-link" id="myInfoBtn" href="mypage.html" style="display:none;">마이페이지</a>
       <button class="hamburger" type="button" aria-label="메뉴 열기" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
@@ -36,7 +36,7 @@
       <div class="vod-hero-row" style="align-items:flex-start;">
         <div>
           <h1>마이페이지</h1>
-          <p>내 계정 정보와 로그인 기기, 비밀번호를 관리하세요.</p>
+          <p>수강중인 강의와 내 정보를 관리하세요.</p>
         </div>
       </div>
     </div>
@@ -56,17 +56,45 @@
   <div id="mpLoggedIn" style="display:none;">
     <div class="cd-tabs-wrap">
       <div class="cd-tabs" id="mpTabs">
-        <button type="button" class="active" data-tab="mpInfo">내 정보</button>
+        <button type="button" class="active" data-tab="mpMyCourses">내 강의</button>
+        <button type="button" data-tab="mpInfo">내 정보</button>
         <button type="button" data-tab="mpDevices">기기 관리</button>
         <button type="button" data-tab="mpPassword">비밀번호 변경</button>
+        <button type="button" id="mpLogoutBtn" class="mp-logout-btn">로그아웃</button>
       </div>
     </div>
 
     <section class="vod-body">
+      <!-- 내 강의 -->
+      <div id="mpMyCourses">
+        <div class="vod-page-grid" id="mpCourseGrid">
+          <template>
+            <div class="vod-course-card">
+              <div class="vod-course-thumb">
+                <img class="decor" src="assets/vod/decor.png" alt="">
+                <span class="badge-best">BEST</span>
+                <span class="tag"></span>
+                <span class="eng"></span>
+              </div>
+              <div class="vod-course-body">
+                <h3></h3>
+                <p class="desc"></p>
+                <div class="meta"></div>
+                <div class="vod-course-foot">
+                  <span class="mp-course-status"></span>
+                  <a class="btn-fill mp-enroll-btn" href="#">수강하기</a>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+        <div class="mp-empty" id="mpCourseEmpty" style="display:none;">수강 중인 강의가 없습니다.</div>
+      </div>
+
       <div style="max-width:560px; margin:0 auto;">
 
         <!-- 내 정보 -->
-        <div id="mpInfo">
+        <div id="mpInfo" style="display:none;">
           <div class="vod-info-card">
             <div class="label">내 정보</div>
             <div class="cd-panel-meta" style="margin-top:16px; border-top:none; padding-top:0;">
@@ -135,6 +163,34 @@
 
   <script>
     const MP_PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,16}$/;
+
+    async function loadMyVodCourses() {
+      const grid = document.getElementById('mpCourseGrid');
+      const emptyEl = document.getElementById('mpCourseEmpty');
+      try {
+        const res = await fetch('/api/members/my-vod-courses');
+        if (!res.ok) return;
+        const courses = await res.json();
+        const template = grid.querySelector('template');
+        [...grid.children].filter(c => c.tagName !== 'TEMPLATE').forEach(c => c.remove());
+        emptyEl.style.display = courses.length ? 'none' : '';
+        courses.forEach(course => {
+          const node = template.content.firstElementChild.cloneNode(true);
+          const thumb = node.querySelector('.vod-course-thumb');
+          if (thumb && course.color_variant === 'green') thumb.classList.add('green');
+          const bestBadge = node.querySelector('.badge-best');
+          if (bestBadge) { if (course.is_best) bestBadge.style.display = ''; else bestBadge.remove(); }
+          node.querySelector('.tag').textContent = course.category_label || '';
+          node.querySelector('.eng').textContent = course.tag || '';
+          node.querySelector('h3').textContent = course.title || '';
+          node.querySelector('.desc').textContent = course.description || '';
+          node.querySelector('.meta').textContent = course.meta_text || '';
+          node.querySelector('.mp-course-status').textContent = course.status === '완료' ? '수강 완료' : '수강중';
+          node.querySelector('.mp-enroll-btn').href = `lecturePlayer.html?id=${course.id}`;
+          grid.appendChild(node);
+        });
+      } catch { /* 목록 비워둠 */ }
+    }
 
     async function loadMyInfo() {
       try {
@@ -231,7 +287,7 @@
       document.querySelectorAll('#mpTabs button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       const tab = btn.dataset.tab;
-      ['mpInfo', 'mpDevices', 'mpPassword'].forEach(id => {
+      ['mpMyCourses', 'mpInfo', 'mpDevices', 'mpPassword'].forEach(id => {
         document.getElementById(id).style.display = id === tab ? '' : 'none';
       });
       if (tab === 'mpDevices') loadMyDevices();
@@ -244,11 +300,17 @@
 
     document.getElementById('mpPasswordForm').addEventListener('submit', submitChangePassword);
 
+    document.getElementById('mpLogoutBtn').addEventListener('click', async () => {
+      await doLogout();
+      window.location.href = '/';
+    });
+
     (async function () {
       try {
         const res = await fetch('/api/members/my-info');
         if (!res.ok) throw new Error('not logged in');
         document.getElementById('mpLoggedIn').style.display = '';
+        loadMyVodCourses();
         loadMyInfo();
       } catch {
         document.getElementById('mpLoggedOut').style.display = '';

@@ -152,6 +152,22 @@ CREATE TABLE IF NOT EXISTS member_class_enrollments (
   CONSTRAINT fk_enrollment_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- VOD 강좌 수강 등록 (member_class_enrollments와 동일한 패턴, vod_courses 전용)
+CREATE TABLE IF NOT EXISTS member_vod_enrollments (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  member_id BIGINT NOT NULL,
+  vod_course_id BIGINT NOT NULL,
+  status ENUM('진행중', '완료') NOT NULL DEFAULT '진행중',
+  progress_note VARCHAR(100),
+  source ENUM('admin', 'payment') NOT NULL DEFAULT 'admin',
+  enrolled_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_member_vod (member_id, vod_course_id),
+  CONSTRAINT fk_vod_enrollment_member FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
+  CONSTRAINT fk_vod_enrollment_course FOREIGN KEY (vod_course_id) REFERENCES vod_courses(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- 클래스별 강의 커리큘럼 (R2 courses/{course}/lectures/{번호 3자리}/video/ 경로와 1:1 대응)
 CREATE TABLE IF NOT EXISTS class_lectures (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,

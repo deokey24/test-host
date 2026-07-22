@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>독해학개론 연결독해 완전정복 · 독편사 DOCK PASS</title>
 <link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css">
+<script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body data-page="classDetail">
@@ -21,8 +23,8 @@
       <a href="faq.html">FAQ</a>
     </nav>
     <div class="header-right">
-      <a class="my-info-link" id="myInfoBtn" href="mypage.html" style="display:none;">내정보</a>
       <span class="login-link" id="loginTrigger">로그인</span>
+      <a class="my-info-link" id="myInfoBtn" href="mypage.html" style="display:none;">마이페이지</a>
       <button class="hamburger" type="button" aria-label="메뉴 열기" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
@@ -63,7 +65,7 @@
         <div id="introPanel">
           <div class="cd-section">
             <h2 id="cdIntroHeading"></h2>
-            <p id="cdIntroParagraph"></p>
+            <div id="cdIntroParagraph" class="cd-markdown"></div>
             <ul class="cd-check-list" id="cdChecklist"></ul>
           </div>
 

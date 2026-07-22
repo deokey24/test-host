@@ -189,6 +189,7 @@ function initVodTabs() {
       document.getElementById('vodTabTitle').style.display = tab === 'title' ? '' : 'none';
       document.getElementById('vodTabIntro').style.display = tab === 'intro' ? '' : 'none';
       document.getElementById('vodTabCurriculum').style.display = tab === 'curriculum' ? '' : 'none';
+      if (tab === 'intro') ensureIntroEditor();
     });
   });
 }
@@ -232,8 +233,25 @@ function fillVodForm(course) {
   toggleDiscountRow('vfHasDiscount', 'vfOldPriceRow', 'vfNewPriceLabel');
 
   document.getElementById('vfIntroHeading').value = course?.intro_heading || '클래스에서 배울 수 있는 내용이에요';
-  document.getElementById('vfIntroParagraph').value = course?.intro_paragraph || '';
   document.getElementById('vfRecommendedHeading').value = course?.recommended_heading || '이런 분들께 추천해요';
+}
+
+// ── 클래스소개 내용: 커리큘럼 스텝 콘텐츠와 동일한 TOAST UI 마크다운 에디터 사용 ──
+// "클래스소개" 탭이 열려 있지 않을 때 생성하면(display:none) 에디터 크기가 0으로 잡히므로
+// 탭을 처음 클릭하는 시점에 지연 생성한다 (커리큘럼 스텝 콘텐츠 에디터와 동일한 패턴).
+let introEditorInstance = null;
+let introMarkdownCache = '';
+
+function ensureIntroEditor() {
+  if (introEditorInstance) return;
+  introEditorInstance = new toastui.Editor({
+    el: document.getElementById('vfIntroParagraphMount'),
+    height: '260px',
+    initialEditType: 'wysiwyg',
+    previewStyle: 'vertical',
+    language: 'ko-KR',
+    initialValue: introMarkdownCache
+  });
 }
 
 function readVodForm() {
@@ -255,7 +273,7 @@ function readVodForm() {
     is_best: document.getElementById('vfIsBest').checked,
     is_active: document.getElementById('vfIsActive').checked,
     intro_heading: document.getElementById('vfIntroHeading').value.trim(),
-    intro_paragraph: document.getElementById('vfIntroParagraph').value.trim(),
+    intro_paragraph: (introEditorInstance ? introEditorInstance.getMarkdown() : introMarkdownCache).trim(),
     recommended_heading: document.getElementById('vfRecommendedHeading').value.trim()
   };
 }
@@ -268,6 +286,8 @@ async function openEditModal(courseStub) {
   selectVodTab('title');
   const course = await apiFetch(`/admin/api/vod-courses/${currentVodId}`);
   fillVodForm(course);
+  introMarkdownCache = course?.intro_paragraph || '';
+  if (introEditorInstance) introEditorInstance.setMarkdown(introMarkdownCache);
   vodChecklistCache = course.checklistItems || [];
   vodTagsCache = course.tags || [];
   vodSectionsCache = course.sections || [];
@@ -299,21 +319,25 @@ document.getElementById('vodList').addEventListener('click', async (e) => {
 document.getElementById('vodEditBackBtn').addEventListener('click', closeVodEditPage);
 document.getElementById('vfHasDiscount').addEventListener('change', () => toggleDiscountRow('vfHasDiscount', 'vfOldPriceRow', 'vfNewPriceLabel'));
 
-document.getElementById('vodSaveBtn').addEventListener('click', async () => {
-  const status = document.getElementById('vodFormStatus');
+// 타이틀영역/클래스소개 탭 모두 같은 강의 레코드(vod_courses) 하나를 통째로 저장한다 —
+// 어느 탭에서 눌러도 두 탭의 필드가 전부 함께 반영된다.
+async function saveVodCourse(statusEl) {
   const body = readVodForm();
   if (!body.title || !body.new_price) {
-    setStatus(status, '강좌명과 가격은 필수입니다.', 'error');
+    setStatus(statusEl, '강좌명과 가격은 필수입니다.', 'error');
     return;
   }
   try {
     await apiFetch(`/admin/api/vod-courses/${currentVodId}`, { method: 'PUT', body: JSON.stringify(body) });
-    setStatus(status, '저장되었습니다.', 'ok');
+    setStatus(statusEl, '저장되었습니다.', 'ok');
     await loadVodCourses();
   } catch (err) {
-    setStatus(status, err.message, 'error');
+    setStatus(statusEl, err.message, 'error');
   }
-});
+}
+
+document.getElementById('vodSaveBtn').addEventListener('click', () => saveVodCourse(document.getElementById('vodFormStatus')));
+document.getElementById('vodIntroSaveBtn').addEventListener('click', () => saveVodCourse(document.getElementById('vodIntroFormStatus')));
 
 // ── 클래스소개: 체크리스트 ──
 function renderVodChecklist() {
@@ -589,22 +613,39 @@ function expandLectureContent(lectureId) {
   activeContentLectureId = lectureId;
 }
 
+// 영상의 folder_id를 타고 올라가며 "상위폴더 / 하위폴더" 경로 문자열을 만든다 (루트면 빈 문자열)
+function videoFolderPath(folderId, folders) {
+  const parts = [];
+  let cursor = folderId;
+  while (cursor != null) {
+    const folder = folders.find(f => String(f.id) === String(cursor));
+    if (!folder) break;
+    parts.unshift(folder.name);
+    cursor = folder.parent_id;
+  }
+  return parts.join(' / ');
+}
+
 async function loadVodLectures() {
   if (!currentVodId) return;
   collapseLectureContent();
-  const [lectures, videos, materials] = await Promise.all([
+  const [lectures, videos, materials, folders] = await Promise.all([
     apiFetch(`/admin/api/vod-courses/${currentVodId}/lectures`),
-    apiFetch('/admin/api/videos'),
-    apiFetch(`/admin/api/vod-courses/${currentVodId}/lecture-materials`).catch(() => [])
+    apiFetch('/admin/api/videos?all=1'),
+    apiFetch(`/admin/api/vod-courses/${currentVodId}/lecture-materials`).catch(() => []),
+    apiFetch('/admin/api/video-folders').catch(() => [])
   ]);
   vodLecturesCache = lectures;
   vodMaterialsCache = materials;
   const doneVideos = videos.filter(v => v.status === 'done' && v.final_r2_key);
-  const videoOptions = doneVideos.map(v => ({ id: v.id, label: v.title }));
+  const videoOptions = doneVideos.map(v => {
+    const path = videoFolderPath(v.folder_id, folders);
+    return { id: v.id, label: path ? `${v.title}  [${path}]` : v.title };
+  });
 
   const addSelect = document.getElementById('vodLectureVideoSelect');
   addSelect.innerHTML = '<option value="">강의 영상 선택</option>' +
-    doneVideos.map(v => `<option value="${v.id}">${escapeHtml(v.title)}</option>`).join('');
+    videoOptions.map(o => `<option value="${o.id}">${escapeHtml(o.label)}</option>`).join('');
 
   document.getElementById('vodLectureNumberInput').value = lectures.length
     ? String(Math.max(...lectures.map(l => l.lecture_number)) + 1)

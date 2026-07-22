@@ -80,9 +80,17 @@ app.get('/admin/v1', requireAdmin, (req, res) => {
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 
 app.get('/admin/api/videos', requireAdminApi, wrapAsync(async (req, res) => {
-  const { folderId } = req.query;
-  const where = folderId ? 'WHERE folder_id = ?' : 'WHERE folder_id IS NULL';
-  const params = folderId ? [folderId] : [];
+  const { folderId, all } = req.query;
+  // all=1: 폴더 무관하게 전체 조회 (VOD 강의 편집기의 "강의 영상 선택"처럼 폴더 트리와 무관하게
+  // 검색으로 골라야 하는 화면용). 그 외에는 폴더 브라우저(admin/video.js)용 폴더 스코프 필터.
+  let where = 'WHERE folder_id IS NULL';
+  let params = [];
+  if (all) {
+    where = '';
+  } else if (folderId) {
+    where = 'WHERE folder_id = ?';
+    params = [folderId];
+  }
   const [rows] = await getPool().query(
     `SELECT id, title, status, final_r2_key, error_message, created_at, folder_id FROM lecture_videos ${where} ORDER BY created_at DESC`,
     params
@@ -917,6 +925,74 @@ app.delete('/admin/api/members/:id/enrollments/:enrollmentId', requireAdminApi, 
   res.json({ ok: true });
 }));
 
+// VOD 강좌 수강 등록 — enrollMemberInClass와 동일한 패턴, vod_courses 전용.
+async function enrollMemberInVod(memberId, vodCourseId, source = 'admin', extra = {}) {
+  const status = extra.status === '완료' ? '완료' : '진행중';
+  const progressNote = extra.progressNote || null;
+  await getPool().query(
+    `INSERT INTO member_vod_enrollments (member_id, vod_course_id, status, progress_note, source)
+     VALUES (?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE status = VALUES(status), progress_note = VALUES(progress_note)`,
+    [memberId, vodCourseId, status, progressNote, source]
+  );
+}
+
+app.get('/admin/api/members/:id/vod-enrollments', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT e.id, e.vod_course_id, e.status, e.progress_note, e.source, e.enrolled_at, c.title AS name
+     FROM member_vod_enrollments e
+     JOIN vod_courses c ON c.id = e.vod_course_id
+     WHERE e.member_id = ?
+     ORDER BY e.enrolled_at DESC`,
+    [req.params.id]
+  );
+  res.json(rows);
+}));
+
+app.post('/admin/api/members/:id/vod-enrollments', requireAdminApi, wrapAsync(async (req, res) => {
+  const { vodCourseId, status, progressNote } = req.body;
+  if (!vodCourseId) {
+    res.status(400).json({ error: 'vodCourseId가 필요합니다.' });
+    return;
+  }
+  await enrollMemberInVod(req.params.id, vodCourseId, 'admin', { status, progressNote });
+  res.json({ ok: true });
+}));
+
+app.put('/admin/api/members/:id/vod-enrollments/:enrollmentId', requireAdminApi, wrapAsync(async (req, res) => {
+  const { status, progressNote } = req.body;
+  const fields = [];
+  const values = [];
+  if (status !== undefined) { fields.push('status = ?'); values.push(status === '완료' ? '완료' : '진행중'); }
+  if (progressNote !== undefined) { fields.push('progress_note = ?'); values.push(progressNote || null); }
+  if (fields.length === 0) {
+    res.status(400).json({ error: '변경할 값이 없습니다.' });
+    return;
+  }
+  values.push(req.params.enrollmentId, req.params.id);
+  const [result] = await getPool().query(
+    `UPDATE member_vod_enrollments SET ${fields.join(', ')} WHERE id = ? AND member_id = ?`,
+    values
+  );
+  if (result.affectedRows === 0) {
+    res.status(404).json({ error: '등록 정보를 찾을 수 없습니다.' });
+    return;
+  }
+  res.json({ ok: true });
+}));
+
+app.delete('/admin/api/members/:id/vod-enrollments/:enrollmentId', requireAdminApi, wrapAsync(async (req, res) => {
+  const [result] = await getPool().query(
+    'DELETE FROM member_vod_enrollments WHERE id = ? AND member_id = ?',
+    [req.params.enrollmentId, req.params.id]
+  );
+  if (result.affectedRows === 0) {
+    res.status(404).json({ error: '등록 정보를 찾을 수 없습니다.' });
+    return;
+  }
+  res.json({ ok: true });
+}));
+
 const USERNAME_RE = /^[A-Za-z][A-Za-z0-9]{4,19}$/;
 const PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,16}$/;
 
@@ -1236,6 +1312,64 @@ app.get('/api/members/my-lectures/:classId', requireMember, wrapAsync(async (req
   });
 }));
 
+app.get('/api/members/my-vod-courses', requireMember, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT c.id, c.tag, c.category_label, c.title, c.description, c.meta_text,
+            c.is_best, c.color_variant, c.old_price, c.new_price, c.thumbnail_url,
+            e.status, e.progress_note
+     FROM member_vod_enrollments e
+     JOIN vod_courses c ON c.id = e.vod_course_id
+     WHERE e.member_id = ?
+     ORDER BY e.enrolled_at DESC`,
+    [req.session.memberId]
+  );
+  res.json(rows);
+}));
+
+// 로그인한 회원이 실제로 그 VOD 강좌를 수강 중일 때만 강의 목록(영상+콘텐츠)을 내려준다.
+app.get('/api/members/my-vod-lectures/:vodCourseId', requireMember, wrapAsync(async (req, res) => {
+  const [enrollRows] = await getPool().query(
+    'SELECT id FROM member_vod_enrollments WHERE member_id = ? AND vod_course_id = ?',
+    [req.session.memberId, req.params.vodCourseId]
+  );
+  if (!enrollRows[0]) {
+    res.status(403).json({ error: '수강 중인 강좌가 아닙니다.' });
+    return;
+  }
+
+  const [courseRows] = await getPool().query('SELECT id, title FROM vod_courses WHERE id = ?', [req.params.vodCourseId]);
+  if (!courseRows[0]) {
+    res.status(404).json({ error: '강좌를 찾을 수 없습니다.' });
+    return;
+  }
+
+  const [lectures] = await getPool().query(
+    'SELECT id, lecture_number, title, video_r2_key, content_markdown FROM vod_course_lectures WHERE vod_course_id = ? ORDER BY sort_order, lecture_number',
+    [req.params.vodCourseId]
+  );
+  const [materials] = await getPool().query(
+    `SELECT m.vod_course_lecture_id, m.title, m.file_url
+     FROM vod_course_lecture_materials m
+     JOIN vod_course_lectures l ON l.id = m.vod_course_lecture_id
+     WHERE l.vod_course_id = ?
+     ORDER BY m.sort_order, m.id`,
+    [req.params.vodCourseId]
+  );
+  const materialsByLecture = {};
+  materials.forEach(m => {
+    (materialsByLecture[m.vod_course_lecture_id] ||= []).push({ title: m.title, url: m.file_url });
+  });
+
+  res.json({
+    course: courseRows[0],
+    lectures: lectures.map(({ id, video_r2_key, ...l }) => ({
+      ...l,
+      video_url: video_r2_key ? buildCdnUrl(video_r2_key) : null,
+      materials: materialsByLecture[id] || []
+    }))
+  });
+}));
+
 app.get('/api/members/devices', requireMember, wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
     'SELECT id, device_id, device_label, ip_address, last_login_at FROM member_devices WHERE member_id = ? ORDER BY last_login_at DESC',
@@ -1415,10 +1549,10 @@ app.delete('/admin/api/vod-courses/:id', requireAdminApi, wrapAsync(async (req, 
 // vod_course_lectures — class_lectures와 동일한 패턴. 커리큘럼 스텝 목록 겸 영상 연결 목록.
 app.get('/api/vod-courses/:id/lectures', wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
-    'SELECT lecture_number, title, video_r2_key FROM vod_course_lectures WHERE vod_course_id = ? ORDER BY sort_order, lecture_number',
+    'SELECT lecture_number, title, video_r2_key, content_markdown FROM vod_course_lectures WHERE vod_course_id = ? ORDER BY sort_order, lecture_number',
     [req.params.id]
   );
-  res.json(rows);
+  res.json(rows.map(({ video_r2_key, ...r }) => ({ ...r, has_video: !!video_r2_key })));
 }));
 
 app.get('/admin/api/vod-courses/:id/lectures', requireAdminApi, wrapAsync(async (req, res) => {

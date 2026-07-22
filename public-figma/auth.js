@@ -86,8 +86,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const trigger = document.getElementById('loginTrigger');
   if (trigger) {
     trigger.addEventListener('click', () => {
-      if (trigger.dataset.loggedIn === 'true') doLogout();
-      else openLoginModal();
+      if (trigger.dataset.loggedIn === 'true') return;
+      openLoginModal();
     });
   }
 

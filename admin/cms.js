@@ -7,13 +7,6 @@ document.querySelectorAll('.side-link').forEach(link => {
     const target = document.getElementById(link.dataset.target);
     target.classList.add('active');
     document.getElementById('sectionTitle').textContent = link.textContent.trim();
-
-    if (link.dataset.target === 'v1Section') {
-      const frame = document.getElementById('v1Frame');
-      if (frame.dataset.src && frame.getAttribute('src') === 'about:blank') {
-        frame.src = frame.dataset.src;
-      }
-    }
   });
 });
 
