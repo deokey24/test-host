@@ -129,16 +129,54 @@ function renderVodCourseCard(node, course) {
   return node;
 }
 
+const VOD_PAGE_SIZE = 6;
+
 async function hydrateVodGrid() {
   const grid = document.querySelector('[data-cms-vod-courses]');
   const pillsWrap = document.querySelector('[data-cms-vod-pills]');
   const countEl = document.querySelector('[data-cms-vod-count]');
+  const paginationEl = document.querySelector('[data-cms-vod-pagination]');
   if (!grid && !pillsWrap && !countEl) return;
 
   const courses = await fetchVodCourses();
   if (!courses) return;
 
   if (countEl) countEl.textContent = courses.length;
+
+  let activeFilter = '';
+  let currentPage = 1;
+
+  function renderPage() {
+    const list = activeFilter ? courses.filter(c => c.category_label === activeFilter) : courses;
+    const totalPages = Math.max(1, Math.ceil(list.length / VOD_PAGE_SIZE));
+    if (currentPage > totalPages) currentPage = totalPages;
+    const start = (currentPage - 1) * VOD_PAGE_SIZE;
+    const pageItems = list.slice(start, start + VOD_PAGE_SIZE);
+
+    if (grid) {
+      const template = grid.querySelector('template');
+      if (template) {
+        [...grid.children].filter(c => c.tagName !== 'TEMPLATE').forEach(c => c.remove());
+        pageItems.forEach(course => {
+          const node = template.content.firstElementChild.cloneNode(true);
+          grid.appendChild(renderVodCourseCard(node, course));
+        });
+      }
+    }
+
+    if (paginationEl) {
+      if (totalPages <= 1) {
+        paginationEl.innerHTML = '';
+      } else {
+        let html = `<button type="button" class="vod-page-arrow" data-vod-page="${currentPage - 1}"${currentPage === 1 ? ' disabled' : ''}>‹</button>`;
+        for (let p = 1; p <= totalPages; p++) {
+          html += `<button type="button" class="${p === currentPage ? 'active' : ''}" data-vod-page="${p}">${p}</button>`;
+        }
+        html += `<button type="button" class="vod-page-arrow" data-vod-page="${currentPage + 1}"${currentPage === totalPages ? ' disabled' : ''}>›</button>`;
+        paginationEl.innerHTML = html;
+      }
+    }
+  }
 
   if (pillsWrap) {
     const labels = [...new Set(courses.map(c => c.category_label).filter(Boolean))];
@@ -150,25 +188,23 @@ async function hydrateVodGrid() {
       if (!btn) return;
       pillsWrap.querySelectorAll('button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      const filter = btn.dataset.filter;
-      if (grid) {
-        grid.querySelectorAll('.vod-course-card').forEach(card => {
-          card.style.display = (!filter || card.dataset.category === filter) ? '' : 'none';
-        });
-      }
+      activeFilter = btn.dataset.filter || '';
+      currentPage = 1;
+      renderPage();
     });
   }
 
-  if (grid) {
-    const template = grid.querySelector('template');
-    if (template) {
-      [...grid.children].filter(c => c.tagName !== 'TEMPLATE').forEach(c => c.remove());
-      courses.forEach(course => {
-        const node = template.content.firstElementChild.cloneNode(true);
-        grid.appendChild(renderVodCourseCard(node, course));
-      });
-    }
+  if (paginationEl) {
+    paginationEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-vod-page]');
+      if (!btn || btn.disabled) return;
+      currentPage = parseInt(btn.dataset.vodPage, 10) || 1;
+      renderPage();
+      grid?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
+
+  renderPage();
 }
 
 async function hydrateVodCurriculum() {
