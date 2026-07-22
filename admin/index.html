@@ -262,11 +262,11 @@
         </div>
       </div>
 
-      <div class="modal-overlay" id="vodModalOverlay">
-        <div class="modal-box" style="width:860px;">
-          <div class="modal-head">
+      <section id="vodEditSection" class="admin-section">
+        <div class="card">
+          <div class="content-header-row">
+            <button class="row-btn" id="vodEditBackBtn" type="button">← 목록으로</button>
             <h2 id="vodFormTitle">VOD 강의 수정</h2>
-            <button class="row-btn" id="vodModalCloseBtn" type="button">닫기</button>
           </div>
 
           <div class="admin-tabs" id="vodTabBtns">
@@ -388,21 +388,21 @@
           </div>
 
           <div id="vodTabCurriculum" class="admin-tab-panel" style="display:none;">
-            <p class="field-hint" style="margin-bottom:10px;">강의 번호·제목이 커리큘럼 스텝으로 그대로 표시됩니다. 영상 연결은 선택 사항입니다.</p>
+            <p class="field-hint" style="margin-bottom:10px;">강의 번호·제목이 커리큘럼 스텝으로 그대로 표시됩니다. 번호는 목록 마지막 다음 번호로 자동 지정되며, 영상 연결과 자료 첨부는 선택 사항입니다.</p>
             <div style="display:flex; gap:8px; margin-bottom:10px;">
-              <select id="vodLectureVideoSelect" style="flex:1;"></select>
-              <input type="number" id="vodLectureNumberInput" min="0" placeholder="번호" style="width:90px;">
+              <input type="number" id="vodLectureNumberInput" min="0" placeholder="번호" style="width:90px;" readonly>
               <input type="text" id="vodLectureTitleInput" placeholder="강의 제목" style="flex:1;">
+              <select id="vodLectureVideoSelect" style="flex:1;"></select>
               <button class="btn-outline" id="vodLectureAddBtn" type="button">추가</button>
             </div>
             <div class="status-text" id="vodLectureStatus"></div>
             <table>
-              <thead><tr><th style="width:70px;">번호</th><th>제목</th><th>영상 연결</th><th></th></tr></thead>
+              <thead><tr><th style="width:70px;">번호</th><th>제목</th><th style="width:220px;">영상 연결</th><th style="width:260px;">자료 첨부</th><th></th></tr></thead>
               <tbody id="vodLectureList"></tbody>
             </table>
           </div>
         </div>
-      </div>
+      </section>
 
       <section id="certSection" class="admin-section">
         <div class="card">
@@ -622,11 +622,27 @@
 
       <section id="videoSection" class="admin-section">
         <div class="card">
+          <div class="card-head-row">
+            <h2>영상 폴더</h2>
+          </div>
+          <div class="video-breadcrumb" id="videoBreadcrumb"></div>
+          <ul class="video-folder-list" id="videoFolderList"></ul>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <input type="text" id="videoFolderNewInput" placeholder="새 폴더 이름" style="flex:1;">
+            <button class="btn-outline" id="videoFolderAddBtn" type="button">폴더 추가</button>
+          </div>
+          <div class="status-text" id="videoFolderStatus"></div>
+        </div>
+        <div class="card">
           <h2>영상 업로드</h2>
           <div class="field-grid">
             <div class="field-row full">
               <label class="field-label">강의 제목</label>
               <input type="text" id="videoTitleInput" placeholder="강의 제목">
+            </div>
+            <div class="field-row full">
+              <label class="field-label">업로드 위치</label>
+              <select id="videoFolderSelect"></select>
             </div>
             <div class="field-row full">
               <label class="field-label">영상 파일</label>
@@ -638,13 +654,25 @@
           <div class="status-text" id="videoStatusText"></div>
         </div>
         <div class="card">
-          <h2>업로드된 영상 (<span id="videoTotal">0</span>개)</h2>
+          <h2>이 폴더의 영상 (<span id="videoTotal">0</span>개)</h2>
           <table>
             <thead><tr><th>제목</th><th>상태</th><th>등록일</th><th>영상 링크</th><th>관리</th></tr></thead>
             <tbody id="videoList"></tbody>
           </table>
         </div>
       </section>
+
+      <div class="modal-overlay" id="videoMoveModalOverlay">
+        <div class="modal-box" style="width:420px;">
+          <div class="modal-head">
+            <h2 id="videoMoveModalTitle">이동</h2>
+            <button class="row-btn" id="videoMoveModalCloseBtn" type="button">닫기</button>
+          </div>
+          <select id="videoMoveFolderSelect" style="margin-bottom:14px;"></select>
+          <button class="btn" id="videoMoveConfirmBtn" type="button">이동</button>
+          <div class="status-text" id="videoMoveStatus"></div>
+        </div>
+      </div>
 
       <section id="memberSection" class="admin-section">
         <div class="card">

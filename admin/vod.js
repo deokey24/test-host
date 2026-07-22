@@ -197,8 +197,19 @@ function selectVodTab(tab) {
   document.querySelector(`#vodTabBtns button[data-vod-tab="${tab}"]`).click();
 }
 
-function openEditModalShell() { document.getElementById('vodModalOverlay').classList.add('open'); }
-function closeEditModal() { document.getElementById('vodModalOverlay').classList.remove('open'); }
+function showVodEditPage() {
+  document.querySelectorAll('.side-link').forEach(l => l.classList.remove('active'));
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('vodEditSection').classList.add('active');
+  document.getElementById('sectionTitle').textContent = 'VOD 강의 수정';
+}
+function closeVodEditPage() {
+  collapseLectureContent();
+  document.getElementById('vodEditSection').classList.remove('active');
+  document.querySelector('.side-link[data-target="vodSection"]').classList.add('active');
+  document.getElementById('vodSection').classList.add('active');
+  document.getElementById('sectionTitle').textContent = 'VOD 강의';
+}
 
 function fillVodForm(course) {
   document.getElementById('vfTag').value = course?.tag || '';
@@ -253,7 +264,7 @@ async function openEditModal(courseStub) {
   currentVodId = courseStub.id;
   document.getElementById('vodFormTitle').textContent = 'VOD 강의 수정';
   setStatus(document.getElementById('vodFormStatus'), '');
-  openEditModalShell();
+  showVodEditPage();
   selectVodTab('title');
   const course = await apiFetch(`/admin/api/vod-courses/${currentVodId}`);
   fillVodForm(course);
@@ -285,10 +296,7 @@ document.getElementById('vodList').addEventListener('click', async (e) => {
   }
 });
 
-document.getElementById('vodModalCloseBtn').addEventListener('click', closeEditModal);
-document.getElementById('vodModalOverlay').addEventListener('click', (e) => {
-  if (e.target.id === 'vodModalOverlay') closeEditModal();
-});
+document.getElementById('vodEditBackBtn').addEventListener('click', closeVodEditPage);
 document.getElementById('vfHasDiscount').addEventListener('change', () => toggleDiscountRow('vfHasDiscount', 'vfOldPriceRow', 'vfNewPriceLabel'));
 
 document.getElementById('vodSaveBtn').addEventListener('click', async () => {
@@ -497,32 +505,137 @@ document.getElementById('vodSectionList').addEventListener('change', async (e) =
   }
 });
 
-// ── 커리큘럼 스텝 / 영상 연결 (현행 유지) ──
+// ── 커리큘럼 스텝 / 영상 연결 / 자료 첨부 ──
+let vodMaterialsCache = [];
+
+function lectureMaterialsFor(lectureId) {
+  return vodMaterialsCache.filter(m => String(m.vod_course_lecture_id) === String(lectureId));
+}
+
+function lectureRowHtml(l) {
+  const materials = lectureMaterialsFor(l.id);
+  const hasContent = !!(l.content_markdown && l.content_markdown.trim());
+  return `
+    <tr>
+      <td>${l.lecture_number}</td>
+      <td><input type="text" data-lec-title="${l.id}" value="${escapeHtml(l.title)}" style="margin-bottom:0;"></td>
+      <td>
+        <div class="searchable-select" data-video-select="${l.id}">
+          <input type="text" class="ss-input" autocomplete="off">
+          <div class="ss-dropdown"></div>
+        </div>
+      </td>
+      <td>
+        <div class="material-chip-list" data-material-list="${l.id}">
+          ${materials.map(m => `<span class="material-chip">${escapeHtml(m.title)}<button type="button" data-remove-material="${m.id}" title="삭제">×</button></span>`).join('')}
+        </div>
+        <div class="material-add-row">
+          <input type="file" data-material-input="${l.id}">
+          <button type="button" class="row-btn" data-material-add="${l.id}">자료 추가</button>
+        </div>
+      </td>
+      <td>
+        <button type="button" class="row-btn${hasContent ? ' has-content' : ''}" data-content-toggle="${l.id}">내용</button>
+        <button class="row-btn danger" data-unlink-lec="${l.id}">삭제</button>
+      </td>
+    </tr>
+    <tr class="lecture-content-row" data-content-row="${l.id}" style="display:none;">
+      <td colspan="5">
+        <div class="lecture-content-editor">
+          <div id="lectureContentMount-${l.id}"></div>
+          <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+            <button type="button" class="btn-outline" data-content-save="${l.id}">콘텐츠 저장</button>
+            <span class="status-text" data-content-status="${l.id}" style="margin:0;"></span>
+          </div>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+// ── 커리큘럼 스텝별 콘텐츠 에디터 (기본 접힘, 한 번에 하나만 펼쳐서 스크롤을 최소화) ──
+let activeContentLectureId = null;
+let contentEditorInstance = null;
+
+function collapseLectureContent() {
+  if (activeContentLectureId == null) return;
+  const row = document.querySelector(`[data-content-row="${activeContentLectureId}"]`);
+  if (row) row.style.display = 'none';
+  const toggleBtn = document.querySelector(`[data-content-toggle="${activeContentLectureId}"]`);
+  if (toggleBtn) toggleBtn.classList.remove('active');
+  if (contentEditorInstance) {
+    contentEditorInstance.destroy();
+    contentEditorInstance = null;
+  }
+  activeContentLectureId = null;
+}
+
+function expandLectureContent(lectureId) {
+  const lecture = vodLecturesCache.find(l => String(l.id) === String(lectureId));
+  if (!lecture) return;
+  collapseLectureContent();
+  const row = document.querySelector(`[data-content-row="${lectureId}"]`);
+  const toggleBtn = document.querySelector(`[data-content-toggle="${lectureId}"]`);
+  row.style.display = '';
+  toggleBtn.classList.add('active');
+  contentEditorInstance = new toastui.Editor({
+    el: document.getElementById(`lectureContentMount-${lectureId}`),
+    height: '360px',
+    initialEditType: 'wysiwyg',
+    previewStyle: 'vertical',
+    language: 'ko-KR',
+    initialValue: lecture.content_markdown || ''
+  });
+  activeContentLectureId = lectureId;
+}
+
 async function loadVodLectures() {
   if (!currentVodId) return;
-  const [lectures, videos] = await Promise.all([
+  collapseLectureContent();
+  const [lectures, videos, materials] = await Promise.all([
     apiFetch(`/admin/api/vod-courses/${currentVodId}/lectures`),
-    apiFetch('/admin/api/videos')
+    apiFetch('/admin/api/videos'),
+    apiFetch(`/admin/api/vod-courses/${currentVodId}/lecture-materials`).catch(() => [])
   ]);
   vodLecturesCache = lectures;
-  const linkedKeys = new Set(lectures.map(l => l.video_r2_key).filter(Boolean));
+  vodMaterialsCache = materials;
   const doneVideos = videos.filter(v => v.status === 'done' && v.final_r2_key);
-  const select = document.getElementById('vodLectureVideoSelect');
-  select.innerHTML = '<option value="">(영상 연결 안 함)</option>' +
-    doneVideos.map(v => `<option value="${v.id}">${linkedKeys.has(v.final_r2_key) ? '✓ ' : ''}${escapeHtml(v.title)}</option>`).join('');
+  const videoOptions = doneVideos.map(v => ({ id: v.id, label: v.title }));
+
+  const addSelect = document.getElementById('vodLectureVideoSelect');
+  addSelect.innerHTML = '<option value="">강의 영상 선택</option>' +
+    doneVideos.map(v => `<option value="${v.id}">${escapeHtml(v.title)}</option>`).join('');
 
   document.getElementById('vodLectureNumberInput').value = lectures.length
     ? String(Math.max(...lectures.map(l => l.lecture_number)) + 1)
     : '0';
 
-  document.getElementById('vodLectureList').innerHTML = lectures.length ? lectures.map(l => `
-    <tr>
-      <td><input type="number" data-lec-num="${l.id}" value="${l.lecture_number}" min="0" style="width:60px; margin-bottom:0;"></td>
-      <td><input type="text" data-lec-title="${l.id}" value="${escapeHtml(l.title)}" style="margin-bottom:0;"></td>
-      <td style="font-size:11.5px; color:var(--text-soft);">${l.video_r2_key ? escapeHtml(l.video_title || '연결됨') : '미연결'}</td>
-      <td><button class="row-btn danger" data-unlink-lec="${l.id}">삭제</button></td>
-    </tr>
-  `).join('') : '<tr><td colspan="4" style="color:var(--text-soft);">등록된 커리큘럼 스텝이 없습니다.</td></tr>';
+  document.getElementById('vodLectureList').innerHTML = lectures.length
+    ? lectures.map(lectureRowHtml).join('')
+    : '<tr><td colspan="5" style="color:var(--text-soft);">등록된 커리큘럼 스텝이 없습니다.</td></tr>';
+
+  lectures.forEach(l => {
+    const container = document.querySelector(`[data-video-select="${l.id}"]`);
+    initSearchableSelect(container, videoOptions, {
+      value: l.video_id || '',
+      placeholder: '강의 영상 선택',
+      emptyLabel: '(영상 연결 안 함)',
+      onSelect: (videoId) => updateLectureVideo(l.id, videoId)
+    });
+  });
+}
+
+async function updateLectureVideo(lectureId, videoId) {
+  const status = document.getElementById('vodLectureStatus');
+  try {
+    await apiFetch(`/admin/api/vod-courses/${currentVodId}/lectures/${lectureId}`, {
+      method: 'PUT', body: JSON.stringify({ videoId: videoId || null })
+    });
+    setStatus(status, '영상 연결이 저장되었습니다.', 'ok');
+    await loadVodLectures();
+  } catch (err) {
+    setStatus(status, err.message, 'error');
+  }
 }
 
 document.getElementById('vodLectureAddBtn').addEventListener('click', async () => {
@@ -546,13 +659,12 @@ document.getElementById('vodLectureAddBtn').addEventListener('click', async () =
 });
 
 document.getElementById('vodLectureList').addEventListener('change', async (e) => {
-  const numId = e.target.dataset.lecNum;
   const titleId = e.target.dataset.lecTitle;
-  const id = numId || titleId;
-  if (!id) return;
-  const body = numId ? { lectureNumber: e.target.value } : { title: e.target.value };
+  if (!titleId) return;
   try {
-    await apiFetch(`/admin/api/vod-courses/${currentVodId}/lectures/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+    await apiFetch(`/admin/api/vod-courses/${currentVodId}/lectures/${titleId}`, {
+      method: 'PUT', body: JSON.stringify({ title: e.target.value })
+    });
     setStatus(document.getElementById('vodLectureStatus'), '수정되었습니다.', 'ok');
     await loadVodLectures();
   } catch (err) {
@@ -561,15 +673,87 @@ document.getElementById('vodLectureList').addEventListener('change', async (e) =
 });
 
 document.getElementById('vodLectureList').addEventListener('click', async (e) => {
-  const id = e.target.dataset.unlinkLec;
-  if (!id) return;
-  const lecture = vodLecturesCache.find(l => String(l.id) === id);
-  if (!lecture || !confirm(`"${lecture.title}" 스텝을 삭제할까요?`)) return;
-  try {
-    await apiFetch(`/admin/api/vod-courses/${currentVodId}/lectures/${id}`, { method: 'DELETE' });
-    await loadVodLectures();
-  } catch (err) {
-    setStatus(document.getElementById('vodLectureStatus'), err.message, 'error');
+  const unlinkId = e.target.dataset.unlinkLec;
+  const addMaterialId = e.target.dataset.materialAdd;
+  const removeMaterialId = e.target.dataset.removeMaterial;
+  const toggleContentId = e.target.dataset.contentToggle;
+  const saveContentId = e.target.dataset.contentSave;
+  const status = document.getElementById('vodLectureStatus');
+
+  if (toggleContentId) {
+    if (String(activeContentLectureId) === String(toggleContentId)) collapseLectureContent();
+    else expandLectureContent(toggleContentId);
+    return;
+  }
+
+  if (saveContentId) {
+    if (!contentEditorInstance) return;
+    const statusEl = document.querySelector(`[data-content-status="${saveContentId}"]`);
+    const markdown = contentEditorInstance.getMarkdown();
+    try {
+      await apiFetch(`/admin/api/vod-courses/${currentVodId}/lectures/${saveContentId}`, {
+        method: 'PUT', body: JSON.stringify({ contentMarkdown: markdown })
+      });
+      const lecture = vodLecturesCache.find(l => String(l.id) === saveContentId);
+      if (lecture) lecture.content_markdown = markdown;
+      const toggleBtn = document.querySelector(`[data-content-toggle="${saveContentId}"]`);
+      if (toggleBtn) toggleBtn.classList.toggle('has-content', !!markdown.trim());
+      setStatus(statusEl, '저장되었습니다.', 'ok');
+    } catch (err) {
+      setStatus(statusEl, err.message, 'error');
+    }
+    return;
+  }
+
+  if (unlinkId) {
+    const lecture = vodLecturesCache.find(l => String(l.id) === unlinkId);
+    if (!lecture || !confirm(`"${lecture.title}" 스텝을 삭제할까요?`)) return;
+    try {
+      await apiFetch(`/admin/api/vod-courses/${currentVodId}/lectures/${unlinkId}`, { method: 'DELETE' });
+      await loadVodLectures();
+    } catch (err) {
+      setStatus(status, err.message, 'error');
+    }
+    return;
+  }
+
+  if (addMaterialId) {
+    const fileInput = document.querySelector(`[data-material-input="${addMaterialId}"]`);
+    const file = fileInput.files[0];
+    if (!file) { setStatus(status, '첨부할 파일을 선택해주세요.', 'error'); return; }
+    try {
+      const { key, uploadUrl } = await apiFetch(`/admin/api/vod-courses/${currentVodId}/lectures/${addMaterialId}/materials/presign`, {
+        method: 'POST',
+        body: JSON.stringify({ contentType: file.type || 'application/octet-stream', filename: file.name })
+      });
+      const putRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body: file
+      });
+      if (!putRes.ok) throw new Error('업로드에 실패했습니다.');
+      await apiFetch(`/admin/api/vod-courses/${currentVodId}/lectures/${addMaterialId}/materials/confirm`, {
+        method: 'POST',
+        body: JSON.stringify({ key, title: file.name, contentType: file.type, fileSize: file.size })
+      });
+      setStatus(status, '자료가 추가되었습니다.', 'ok');
+      await loadVodLectures();
+    } catch (err) {
+      setStatus(status, err.message, 'error');
+    }
+    return;
+  }
+
+  if (removeMaterialId) {
+    if (!confirm('이 자료를 삭제할까요?')) return;
+    const material = vodMaterialsCache.find(m => String(m.id) === removeMaterialId);
+    if (!material) return;
+    try {
+      await apiFetch(`/admin/api/vod-courses/${currentVodId}/lectures/${material.vod_course_lecture_id}/materials/${removeMaterialId}`, { method: 'DELETE' });
+      await loadVodLectures();
+    } catch (err) {
+      setStatus(status, err.message, 'error');
+    }
   }
 });
 

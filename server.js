@@ -80,25 +80,36 @@ app.get('/admin/v1', requireAdmin, (req, res) => {
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 
 app.get('/admin/api/videos', requireAdminApi, wrapAsync(async (req, res) => {
+  const { folderId } = req.query;
+  const where = folderId ? 'WHERE folder_id = ?' : 'WHERE folder_id IS NULL';
+  const params = folderId ? [folderId] : [];
   const [rows] = await getPool().query(
-    'SELECT id, title, status, final_r2_key, error_message, created_at FROM lecture_videos ORDER BY created_at DESC'
+    `SELECT id, title, status, final_r2_key, error_message, created_at, folder_id FROM lecture_videos ${where} ORDER BY created_at DESC`,
+    params
   );
   res.json(rows.map(v => ({ ...v, final_url: v.final_r2_key ? buildCdnUrl(v.final_r2_key) : null })));
 }));
 
 app.post('/admin/api/videos/presign', requireAdminApi, wrapAsync(async (req, res) => {
-  const { title, fileSize } = req.body;
+  const { title, fileSize, folderId } = req.body;
   if (!title || !fileSize) {
     res.status(400).json({ error: 'title과 fileSize가 필요합니다.' });
     return;
+  }
+  if (folderId) {
+    const [[{ cnt }]] = await getPool().query('SELECT COUNT(*) AS cnt FROM video_folders WHERE id = ?', [folderId]);
+    if (cnt === 0) {
+      res.status(404).json({ error: '폴더를 찾을 수 없습니다.' });
+      return;
+    }
   }
 
   const key = `raw/${crypto.randomUUID()}-${title.replace(/[^\w.\-가-힣 ]/g, '')}`;
   const uploadId = await r2.createMultipartUpload(key);
 
   const [result] = await getPool().query(
-    'INSERT INTO lecture_videos (title, raw_r2_key, raw_upload_id, status) VALUES (?, ?, ?, ?)',
-    [title, key, uploadId, 'uploading']
+    'INSERT INTO lecture_videos (title, raw_r2_key, raw_upload_id, status, folder_id) VALUES (?, ?, ?, ?, ?)',
+    [title, key, uploadId, 'uploading', folderId || null]
   );
   const videoId = result.insertId;
 
@@ -189,6 +200,150 @@ app.delete('/admin/api/videos/:id', requireAdminApi, wrapAsync(async (req, res) 
   // DB 행을 지우면 큐에 남은 작업 메시지는 워커가 "행 없음"으로 판단해 스킵한다 (queued 상태도 안전)
   await getPool().query('DELETE FROM lecture_videos WHERE id = ?', [id]);
 
+  res.json({ ok: true });
+}));
+
+app.put('/admin/api/videos/:id/move', requireAdminApi, wrapAsync(async (req, res) => {
+  const { id } = req.params;
+  const { folderId } = req.body;
+  const [rows] = await getPool().query('SELECT id FROM lecture_videos WHERE id = ?', [id]);
+  if (!rows[0]) {
+    res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
+    return;
+  }
+  if (folderId) {
+    const [[{ cnt }]] = await getPool().query('SELECT COUNT(*) AS cnt FROM video_folders WHERE id = ?', [folderId]);
+    if (cnt === 0) {
+      res.status(404).json({ error: '폴더를 찾을 수 없습니다.' });
+      return;
+    }
+  }
+  await getPool().query('UPDATE lecture_videos SET folder_id = ? WHERE id = ?', [folderId || null, id]);
+  res.json({ ok: true });
+}));
+
+// ── video_folders (영상 업로드 다중 계층 폴더, FTP 스타일) ──
+app.get('/admin/api/video-folders', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT f.id, f.parent_id, f.name, f.sort_order,
+            (SELECT COUNT(*) FROM video_folders WHERE parent_id = f.id) AS folder_count,
+            (SELECT COUNT(*) FROM lecture_videos WHERE folder_id = f.id) AS video_count
+     FROM video_folders f
+     ORDER BY f.sort_order, f.id`
+  );
+  res.json(rows);
+}));
+
+app.post('/admin/api/video-folders', requireAdminApi, wrapAsync(async (req, res) => {
+  const { name, parent_id, sort_order } = req.body;
+  if (!name || !String(name).trim()) {
+    res.status(400).json({ error: '폴더 이름을 입력해주세요.' });
+    return;
+  }
+  if (parent_id) {
+    const [[{ cnt }]] = await getPool().query('SELECT COUNT(*) AS cnt FROM video_folders WHERE id = ?', [parent_id]);
+    if (cnt === 0) {
+      res.status(404).json({ error: '상위 폴더를 찾을 수 없습니다.' });
+      return;
+    }
+  }
+  try {
+    const [result] = await getPool().query(
+      'INSERT INTO video_folders (parent_id, name, sort_order) VALUES (?, ?, ?)',
+      [parent_id || null, String(name).trim(), parseInt(sort_order, 10) || 0]
+    );
+    res.json({ ok: true, id: result.insertId });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      res.status(409).json({ error: '같은 위치에 이미 존재하는 폴더 이름입니다.' });
+      return;
+    }
+    throw err;
+  }
+}));
+
+app.put('/admin/api/video-folders/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const { id } = req.params;
+  const { name, parent_id, sort_order } = req.body;
+  const [rows] = await getPool().query('SELECT * FROM video_folders WHERE id = ?', [id]);
+  const folder = rows[0];
+  if (!folder) {
+    res.status(404).json({ error: '폴더를 찾을 수 없습니다.' });
+    return;
+  }
+
+  const fields = [];
+  const values = [];
+  if (name !== undefined) {
+    const newName = String(name).trim();
+    if (!newName) {
+      res.status(400).json({ error: '폴더 이름을 입력해주세요.' });
+      return;
+    }
+    fields.push('name = ?');
+    values.push(newName);
+  }
+  if (sort_order !== undefined) {
+    fields.push('sort_order = ?');
+    values.push(parseInt(sort_order, 10) || 0);
+  }
+  if (parent_id !== undefined) {
+    const newParentId = parent_id || null;
+    if (newParentId) {
+      if (String(newParentId) === String(id)) {
+        res.status(400).json({ error: '폴더를 자기 자신의 하위로 옮길 수 없습니다.' });
+        return;
+      }
+      const [allRows] = await getPool().query('SELECT id, parent_id FROM video_folders');
+      const parentOf = new Map(allRows.map(f => [String(f.id), f.parent_id != null ? String(f.parent_id) : null]));
+      let cursor = String(newParentId);
+      while (cursor != null) {
+        if (cursor === String(id)) {
+          res.status(400).json({ error: '하위 폴더로는 이동할 수 없습니다.' });
+          return;
+        }
+        cursor = parentOf.get(cursor) ?? null;
+      }
+      if (!parentOf.has(String(newParentId))) {
+        res.status(404).json({ error: '상위 폴더를 찾을 수 없습니다.' });
+        return;
+      }
+    }
+    fields.push('parent_id = ?');
+    values.push(newParentId);
+  }
+  if (fields.length === 0) {
+    res.status(400).json({ error: '변경할 값이 없습니다.' });
+    return;
+  }
+
+  try {
+    values.push(id);
+    await getPool().query(`UPDATE video_folders SET ${fields.join(', ')} WHERE id = ?`, values);
+    res.json({ ok: true });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      res.status(409).json({ error: '같은 위치에 이미 존재하는 폴더 이름입니다.' });
+      return;
+    }
+    throw err;
+  }
+}));
+
+app.delete('/admin/api/video-folders/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const { id } = req.params;
+  const [rows] = await getPool().query('SELECT id FROM video_folders WHERE id = ?', [id]);
+  if (!rows[0]) {
+    res.status(404).json({ error: '폴더를 찾을 수 없습니다.' });
+    return;
+  }
+  const [[{ folderCnt }]] = await getPool().query('SELECT COUNT(*) AS folderCnt FROM video_folders WHERE parent_id = ?', [id]);
+  const [[{ videoCnt }]] = await getPool().query('SELECT COUNT(*) AS videoCnt FROM lecture_videos WHERE folder_id = ?', [id]);
+  if (folderCnt > 0 || videoCnt > 0) {
+    res.status(409).json({ error: '폴더 안에 하위 폴더나 영상이 있어 삭제할 수 없습니다. 먼저 비워주세요.' });
+    return;
+  }
+  await getPool().query('DELETE FROM video_folders WHERE id = ?', [id]);
   res.json({ ok: true });
 }));
 
@@ -1268,7 +1423,7 @@ app.get('/api/vod-courses/:id/lectures', wrapAsync(async (req, res) => {
 
 app.get('/admin/api/vod-courses/:id/lectures', requireAdminApi, wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
-    `SELECT l.id, l.lecture_number, l.title, l.video_r2_key, l.sort_order,
+    `SELECT l.id, l.lecture_number, l.title, l.video_r2_key, l.sort_order, l.content_markdown,
             v.id AS video_id, v.title AS video_title
      FROM vod_course_lectures l
      LEFT JOIN lecture_videos v ON v.final_r2_key = l.video_r2_key
@@ -1316,7 +1471,7 @@ app.post('/admin/api/vod-courses/:id/lectures', requireAdminApi, wrapAsync(async
 }));
 
 app.put('/admin/api/vod-courses/:id/lectures/:lectureId', requireAdminApi, wrapAsync(async (req, res) => {
-  const { videoId, lectureNumber, title } = req.body;
+  const { videoId, lectureNumber, title, contentMarkdown } = req.body;
   const fields = [];
   const values = [];
   if (lectureNumber !== undefined) {
@@ -1345,6 +1500,10 @@ app.put('/admin/api/vod-courses/:id/lectures/:lectureId', requireAdminApi, wrapA
       values.push(video.final_r2_key);
     }
   }
+  if (contentMarkdown !== undefined) {
+    fields.push('content_markdown = ?');
+    values.push(contentMarkdown === null ? null : String(contentMarkdown));
+  }
   if (fields.length === 0) { res.status(400).json({ error: '변경할 값이 없습니다.' }); return; }
   try {
     values.push(req.params.lectureId, req.params.id);
@@ -1366,6 +1525,58 @@ app.delete('/admin/api/vod-courses/:id/lectures/:lectureId', requireAdminApi, wr
     [req.params.lectureId, req.params.id]
   );
   if (result.affectedRows === 0) { res.status(404).json({ error: '강의를 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+// ── vod_course_lecture_materials — 강의별 자료 첨부 (class_chapter_attachments와 동일한 presign→PUT→confirm 패턴) ──
+app.get('/admin/api/vod-courses/:id/lecture-materials', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT m.* FROM vod_course_lecture_materials m
+     JOIN vod_course_lectures l ON l.id = m.vod_course_lecture_id
+     WHERE l.vod_course_id = ? ORDER BY m.sort_order, m.id`,
+    [req.params.id]
+  );
+  res.json(rows);
+}));
+
+app.post('/admin/api/vod-courses/:id/lectures/:lectureId/materials/presign', requireAdminApi, wrapAsync(async (req, res) => {
+  const { contentType, filename } = req.body;
+  if (!contentType) { res.status(400).json({ error: 'contentType이 필요합니다.' }); return; }
+  const [[lecture]] = await getPool().query(
+    'SELECT id FROM vod_course_lectures WHERE id = ? AND vod_course_id = ?',
+    [req.params.lectureId, req.params.id]
+  );
+  if (!lecture) { res.status(404).json({ error: '강의를 찾을 수 없습니다.' }); return; }
+  const extFromName = filename && filename.includes('.') ? filename.split('.').pop() : '';
+  const ext = (extFromName || contentType.split('/')[1] || 'bin').replace(/[^a-z0-9]/gi, '') || 'bin';
+  const key = `vod-courses/${req.params.id}/lectures/${req.params.lectureId}/materials/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+  const uploadUrl = await r2.presignPutObject(key, contentType);
+  res.json({ key, uploadUrl });
+}));
+
+app.post('/admin/api/vod-courses/:id/lectures/:lectureId/materials/confirm', requireAdminApi, wrapAsync(async (req, res) => {
+  const { key, title, contentType, fileSize } = req.body;
+  if (!key || !title) { res.status(400).json({ error: 'key, title이 필요합니다.' }); return; }
+  if (!key.startsWith(`vod-courses/${req.params.id}/lectures/${req.params.lectureId}/materials/`)) {
+    res.status(400).json({ error: '유효하지 않은 key입니다.' });
+    return;
+  }
+  const url = `/uploads/${key}`;
+  const [result] = await getPool().query(
+    'INSERT INTO vod_course_lecture_materials (vod_course_lecture_id, title, file_url, file_key, mime_type, file_size) VALUES (?, ?, ?, ?, ?, ?)',
+    [req.params.lectureId, title, url, key, contentType || null, fileSize || null]
+  );
+  res.json({ ok: true, id: result.insertId, url });
+}));
+
+app.delete('/admin/api/vod-courses/:id/lectures/:lectureId/materials/:materialId', requireAdminApi, wrapAsync(async (req, res) => {
+  const [result] = await getPool().query(
+    `DELETE m FROM vod_course_lecture_materials m
+     JOIN vod_course_lectures l ON l.id = m.vod_course_lecture_id
+     WHERE m.id = ? AND m.vod_course_lecture_id = ? AND l.vod_course_id = ?`,
+    [req.params.materialId, req.params.lectureId, req.params.id]
+  );
+  if (result.affectedRows === 0) { res.status(404).json({ error: '자료를 찾을 수 없습니다.' }); return; }
   res.json({ ok: true });
 }));
 

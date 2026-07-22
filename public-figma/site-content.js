@@ -121,6 +121,11 @@ function renderVodCourseCard(node, course) {
   const newEl = node.querySelector('.new, .new-price'); if (newEl) newEl.textContent = course.new_price || '';
   const link = node.querySelector('.curriculum-link');
   if (link) link.href = `classDetail.html?id=${course.id}`;
+  node.style.cursor = 'pointer';
+  node.addEventListener('click', (e) => {
+    if (e.target.closest('a')) return;
+    window.location.href = `classDetail.html?id=${course.id}`;
+  });
   return node;
 }
 
@@ -188,11 +193,14 @@ async function hydrateVodCurriculum() {
 
     const steps = await fetchVodCourseLectures(course.id);
     const stepsEl = node.querySelector('.curriculum-steps');
-    stepsEl.innerHTML = steps.map((step, i) => `
+    stepsEl.innerHTML = steps.slice(0, 6).map((step, i) => `
       <li><span class="num">${String(i + 1).padStart(2, '0')}</span><span class="step-title">${escapeCmsHtml(step.title)}</span></li>
     `).join('');
     const moreEl = node.querySelector('.curriculum-more');
-    if (moreEl) moreEl.textContent = `전체 ${steps.length}강 보기 +`;
+    if (moreEl) {
+      moreEl.textContent = `전체 ${steps.length}강 보기 +`;
+      moreEl.href = `classDetail.html?id=${course.id}`;
+    }
     return node;
   }));
 
@@ -221,6 +229,17 @@ async function hydrateHomeVodPreview() {
   const oldPrice = previewWrap.querySelector('.old-price');
   if (oldPrice) { if (course.old_price) oldPrice.textContent = course.old_price; else oldPrice.remove(); }
   const newPrice = previewWrap.querySelector('.new-price'); if (newPrice) newPrice.textContent = course.new_price || '';
+
+  const detailUrl = `classDetail.html?id=${course.id}`;
+  const curriculumBtn = previewWrap.querySelector('.btn-row .btn-outline');
+  if (curriculumBtn) curriculumBtn.href = detailUrl;
+  const enrollBtn = previewWrap.querySelector('.btn-row .btn-fill');
+  if (enrollBtn) enrollBtn.href = detailUrl;
+  const videoCard = previewWrap.querySelector('.vod-video-card');
+  if (videoCard) {
+    videoCard.style.cursor = 'pointer';
+    videoCard.addEventListener('click', () => { window.location.href = detailUrl; });
+  }
 
   const filterPills = document.querySelector('.vod-list-section .filter-pills');
   if (filterPills) {

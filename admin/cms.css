@@ -141,6 +141,47 @@ main { max-width: 1200px; width: 100%; margin: 0 auto; padding: 28px 32px 60px; 
 .drag-item-body .field-label { margin-top: 2px; }
 .drag-item-body textarea { margin-top: 6px; }
 
+/* ── 모달 대신 페이지 이동으로 여는 수정 화면 (VOD 강의 수정 등) ── */
+.content-header-row { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.content-header-row h2 { margin: 0; font-size: 16px; font-weight: 800; }
+
+input[readonly] { background: var(--grey-bg); color: var(--text-soft); cursor: not-allowed; }
+
+/* ── searchable select (영상 연결 드롭다운 검색) ── */
+.searchable-select { position: relative; }
+.searchable-select .ss-input { margin-bottom: 0; }
+.ss-dropdown {
+  display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
+  background: var(--white); border: 1px solid var(--border-strong); border-radius: 8px;
+  max-height: 220px; overflow-y: auto; box-shadow: 0 8px 20px rgba(21,25,28,0.14);
+}
+.ss-dropdown.open { display: block; }
+.ss-option { padding: 8px 12px; font-size: 12.5px; cursor: pointer; }
+.ss-option:hover { background: var(--grey-bg); }
+.ss-option-muted { color: var(--text-soft); }
+.ss-option-empty { padding: 8px 12px; font-size: 12px; color: var(--text-soft); }
+
+/* ── 강의별 자료 첨부 ── */
+.material-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.material-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--grey-bg); border: 1px solid var(--border); border-radius: 999px;
+  padding: 4px 4px 4px 10px; font-size: 11.5px; max-width: 100%;
+}
+.material-chip button {
+  border: none; background: none; cursor: pointer; color: var(--text-soft); font-size: 13px;
+  width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+}
+.material-chip button:hover { background: var(--danger-bg); color: var(--danger); }
+.material-add-row { display: flex; gap: 6px; align-items: center; }
+.material-add-row input[type="file"] { flex: 1; min-width: 0; font-size: 11px; margin-bottom: 0; }
+
+/* ── 커리큘럼 스텝별 콘텐츠 에디터 (기본 접힘, TOAST UI 마크다운 에디터를 펼쳤을 때만 마운트) ── */
+.row-btn.active { background: var(--dark); color: var(--white); border-color: var(--dark); }
+.row-btn.has-content { border-color: var(--green); color: var(--green-dark); }
+.lecture-content-row td { background: var(--grey-bg); padding: 16px; }
+.lecture-content-editor .toastui-editor-defaultUI { border-radius: 8px; overflow: hidden; }
+
 /* ── form fields ── */
 .field-row { margin-bottom: 14px; }
 .field-label { display: block; font-size: 12px; font-weight: 700; color: var(--text-soft); margin-bottom: 6px; }
@@ -295,3 +336,29 @@ th { color: var(--text-soft); font-weight: 700; font-size: 12px; }
 
 .progress { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-top: 10px; display: none; }
 .progress-bar { height: 100%; width: 0%; background: var(--green); transition: width .2s; }
+
+/* ── 영상 업로드 폴더 브라우저 (FTP 스타일 다중 계층) ── */
+.video-breadcrumb { font-size: 13px; color: var(--text-soft); margin-bottom: 12px; }
+.video-breadcrumb-item {
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--text-soft); font-size: 13px; text-decoration: underline;
+}
+.video-breadcrumb-item:hover { color: var(--text); }
+.video-breadcrumb-sep { margin: 0 6px; color: var(--border-strong); }
+.video-breadcrumb-current { font-weight: 700; color: var(--text); }
+
+.video-folder-list { list-style: none; margin: 0; padding: 0; }
+.video-folder-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 4px; border-bottom: 1px solid var(--border);
+}
+.video-folder-row:last-child { border-bottom: none; }
+.video-folder-open {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-size: 14px; font-weight: 700; color: var(--text); text-align: left;
+  display: flex; align-items: baseline; gap: 8px; min-width: 0;
+}
+.video-folder-open:hover { text-decoration: underline; }
+.video-folder-open .field-hint { font-weight: 400; }
+.video-folder-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.video-folder-empty { font-size: 13px; color: var(--text-soft); padding: 8px 4px; }

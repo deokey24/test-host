@@ -368,18 +368,20 @@ a {
 
 .class-cards .class-card .class-card-icon {
   position: absolute;
-  top: 64px;
   left: 50%;
   transform: translateX(-50%);
-  width: auto;
   height: auto;
-  max-width: 72px;
-  max-height: 72px;
   object-fit: contain;
 }
 
+.class-cards .class-card:nth-child(2) .class-card-icon { top: 25px; width: 137.5px; }
+.class-cards .class-card:nth-child(3) .class-card-icon { top: 14px; width: 118.6px; }
+.class-cards .class-card:nth-child(4) .class-card-icon { top: 17px; width: 116.5px; }
+
 .class-cards .class-card .class-card-decor {
   position: absolute;
+  top: auto;
+  left: auto;
   right: -50px;
   bottom: -70px;
   width: 260px;

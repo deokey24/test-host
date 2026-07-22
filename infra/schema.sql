@@ -566,3 +566,41 @@ ALTER TABLE vod_courses
   ADD COLUMN IF NOT EXISTS intro_heading VARCHAR(300) DEFAULT '클래스에서 배울 수 있는 내용이에요',
   ADD COLUMN IF NOT EXISTS intro_paragraph TEXT DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS recommended_heading VARCHAR(300) DEFAULT '이런 분들께 추천해요';
+
+-- ── VOD 강의 수정 페이지 개편 (2026-07) — 커리큘럼 스텝별 자료 첨부 ──
+-- class_chapter_attachments와 동일한 presign→PUT→confirm 업로드 패턴. VOD는 챕터가 아닌
+-- vod_course_lectures 행이 이미 존재하므로 chapter_key 대신 lecture id로 바로 묶는다.
+CREATE TABLE IF NOT EXISTS vod_course_lecture_materials (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  vod_course_lecture_id BIGINT NOT NULL,
+  title VARCHAR(300) NOT NULL,        -- 표시용 파일명
+  file_url VARCHAR(500) NOT NULL,     -- 공개 서빙 경로 (/uploads/{file_key})
+  file_key VARCHAR(500) NOT NULL,     -- R2 오브젝트 key
+  mime_type VARCHAR(100),
+  file_size BIGINT,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_vclm_lecture FOREIGN KEY (vod_course_lecture_id) REFERENCES vod_course_lectures(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 커리큘럼 스텝별 소개 콘텐츠 (강좌 개요·수강 대상·학습 목차 등). v1의 섹션/그룹/불릿 구조화 편집 대신
+-- TOAST UI 에디터로 마크다운 원문을 한 번에 작성 — 관리자 작성 속도 우선, 원문 그대로 저장한다.
+ALTER TABLE vod_course_lectures
+  ADD COLUMN IF NOT EXISTS content_markdown LONGTEXT DEFAULT NULL;
+
+-- ── 영상 업로드 다중 계층 폴더 (FTP 스타일, 2026-07) ──
+-- lecture_videos가 하나의 평평한 목록이라 강의 수가 늘어나면 찾기 어려워짐 → 폴더/하위폴더로 구조화.
+CREATE TABLE IF NOT EXISTS video_folders (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  parent_id BIGINT DEFAULT NULL,      -- NULL = 최상위(루트) 폴더
+  name VARCHAR(200) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_video_folders_parent FOREIGN KEY (parent_id) REFERENCES video_folders(id) ON DELETE RESTRICT,
+  UNIQUE KEY uq_video_folder_name (parent_id, name)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- folder_id는 애플리케이션 레이어에서 유효성 검증 (notices.category/vod_courses.category_label과
+-- 동일하게 FK 제약 없는 느슨한 참조 — 기존 테이블에 idempotent하게 FK를 추가하는 문법 리스크를 피함)
+ALTER TABLE lecture_videos
+  ADD COLUMN IF NOT EXISTS folder_id BIGINT DEFAULT NULL;

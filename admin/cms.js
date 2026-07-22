@@ -131,6 +131,48 @@ function initColorPaletteField(containerEl, { initial, onChange }) {
   return { getValue: () => value, setValue: (v) => { value = v; render(); } };
 }
 
+// ── SearchableSelect: 텍스트 입력으로 실시간 검색되는 드롭다운 (VOD 커리큘럼 영상 연결 등) ──
+// containerEl 안에 input.ss-input, div.ss-dropdown 이 있다고 가정. options: [{id, label}]
+document.addEventListener('click', (e) => {
+  document.querySelectorAll('.searchable-select .ss-dropdown.open').forEach(dd => {
+    if (!dd.closest('.searchable-select').contains(e.target)) dd.classList.remove('open');
+  });
+});
+
+function initSearchableSelect(containerEl, options, { value, placeholder, emptyLabel, onSelect }) {
+  const input = containerEl.querySelector('.ss-input');
+  const dropdown = containerEl.querySelector('.ss-dropdown');
+  if (placeholder) input.placeholder = placeholder;
+  let selectedId = value != null ? String(value) : '';
+
+  function labelFor(id) {
+    const opt = options.find(o => String(o.id) === String(id));
+    return opt ? opt.label : '';
+  }
+  input.value = labelFor(selectedId);
+
+  function renderOptions(filterText) {
+    const q = (filterText || '').trim().toLowerCase();
+    const filtered = q ? options.filter(o => o.label.toLowerCase().includes(q)) : options;
+    dropdown.innerHTML = `<div class="ss-option ss-option-muted" data-id="">${escapeHtml(emptyLabel || '(연결 안 함)')}</div>` +
+      (filtered.length ? filtered.map(o => `<div class="ss-option" data-id="${escapeHtml(String(o.id))}">${escapeHtml(o.label)}</div>`).join('') : '<div class="ss-option-empty">검색 결과가 없습니다.</div>');
+    dropdown.classList.add('open');
+  }
+
+  input.addEventListener('focus', () => renderOptions(''));
+  input.addEventListener('input', () => renderOptions(input.value));
+  input.addEventListener('blur', () => { input.value = labelFor(selectedId); });
+  dropdown.addEventListener('mousedown', (e) => {
+    const opt = e.target.closest('.ss-option[data-id]');
+    if (!opt) return;
+    e.preventDefault();
+    selectedId = opt.dataset.id;
+    input.value = labelFor(selectedId);
+    dropdown.classList.remove('open');
+    onSelect(selectedId);
+  });
+}
+
 // ── DragReorderList: pointer-capture 드래그 정렬 (admin/v1.html의 카테고리 정렬 로직을 범용화) ──
 function attachDragReorder(listEl, onReorder) {
   listEl.querySelectorAll('.drag-handle').forEach(handle => {
