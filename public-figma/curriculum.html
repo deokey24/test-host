@@ -20,7 +20,8 @@
       <a href="faq.html">FAQ</a>
     </nav>
     <div class="header-right">
-      <span class="login-link">로그인</span>
+      <a class="my-info-link" id="myInfoBtn" href="mypage.html" style="display:none;">내정보</a>
+      <span class="login-link" id="loginTrigger">로그인</span>
       <button class="hamburger" type="button" aria-label="메뉴 열기" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
@@ -86,8 +87,37 @@
 
   <a class="kakao-float" href="#" target="_blank" rel="noopener">카카오톡 상담</a>
 
+  <div class="auth-modal-overlay" id="loginModalOverlay">
+    <div class="auth-modal-box">
+      <button type="button" class="auth-modal-close" id="loginModalCloseBtn" aria-label="닫기">✕</button>
+      <h3 class="auth-modal-title">로그인</h3>
+      <form id="loginForm">
+        <div class="auth-field">
+          <label for="loginEmail">이메일</label>
+          <input type="email" id="loginEmail" placeholder="이메일을 입력해주세요" autocomplete="username" required>
+        </div>
+        <div class="auth-field">
+          <label for="loginPassword">비밀번호</label>
+          <input type="password" id="loginPassword" placeholder="비밀번호를 입력해주세요" autocomplete="current-password" required>
+        </div>
+        <label class="auth-check-row">
+          <input type="checkbox" id="loginKeepLoggedIn"> 로그인 유지
+        </label>
+        <div class="auth-error-msg" id="loginErrorMsg" style="display:none;"></div>
+        <button type="submit" class="btn-fill auth-submit-btn">로그인</button>
+      </form>
+      <div class="auth-modal-divider"></div>
+      <div class="auth-modal-links">
+        <a href="#" id="goSignupLink">회원가입</a>
+        <span class="auth-links-sep">·</span>
+        <a href="#" id="goForgotPwLink">비밀번호 찾기</a>
+      </div>
+    </div>
+  </div>
+
 </div>
 <script src="nav.js"></script>
 <script src="site-content.js"></script>
+<script src="auth.js"></script>
 </body>
 </html>

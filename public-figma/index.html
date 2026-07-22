@@ -27,7 +27,8 @@
       <a href="faq.html">FAQ</a>
     </nav>
     <div class="header-right">
-      <span class="login-link">로그인</span>
+      <a class="my-info-link" id="myInfoBtn" href="mypage.html" style="display:none;">내정보</a>
+      <span class="login-link" id="loginTrigger">로그인</span>
       <button class="hamburger" type="button" aria-label="메뉴 열기" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
@@ -82,7 +83,8 @@
     <div class="class-cards" data-cms-list="online_class.cards">
       <template>
         <div class="class-card">
-          <img alt="">
+          <img class="class-card-icon" alt="">
+          <img class="class-card-decor" src="assets/vod/decor.png" alt="">
           <div class="class-card-content">
             <span class="class-card-num"></span>
             <h3></h3>
@@ -90,24 +92,27 @@
           </div>
         </div>
       </template>
-      <div class="class-card">
-        <img src="assets/home/class-card-1.png" alt="">
+      <div class="class-card" style="background:#15191c;">
+        <img class="class-card-icon" src="assets/home/class-card-1-icon.png" alt="">
+        <img class="class-card-decor" src="assets/vod/decor.png" alt="">
         <div class="class-card-content">
           <span class="class-card-num">01</span>
           <h3>현강과 100% 동일한 커리큘럼</h3>
           <p>오프라인에서 진행하는 강의를 순서도 밀도도 그대로.<br>온라인이라고 덜어낸 것은 없습니다.</p>
         </div>
       </div>
-      <div class="class-card">
-        <img src="assets/home/class-card-2.png" alt="">
+      <div class="class-card" style="background:#0ea968;">
+        <img class="class-card-icon" src="assets/home/class-card-2-icon.png" alt="">
+        <img class="class-card-decor" src="assets/vod/decor.png" alt="">
         <div class="class-card-content">
           <span class="class-card-num">02</span>
           <h3>1:1 실시간 첨삭 관리</h3>
           <p>제출한 답안을 강사가 직접 첨삭하고, 주간 피드백으로 합격까지<br>끝까지 관리합니다.</p>
         </div>
       </div>
-      <div class="class-card">
-        <img src="assets/home/class-card-3.png" alt="">
+      <div class="class-card" style="background:#15191c;">
+        <img class="class-card-icon" src="assets/home/class-card-3-icon.png" alt="">
+        <img class="class-card-decor" src="assets/vod/decor.png" alt="">
         <div class="class-card-content">
           <span class="class-card-num">03</span>
           <h3>시간과 장소의 제약 없이</h3>
@@ -279,8 +284,37 @@
 
   <a class="kakao-float" href="#" target="_blank" rel="noopener">카카오톡 상담</a>
 
+  <div class="auth-modal-overlay" id="loginModalOverlay">
+    <div class="auth-modal-box">
+      <button type="button" class="auth-modal-close" id="loginModalCloseBtn" aria-label="닫기">✕</button>
+      <h3 class="auth-modal-title">로그인</h3>
+      <form id="loginForm">
+        <div class="auth-field">
+          <label for="loginEmail">이메일</label>
+          <input type="email" id="loginEmail" placeholder="이메일을 입력해주세요" autocomplete="username" required>
+        </div>
+        <div class="auth-field">
+          <label for="loginPassword">비밀번호</label>
+          <input type="password" id="loginPassword" placeholder="비밀번호를 입력해주세요" autocomplete="current-password" required>
+        </div>
+        <label class="auth-check-row">
+          <input type="checkbox" id="loginKeepLoggedIn"> 로그인 유지
+        </label>
+        <div class="auth-error-msg" id="loginErrorMsg" style="display:none;"></div>
+        <button type="submit" class="btn-fill auth-submit-btn">로그인</button>
+      </form>
+      <div class="auth-modal-divider"></div>
+      <div class="auth-modal-links">
+        <a href="#" id="goSignupLink">회원가입</a>
+        <span class="auth-links-sep">·</span>
+        <a href="#" id="goForgotPwLink">비밀번호 찾기</a>
+      </div>
+    </div>
+  </div>
+
 </div>
 <script src="nav.js"></script>
 <script src="site-content.js"></script>
+<script src="auth.js"></script>
 </body>
 </html>

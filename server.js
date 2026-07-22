@@ -1167,7 +1167,9 @@ app.put('/admin/api/site/:page/:section', requireAdminApi, wrapAsync(async (req,
 // ── vod_courses: VOD 강의 상품 (vod.html/curriculum.html/홈 미리보기 공용 소스) ──
 const VOD_COURSE_FIELDS = [
   'tag', 'category_label', 'title', 'description', 'meta_text', 'is_best',
-  'color_variant', 'old_price', 'new_price', 'thumbnail_url', 'sort_order', 'is_active'
+  'color_variant', 'old_price', 'new_price', 'thumbnail_url', 'sort_order', 'is_active',
+  'completion_criteria', 'total_duration_text', 'difficulty', 'difficulty_visible',
+  'intro_heading', 'intro_paragraph', 'recommended_heading'
 ];
 
 function validateVodCourseBody(body) {
@@ -1184,7 +1186,10 @@ function vodCourseValues(body) {
     if (field === 'sort_order') return parseInt(body.sort_order, 10) || 0;
     if (field === 'is_best') return body.is_best ? 1 : 0;
     if (field === 'is_active') return body.is_active === false || body.is_active === 0 || body.is_active === '0' ? 0 : 1;
+    if (field === 'difficulty_visible') return body.difficulty_visible === false || body.difficulty_visible === 0 || body.difficulty_visible === '0' ? 0 : 1;
     if (field === 'color_variant') return body.color_variant || 'default';
+    if (field === 'intro_heading') return body.intro_heading && String(body.intro_heading).trim() ? String(body.intro_heading).trim() : '클래스에서 배울 수 있는 내용이에요';
+    if (field === 'recommended_heading') return body.recommended_heading && String(body.recommended_heading).trim() ? String(body.recommended_heading).trim() : '이런 분들께 추천해요';
     const value = body[field];
     return value === undefined || value === null || String(value).trim() === '' ? null : String(value).trim();
   });
@@ -1200,6 +1205,29 @@ app.get('/api/vod-courses', wrapAsync(async (req, res) => {
 app.get('/admin/api/vod-courses', requireAdminApi, wrapAsync(async (req, res) => {
   const [rows] = await getPool().query('SELECT * FROM vod_courses ORDER BY sort_order, id');
   res.json(rows);
+}));
+
+async function fetchVodCourseIntroParts(courseId) {
+  const [[checklistItems], [tags], [sections]] = await Promise.all([
+    getPool().query('SELECT id, content, sort_order FROM vod_course_checklist_items WHERE vod_course_id = ? ORDER BY sort_order, id', [courseId]),
+    getPool().query('SELECT id, label, sort_order FROM vod_course_tags WHERE vod_course_id = ? ORDER BY sort_order, id', [courseId]),
+    getPool().query('SELECT id, heading, content, sort_order FROM vod_course_sections WHERE vod_course_id = ? ORDER BY sort_order, id', [courseId])
+  ]);
+  return { checklistItems, tags, sections };
+}
+
+app.get('/api/vod-courses/:id', wrapAsync(async (req, res) => {
+  const [[course]] = await getPool().query('SELECT * FROM vod_courses WHERE id = ? AND is_active = 1', [req.params.id]);
+  if (!course) { res.status(404).json({ error: 'VOD 강의를 찾을 수 없습니다.' }); return; }
+  const introParts = await fetchVodCourseIntroParts(req.params.id);
+  res.json({ ...course, ...introParts });
+}));
+
+app.get('/admin/api/vod-courses/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const [[course]] = await getPool().query('SELECT * FROM vod_courses WHERE id = ?', [req.params.id]);
+  if (!course) { res.status(404).json({ error: 'VOD 강의를 찾을 수 없습니다.' }); return; }
+  const introParts = await fetchVodCourseIntroParts(req.params.id);
+  res.json({ ...course, ...introParts });
 }));
 
 app.post('/admin/api/vod-courses', requireAdminApi, wrapAsync(async (req, res) => {
@@ -1340,6 +1368,142 @@ app.delete('/admin/api/vod-courses/:id/lectures/:lectureId', requireAdminApi, wr
   if (result.affectedRows === 0) { res.status(404).json({ error: '강의를 찾을 수 없습니다.' }); return; }
   res.json({ ok: true });
 }));
+
+// ── vod_categories (notice_categories와 동일 패턴) ──
+app.get('/admin/api/vod-categories', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT c.id, c.name, c.sort_order,
+            (SELECT COUNT(*) FROM vod_courses WHERE category_label = c.name) AS course_count
+     FROM vod_categories c
+     ORDER BY c.sort_order, c.id`
+  );
+  res.json(rows);
+}));
+
+app.post('/admin/api/vod-categories', requireAdminApi, wrapAsync(async (req, res) => {
+  const { name, sort_order } = req.body;
+  if (!name || !String(name).trim()) {
+    res.status(400).json({ error: '카테고리 이름을 입력해주세요.' });
+    return;
+  }
+  try {
+    const [result] = await getPool().query(
+      'INSERT INTO vod_categories (name, sort_order) VALUES (?, ?)',
+      [String(name).trim(), parseInt(sort_order, 10) || 0]
+    );
+    res.json({ ok: true, id: result.insertId });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      res.status(409).json({ error: '이미 존재하는 카테고리입니다.' });
+      return;
+    }
+    throw err;
+  }
+}));
+
+app.put('/admin/api/vod-categories/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const { name, sort_order } = req.body;
+  const [rows] = await getPool().query('SELECT name FROM vod_categories WHERE id = ?', [req.params.id]);
+  const existing = rows[0];
+  if (!existing) {
+    res.status(404).json({ error: '카테고리를 찾을 수 없습니다.' });
+    return;
+  }
+
+  const fields = [];
+  const values = [];
+  const newName = name !== undefined ? String(name).trim() : null;
+  if (newName) { fields.push('name = ?'); values.push(newName); }
+  if (sort_order !== undefined) { fields.push('sort_order = ?'); values.push(parseInt(sort_order, 10) || 0); }
+  if (fields.length === 0) {
+    res.status(400).json({ error: '변경할 값이 없습니다.' });
+    return;
+  }
+
+  try {
+    values.push(req.params.id);
+    await getPool().query(`UPDATE vod_categories SET ${fields.join(', ')} WHERE id = ?`, values);
+    if (newName && newName !== existing.name) {
+      // 이름이 바뀌면 이 카테고리를 쓰던 기존 강좌들도 같은 이름으로 따라간다.
+      await getPool().query('UPDATE vod_courses SET category_label = ? WHERE category_label = ?', [newName, existing.name]);
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      res.status(409).json({ error: '이미 존재하는 카테고리입니다.' });
+      return;
+    }
+    throw err;
+  }
+}));
+
+app.delete('/admin/api/vod-categories/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query('SELECT name FROM vod_categories WHERE id = ?', [req.params.id]);
+  const category = rows[0];
+  if (!category) {
+    res.status(404).json({ error: '카테고리를 찾을 수 없습니다.' });
+    return;
+  }
+  const [[{ cnt }]] = await getPool().query('SELECT COUNT(*) AS cnt FROM vod_courses WHERE category_label = ?', [category.name]);
+  if (cnt > 0) {
+    res.status(409).json({ error: `이 카테고리를 사용 중인 강의가 ${cnt}개 있습니다. 먼저 해당 강의의 카테고리를 변경해주세요.` });
+    return;
+  }
+  await getPool().query('DELETE FROM vod_categories WHERE id = ?', [req.params.id]);
+  res.json({ ok: true });
+}));
+
+// ── vod_course_checklist_items / vod_course_tags / vod_course_sections (클래스소개 탭 하위 목록) ──
+// 세 리소스가 필드 이름만 다를 뿐 구조가 동일해서 팩토리로 CRUD 라우트를 한 번에 등록한다.
+function registerVodCourseSubListRoutes(resourcePath, table, textFields) {
+  app.post(`/admin/api/vod-courses/:id/${resourcePath}`, requireAdminApi, wrapAsync(async (req, res) => {
+    const values = textFields.map(f => req.body[f]);
+    if (values.some(v => !v || !String(v).trim())) {
+      res.status(400).json({ error: `${textFields.join(', ')} 값을 모두 입력해주세요.` });
+      return;
+    }
+    try {
+      const [result] = await getPool().query(
+        `INSERT INTO ${table} (vod_course_id, ${textFields.join(', ')}, sort_order) VALUES (?, ${textFields.map(() => '?').join(', ')}, ?)`,
+        [req.params.id, ...values.map(v => String(v).trim()), parseInt(req.body.sort_order, 10) || 0]
+      );
+      res.json({ ok: true, id: result.insertId });
+    } catch (err) {
+      if (err.code === 'ER_NO_REFERENCED_ROW_2') { res.status(404).json({ error: 'VOD 강의를 찾을 수 없습니다.' }); return; }
+      throw err;
+    }
+  }));
+
+  app.put(`/admin/api/vod-courses/:id/${resourcePath}/:itemId`, requireAdminApi, wrapAsync(async (req, res) => {
+    const fields = [];
+    const values = [];
+    textFields.forEach(f => {
+      if (req.body[f] !== undefined) { fields.push(`${f} = ?`); values.push(String(req.body[f]).trim()); }
+    });
+    if (req.body.sort_order !== undefined) { fields.push('sort_order = ?'); values.push(parseInt(req.body.sort_order, 10) || 0); }
+    if (fields.length === 0) { res.status(400).json({ error: '변경할 값이 없습니다.' }); return; }
+    values.push(req.params.itemId, req.params.id);
+    const [result] = await getPool().query(
+      `UPDATE ${table} SET ${fields.join(', ')} WHERE id = ? AND vod_course_id = ?`,
+      values
+    );
+    if (result.affectedRows === 0) { res.status(404).json({ error: '항목을 찾을 수 없습니다.' }); return; }
+    res.json({ ok: true });
+  }));
+
+  app.delete(`/admin/api/vod-courses/:id/${resourcePath}/:itemId`, requireAdminApi, wrapAsync(async (req, res) => {
+    const [result] = await getPool().query(
+      `DELETE FROM ${table} WHERE id = ? AND vod_course_id = ?`,
+      [req.params.itemId, req.params.id]
+    );
+    if (result.affectedRows === 0) { res.status(404).json({ error: '항목을 찾을 수 없습니다.' }); return; }
+    res.json({ ok: true });
+  }));
+}
+
+registerVodCourseSubListRoutes('checklist-items', 'vod_course_checklist_items', ['content']);
+registerVodCourseSubListRoutes('tags', 'vod_course_tags', ['label']);
+registerVodCourseSubListRoutes('sections', 'vod_course_sections', ['heading', 'content']);
 
 // ── cert_gallery_images ──
 app.get('/api/cert-gallery', wrapAsync(async (req, res) => {

@@ -202,10 +202,26 @@
       <section id="vodSection" class="admin-section">
         <div class="card">
           <div class="card-head-row">
+            <h2>VOD 카테고리</h2>
+            <button class="row-btn" id="vod-cat-toggle" type="button">펼치기</button>
+          </div>
+          <div id="vod-cat-body" style="display:none;">
+            <p class="field-hint" style="margin-bottom:10px;">강의 추가/수정 시 카테고리 선택지로 노출됩니다. 순서는 드래그로 바꿀 수 있습니다.</p>
+            <ul class="drag-list" id="vod-cat-list"></ul>
+            <div style="display:flex; gap:8px; margin-top:6px;">
+              <input type="text" id="vod-cat-new" placeholder="새 카테고리 이름" style="flex:1;">
+              <button class="btn-outline" id="vod-cat-add" type="button">추가</button>
+            </div>
+            <div class="status-text" id="vod-cat-status"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
             <h2>VOD 강의 목록 (<span id="vodTotal">0</span>개)</h2>
             <button class="btn" id="vodAddBtn" type="button">+ 강의 추가</button>
           </div>
-          <p class="field-hint" style="margin-bottom:14px;">영상 파일 업로드는 <strong>영상 업로드</strong> 메뉴에서 먼저 진행한 뒤, 여기서 완료된 영상을 강의에 연결하세요.</p>
+          <p class="field-hint" style="margin-bottom:14px;">영상 파일 업로드는 <strong>영상 업로드</strong> 메뉴에서 먼저 진행한 뒤, 수정 화면의 "커리큘럼" 탭에서 완료된 영상을 강의에 연결하세요.</p>
           <table>
             <thead><tr><th>순서</th><th>제목</th><th>카테고리</th><th>가격</th><th>노출</th><th>관리</th></tr></thead>
             <tbody id="vodList"></tbody>
@@ -213,75 +229,178 @@
         </div>
       </section>
 
+      <div class="modal-overlay" id="vodQuickAddModal">
+        <div class="modal-box">
+          <div class="modal-head">
+            <h2>VOD 강의 추가</h2>
+            <button class="row-btn" id="vodQuickAddCloseBtn" type="button">닫기</button>
+          </div>
+          <div class="field-grid">
+            <div class="field-row full">
+              <label class="field-label">강좌명 *</label>
+              <input type="text" id="qaTitle">
+            </div>
+            <div class="field-row">
+              <label class="field-label">카테고리</label>
+              <select id="qaCategoryLabel"><option value="">없음</option></select>
+            </div>
+            <div class="field-row" style="align-self:end;">
+              <label class="check-row"><input type="checkbox" id="qaHasDiscount"> 할인 적용</label>
+            </div>
+            <div class="field-row" id="qaOldPriceRow" style="display:none;">
+              <label class="field-label">할인 전 가격</label>
+              <input type="text" id="qaOldPrice" placeholder="예: 250,000원">
+            </div>
+            <div class="field-row">
+              <label class="field-label" id="qaNewPriceLabel">가격 *</label>
+              <input type="text" id="qaNewPrice" placeholder="예: 210,000원 / 가격 문의">
+            </div>
+          </div>
+          <label class="check-row" style="margin:6px 0 14px;"><input type="checkbox" id="qaIsActive" checked> 사이트에 노출</label>
+          <button class="btn" id="qaSaveBtn" type="button">추가하고 상세 편집</button>
+          <div class="status-text" id="qaStatus"></div>
+        </div>
+      </div>
+
       <div class="modal-overlay" id="vodModalOverlay">
-        <div class="modal-box" style="width:800px;">
+        <div class="modal-box" style="width:860px;">
           <div class="modal-head">
             <h2 id="vodFormTitle">VOD 강의 수정</h2>
             <button class="row-btn" id="vodModalCloseBtn" type="button">닫기</button>
           </div>
-          <div class="field-grid">
-            <div class="field-row">
-              <label class="field-label">영문 라벨 (예: READING THEORY)</label>
-              <input type="text" id="vfTag">
-            </div>
-            <div class="field-row">
-              <label class="field-label">카테고리 (예: 독해)</label>
-              <input type="text" id="vfCategoryLabel">
-            </div>
-            <div class="field-row full">
-              <label class="field-label">강좌명 *</label>
-              <input type="text" id="vfTitle">
-            </div>
-            <div class="field-row full">
-              <label class="field-label">소개</label>
-              <textarea id="vfDescription" rows="2"></textarea>
-            </div>
-            <div class="field-row">
-              <label class="field-label">메타 정보 (예: 12강 · 수강 무제한)</label>
-              <input type="text" id="vfMetaText">
-            </div>
-            <div class="field-row">
-              <label class="field-label">색상 변형</label>
-              <select id="vfColorVariant">
-                <option value="default">기본</option>
-                <option value="green">그린</option>
-              </select>
-            </div>
-            <div class="field-row">
-              <label class="field-label">정가 (할인 전, 선택)</label>
-              <input type="text" id="vfOldPrice" placeholder="예: 250,000원">
-            </div>
-            <div class="field-row">
-              <label class="field-label">판매가 *</label>
-              <input type="text" id="vfNewPrice" placeholder="예: 210,000원 / 가격 문의">
-            </div>
-            <div class="field-row">
-              <label class="field-label">노출 순서</label>
-              <input type="number" id="vfSortOrder" value="0">
-            </div>
-            <div class="field-row" style="align-self:end;">
-              <label class="check-row"><input type="checkbox" id="vfIsBest"> BEST 뱃지</label>
-            </div>
-          </div>
-          <label class="check-row" style="margin:6px 0 14px;"><input type="checkbox" id="vfIsActive" checked> 사이트에 노출</label>
-          <button class="btn" id="vodSaveBtn" type="button">저장</button>
-          <div class="status-text" id="vodFormStatus"></div>
 
-          <hr style="border:none; border-top:1px solid var(--border); margin:22px 0;">
-
-          <h2 style="font-size:14px; margin-bottom:10px;">커리큘럼 · 영상 연결</h2>
-          <p class="field-hint" style="margin-bottom:10px;">강의 번호·제목이 커리큘럼 스텝으로 그대로 표시됩니다. 영상 연결은 선택 사항입니다.</p>
-          <div style="display:flex; gap:8px; margin-bottom:10px;">
-            <select id="vodLectureVideoSelect" style="flex:1;"></select>
-            <input type="number" id="vodLectureNumberInput" min="0" placeholder="번호" style="width:90px;">
-            <input type="text" id="vodLectureTitleInput" placeholder="강의 제목" style="flex:1;">
-            <button class="btn-outline" id="vodLectureAddBtn" type="button">추가</button>
+          <div class="admin-tabs" id="vodTabBtns">
+            <button type="button" class="active" data-vod-tab="title">타이틀영역</button>
+            <button type="button" data-vod-tab="intro">클래스소개</button>
+            <button type="button" data-vod-tab="curriculum">커리큘럼</button>
           </div>
-          <div class="status-text" id="vodLectureStatus"></div>
-          <table>
-            <thead><tr><th style="width:70px;">번호</th><th>제목</th><th>영상 연결</th><th></th></tr></thead>
-            <tbody id="vodLectureList"></tbody>
-          </table>
+
+          <div id="vodTabTitle" class="admin-tab-panel">
+            <div class="field-grid">
+              <div class="field-row">
+                <label class="field-label">영문 라벨 (예: READING THEORY)</label>
+                <input type="text" id="vfTag">
+              </div>
+              <div class="field-row">
+                <label class="field-label">카테고리</label>
+                <select id="vfCategoryLabel"><option value="">없음</option></select>
+              </div>
+              <div class="field-row full">
+                <label class="field-label">강좌명 *</label>
+                <input type="text" id="vfTitle">
+              </div>
+              <div class="field-row full">
+                <label class="field-label">소개</label>
+                <textarea id="vfDescription" rows="2"></textarea>
+              </div>
+              <div class="field-row">
+                <label class="field-label">메타 정보 (예: 12강 · 수강 무제한)</label>
+                <input type="text" id="vfMetaText">
+              </div>
+              <div class="field-row">
+                <label class="field-label">색상 변형</label>
+                <select id="vfColorVariant">
+                  <option value="default">기본</option>
+                  <option value="green">그린</option>
+                </select>
+              </div>
+              <div class="field-row">
+                <label class="field-label">수료 기준</label>
+                <input type="text" id="vfCompletionCriteria" placeholder="예: 진도율 80% 이상">
+              </div>
+              <div class="field-row">
+                <label class="field-label">총 학습시간</label>
+                <input type="text" id="vfTotalDurationText" placeholder="예: 4시간 27분">
+              </div>
+              <div class="field-row">
+                <label class="field-label">난이도</label>
+                <input type="text" id="vfDifficulty" placeholder="예: 심화 ★★★☆">
+              </div>
+              <div class="field-row" style="align-self:end;">
+                <label class="check-row"><input type="checkbox" id="vfDifficultyVisible" checked> 난이도 노출</label>
+              </div>
+              <div class="field-row" style="align-self:end;">
+                <label class="check-row"><input type="checkbox" id="vfHasDiscount"> 할인 적용</label>
+              </div>
+              <div class="field-row" id="vfOldPriceRow" style="display:none;">
+                <label class="field-label">할인 전 가격</label>
+                <input type="text" id="vfOldPrice" placeholder="예: 250,000원">
+              </div>
+              <div class="field-row">
+                <label class="field-label" id="vfNewPriceLabel">가격 *</label>
+                <input type="text" id="vfNewPrice" placeholder="예: 210,000원 / 가격 문의">
+              </div>
+              <div class="field-row">
+                <label class="field-label">노출 순서</label>
+                <input type="number" id="vfSortOrder" value="0">
+              </div>
+              <div class="field-row" style="align-self:end;">
+                <label class="check-row"><input type="checkbox" id="vfIsBest"> BEST 뱃지</label>
+              </div>
+            </div>
+            <label class="check-row" style="margin:6px 0 14px;"><input type="checkbox" id="vfIsActive" checked> 사이트에 노출</label>
+            <button class="btn" id="vodSaveBtn" type="button">저장</button>
+            <div class="status-text" id="vodFormStatus"></div>
+          </div>
+
+          <div id="vodTabIntro" class="admin-tab-panel" style="display:none;">
+            <div class="field-grid">
+              <div class="field-row full">
+                <label class="field-label">클래스 소개 제목</label>
+                <input type="text" id="vfIntroHeading">
+              </div>
+              <div class="field-row full">
+                <label class="field-label">클래스 소개 내용</label>
+                <textarea id="vfIntroParagraph" rows="3"></textarea>
+              </div>
+            </div>
+            <label class="field-label">체크리스트</label>
+            <ul class="drag-list" id="vodChecklistList" style="margin:8px 0;"></ul>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="vodChecklistNewInput" placeholder="체크리스트 항목 입력" style="flex:1;">
+              <button class="btn-outline" id="vodChecklistAddBtn" type="button">추가</button>
+            </div>
+            <div class="status-text" id="vodChecklistStatus"></div>
+
+            <hr style="border:none; border-top:1px solid var(--border); margin:20px 0;">
+
+            <div class="field-row full">
+              <label class="field-label">추천 대상 제목</label>
+              <input type="text" id="vfRecommendedHeading">
+            </div>
+            <label class="field-label">추천 대상 태그</label>
+            <ul class="drag-list" id="vodTagList" style="margin:8px 0;"></ul>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="vodTagNewInput" placeholder="태그 입력 (예: 연고대 편입 준비생)" style="flex:1;">
+              <button class="btn-outline" id="vodTagAddBtn" type="button">추가</button>
+            </div>
+            <div class="status-text" id="vodTagStatus"></div>
+
+            <hr style="border:none; border-top:1px solid var(--border); margin:20px 0;">
+
+            <div class="card-head-row">
+              <label class="field-label" style="margin:0;">추가 섹션</label>
+              <button class="btn-outline" id="vodSectionAddBtn" type="button">+ 섹션 추가</button>
+            </div>
+            <p class="field-hint" style="margin:6px 0 10px;">클래스소개 하단에 자유롭게 제목+내용 섹션을 추가할 수 있습니다.</p>
+            <ul class="drag-list" id="vodSectionList"></ul>
+            <div class="status-text" id="vodSectionStatus"></div>
+          </div>
+
+          <div id="vodTabCurriculum" class="admin-tab-panel" style="display:none;">
+            <p class="field-hint" style="margin-bottom:10px;">강의 번호·제목이 커리큘럼 스텝으로 그대로 표시됩니다. 영상 연결은 선택 사항입니다.</p>
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+              <select id="vodLectureVideoSelect" style="flex:1;"></select>
+              <input type="number" id="vodLectureNumberInput" min="0" placeholder="번호" style="width:90px;">
+              <input type="text" id="vodLectureTitleInput" placeholder="강의 제목" style="flex:1;">
+              <button class="btn-outline" id="vodLectureAddBtn" type="button">추가</button>
+            </div>
+            <div class="status-text" id="vodLectureStatus"></div>
+            <table>
+              <thead><tr><th style="width:70px;">번호</th><th>제목</th><th>영상 연결</th><th></th></tr></thead>
+              <tbody id="vodLectureList"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 

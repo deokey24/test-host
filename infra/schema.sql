@@ -506,3 +506,63 @@ WHERE NOT EXISTS (SELECT 1 FROM notice_categories);
 INSERT INTO notices (category, title, body, pinned, notice_date)
 SELECT '공지', '독편사 DOCK PASS 서비스 오픈 안내', '프리미엄 VOD 서비스가 정식 오픈했습니다. 많은 이용 바랍니다.', 1, CURDATE()
 WHERE NOT EXISTS (SELECT 1 FROM notices);
+
+-- ── VOD 강의 상세보기 개편 (2026-07) — 카테고리 관리, 클래스소개 체크리스트/태그/자유섹션, 커리큘럼 ──
+
+-- VOD 카테고리 (notice_categories와 동일 패턴, 관리자 페이지에서 CRUD)
+CREATE TABLE IF NOT EXISTS vod_categories (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(50) NOT NULL UNIQUE,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 관리자 카테고리 드롭다운이 vod_categories 테이블 기준으로만 채워지므로, 이미 vod_courses.category_label에
+-- 쓰이고 있던 기존 값들을 여기 백필해야 기존 강의를 수정할 때 카테고리가 "없음"으로 보이지 않는다.
+-- (재실행 안전: 이미 등록된 이름은 건너뛴다)
+INSERT INTO vod_categories (name, sort_order)
+SELECT DISTINCT category_label, 0
+FROM vod_courses
+WHERE category_label IS NOT NULL AND category_label != ''
+  AND category_label NOT IN (SELECT * FROM (SELECT name FROM vod_categories) AS existing_names);
+
+-- 클래스소개 탭 "CLASS INTRO" 체크리스트 항목
+CREATE TABLE IF NOT EXISTS vod_course_checklist_items (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  vod_course_id BIGINT NOT NULL,
+  content VARCHAR(500) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_vci_course FOREIGN KEY (vod_course_id) REFERENCES vod_courses(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 클래스소개 탭 "RECOMMENDED FOR" 추천 대상 태그
+CREATE TABLE IF NOT EXISTS vod_course_tags (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  vod_course_id BIGINT NOT NULL,
+  label VARCHAR(100) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_vct_course FOREIGN KEY (vod_course_id) REFERENCES vod_courses(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 클래스소개 탭에 자유롭게 추가하는 제목+내용 섹션
+CREATE TABLE IF NOT EXISTS vod_course_sections (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  vod_course_id BIGINT NOT NULL,
+  heading VARCHAR(300) NOT NULL,
+  content TEXT NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_vcs_course FOREIGN KEY (vod_course_id) REFERENCES vod_courses(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 타이틀영역 신규 필드 (기존 members 테이블에 썼던 것과 동일한 idempotent ALTER 패턴)
+ALTER TABLE vod_courses
+  ADD COLUMN IF NOT EXISTS completion_criteria VARCHAR(200) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS total_duration_text VARCHAR(100) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS difficulty VARCHAR(100) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS difficulty_visible TINYINT(1) NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS intro_heading VARCHAR(300) DEFAULT '클래스에서 배울 수 있는 내용이에요',
+  ADD COLUMN IF NOT EXISTS intro_paragraph TEXT DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS recommended_heading VARCHAR(300) DEFAULT '이런 분들께 추천해요';

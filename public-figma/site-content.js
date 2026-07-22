@@ -7,7 +7,8 @@ function escapeCmsHtml(str) {
 }
 
 function hydrateCmsListItem(node, item, index) {
-  const img = node.querySelector('img');
+  if (item.color) node.style.background = item.color;
+  const img = node.querySelector('.class-card-icon, img');
   if (img) { if (item.image) img.src = item.image; else img.remove(); }
   const num = node.querySelector('.num, .class-card-num');
   if (num) num.textContent = String(index + 1).padStart(2, '0');
@@ -105,6 +106,7 @@ async function fetchVodCourseLectures(courseId) {
 }
 
 function renderVodCourseCard(node, course) {
+  node.dataset.category = course.category_label || '';
   const thumb = node.querySelector('.vod-course-thumb');
   if (thumb && course.color_variant === 'green') thumb.classList.add('green');
   const bestBadge = node.querySelector('.badge-best');
@@ -118,7 +120,7 @@ function renderVodCourseCard(node, course) {
   if (oldEl) { if (course.old_price) oldEl.textContent = course.old_price; else oldEl.remove(); }
   const newEl = node.querySelector('.new, .new-price'); if (newEl) newEl.textContent = course.new_price || '';
   const link = node.querySelector('.curriculum-link');
-  if (link) link.href = `curriculum.html#course-${course.id}`;
+  if (link) link.href = `classDetail.html?id=${course.id}`;
   return node;
 }
 
@@ -135,8 +137,21 @@ async function hydrateVodGrid() {
 
   if (pillsWrap) {
     const labels = [...new Set(courses.map(c => c.category_label).filter(Boolean))];
-    pillsWrap.innerHTML = '<button type="button" class="active">전체</button>' +
-      labels.map(l => `<button type="button">${escapeCmsHtml(l)}</button>`).join('');
+    pillsWrap.innerHTML = '<button type="button" class="active" data-filter="">전체</button>' +
+      labels.map(l => `<button type="button" data-filter="${escapeCmsHtml(l)}">${escapeCmsHtml(l)}</button>`).join('');
+
+    pillsWrap.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      pillsWrap.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const filter = btn.dataset.filter;
+      if (grid) {
+        grid.querySelectorAll('.vod-course-card').forEach(card => {
+          card.style.display = (!filter || card.dataset.category === filter) ? '' : 'none';
+        });
+      }
+    });
   }
 
   if (grid) {
@@ -212,6 +227,83 @@ async function hydrateHomeVodPreview() {
     const labels = [...new Set(courses.map(c => c.title).filter(Boolean))];
     filterPills.innerHTML = labels.map((l, i) => `<button type="button" class="${i === 0 ? 'active' : ''}">${escapeCmsHtml(l)}</button>`).join('');
   }
+}
+
+// ── VOD 강의 상세보기(classDetail.html) — ?id= 쿼리로 넘어온 강좌를 하이드레이션 ──
+async function hydrateClassDetail() {
+  const courseId = new URLSearchParams(location.search).get('id');
+  const main = document.querySelector('.cd-body .cd-layout');
+  if (!courseId) {
+    if (main) main.innerHTML = '<p class="faq-footnote">강의 정보를 찾을 수 없습니다.</p>';
+    return;
+  }
+
+  const [courseRes, lectures] = await Promise.all([
+    fetch(`/api/vod-courses/${courseId}`).then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch(`/api/vod-courses/${courseId}/lectures`).then(r => r.ok ? r.json() : []).catch(() => [])
+  ]);
+  if (!courseRes) {
+    if (main) main.innerHTML = '<p class="faq-footnote">강의 정보를 찾을 수 없습니다.</p>';
+    return;
+  }
+  const course = courseRes;
+
+  document.title = `${course.title} · 독편사 DOCK PASS`;
+
+  const breadcrumb = document.getElementById('cdBreadcrumb');
+  if (breadcrumb) breadcrumb.textContent = `HOME / VOD 강의 / ${course.category_label || course.title}`;
+
+  const badge = document.getElementById('cdBadge');
+  if (badge) badge.style.display = course.is_best ? '' : 'none';
+
+  const titleEl = document.getElementById('cdTitle'); if (titleEl) titleEl.textContent = course.title || '';
+  const descEl = document.getElementById('cdDesc'); if (descEl) descEl.textContent = course.description || '';
+
+  const statLectures = document.getElementById('cdStatLectures'); if (statLectures) statLectures.textContent = `${lectures.length}개 강좌`;
+  const statDuration = document.getElementById('cdStatDuration'); if (statDuration) statDuration.textContent = course.total_duration_text || '-';
+  const statCompletion = document.getElementById('cdStatCompletion'); if (statCompletion) statCompletion.textContent = course.completion_criteria || '-';
+
+  const difficultyBox = document.getElementById('cdDifficultyStatBox');
+  const statDifficulty = document.getElementById('cdStatDifficulty');
+  const panelDifficultyRow = document.getElementById('cdPanelDifficultyRow');
+  const panelDifficultyVal = document.getElementById('cdPanelDifficultyVal');
+  const showDifficulty = !!course.difficulty_visible && !!course.difficulty;
+  if (difficultyBox) difficultyBox.style.display = showDifficulty ? '' : 'none';
+  if (panelDifficultyRow) panelDifficultyRow.style.display = showDifficulty ? '' : 'none';
+  if (statDifficulty) statDifficulty.textContent = course.difficulty || '';
+  if (panelDifficultyVal) panelDifficultyVal.textContent = course.difficulty || '';
+
+  const introHeading = document.getElementById('cdIntroHeading'); if (introHeading) introHeading.textContent = course.intro_heading || '';
+  const introParagraph = document.getElementById('cdIntroParagraph'); if (introParagraph) introParagraph.textContent = course.intro_paragraph || '';
+  const checklist = document.getElementById('cdChecklist');
+  if (checklist) checklist.innerHTML = (course.checklistItems || []).map(item => `<li>${escapeCmsHtml(item.content)}</li>`).join('');
+
+  const recommendedHeading = document.getElementById('cdRecommendedHeading'); if (recommendedHeading) recommendedHeading.textContent = course.recommended_heading || '';
+  const tagGrid = document.getElementById('cdTagGrid');
+  if (tagGrid) tagGrid.innerHTML = (course.tags || []).map(tag => `<span class="cd-tag">${escapeCmsHtml(tag.label)}</span>`).join('');
+
+  const extraSections = document.getElementById('cdExtraSections');
+  if (extraSections) {
+    extraSections.innerHTML = (course.sections || []).map(section => `
+      <div class="cd-section">
+        <h2>${escapeCmsHtml(section.heading)}</h2>
+        <p>${escapeCmsHtml(section.content).replace(/\n/g, '<br>')}</p>
+      </div>
+    `).join('');
+  }
+
+  const curriculumMeta = document.getElementById('cdCurriculumMeta'); if (curriculumMeta) curriculumMeta.textContent = `· 총 ${lectures.length}강`;
+  const curriculumList = document.getElementById('cdCurriculumList');
+  if (curriculumList) {
+    curriculumList.innerHTML = lectures.map((step, i) => `
+      <li><span class="num">${String(i + 1).padStart(2, '0')}</span><span class="step-title">${escapeCmsHtml(step.title)}</span></li>
+    `).join('');
+  }
+
+  const panelTitle = document.getElementById('cdPanelTitle'); if (panelTitle) panelTitle.textContent = course.title || '';
+  const oldPriceEl = document.getElementById('cdOldPrice');
+  if (oldPriceEl) { if (course.old_price) oldPriceEl.textContent = course.old_price; else oldPriceEl.remove(); }
+  const newPriceEl = document.getElementById('cdNewPrice'); if (newPriceEl) newPriceEl.textContent = course.new_price || '';
 }
 
 // ── 합격 인증 차트(퍼센트/막대) + 갤러리 ──
@@ -354,6 +446,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (page === 'home') { hydrateHomeVodPreview(); hydrateHomeGalleryPreview(); }
   if (page === 'cert') hydrateCertGallery();
   if (page === 'faq') { hydrateFaqList(); hydrateNoticeList(); }
+  if (page === 'classDetail') hydrateClassDetail();
 
   if (page) {
     try {

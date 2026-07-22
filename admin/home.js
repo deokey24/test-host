@@ -7,20 +7,29 @@ async function loadHomeSectionData(key) {
 }
 
 // ── 카드 목록 공용 렌더러 (온라인클래스 / 독편사 VOD소개) ──
-function renderCardList(listEl, cards, { withImage, imageScope }) {
+function renderCardList(listEl, cards, { withImage, imageScope, withColor }) {
   listEl.innerHTML = cards.map((card, i) => `
     <li class="drag-item" data-id="${i}">
       <span class="drag-handle">☰</span>
       <div class="drag-item-body">
         ${withImage ? `
         <div class="image-picker" style="margin-bottom:10px;">
-          <div class="image-picker-preview" style="width:90px; height:90px;">
-            <img class="preview-img" src="${escapeHtml(card.image || '')}" style="${card.image ? '' : 'display:none;'}">
-            <div class="empty-note" style="${card.image ? 'display:none;' : ''}">이미지 없음</div>
+          <div class="image-picker-preview" data-card-preview="${i}" style="width:90px; height:90px; ${withColor ? `background:${escapeHtml(card.color || '#15191c')};` : ''}">
+            <img class="preview-img" src="${escapeHtml(card.image || '')}" style="${card.image ? '' : 'display:none;'} ${withColor ? 'object-fit:contain; width:60%; height:60%; margin:auto;' : ''}">
+            <div class="empty-note" style="${card.image ? 'display:none;' : ''}">${withColor ? '아이콘' : '이미지'} 없음</div>
           </div>
           <div class="image-picker-controls">
             <div class="file-row"><input type="file" accept="image/*" data-card-image="${i}"></div>
             <div class="status-text" data-card-image-status="${i}"></div>
+          </div>
+        </div>` : ''}
+        ${withColor ? `
+        <div class="field-row">
+          <label class="field-label">배경 색상</label>
+          <div class="color-field" data-card-color="${i}">
+            <div class="swatch-wrap"></div>
+            <input type="color">
+            <span class="hex-label"></span>
           </div>
         </div>` : ''}
         <div class="field-row"><input type="text" data-card-title="${i}" value="${escapeHtml(card.title || '')}" placeholder="카드 제목"></div>
@@ -39,7 +48,7 @@ function renderCardList(listEl, cards, { withImage, imageScope }) {
   listEl.querySelectorAll('[data-card-remove]').forEach(el => {
     el.addEventListener('click', () => {
       cards.splice(+el.dataset.cardRemove, 1);
-      renderCardList(listEl, cards, { withImage, imageScope });
+      renderCardList(listEl, cards, { withImage, imageScope, withColor });
     });
   });
   if (withImage) {
@@ -53,9 +62,22 @@ function renderCardList(listEl, cards, { withImage, imageScope }) {
         try {
           const { url } = await uploadImage(file, imageScope, String(i));
           cards[i].image = url;
-          renderCardList(listEl, cards, { withImage, imageScope });
+          renderCardList(listEl, cards, { withImage, imageScope, withColor });
         } catch (err) {
           setStatus(statusEl, err.message, 'error');
+        }
+      });
+    });
+  }
+  if (withColor) {
+    listEl.querySelectorAll('[data-card-color]').forEach(el => {
+      const i = +el.dataset.cardColor;
+      initColorPaletteField(el, {
+        initial: cards[i].color || '#15191c',
+        onChange: (v) => {
+          cards[i].color = v;
+          const preview = listEl.querySelector(`[data-card-preview="${i}"]`);
+          if (preview) preview.style.background = v;
         }
       });
     });
@@ -65,7 +87,7 @@ function renderCardList(listEl, cards, { withImage, imageScope }) {
     const reordered = ids.map(id => cards[+id]);
     cards.length = 0;
     cards.push(...reordered);
-    renderCardList(listEl, cards, { withImage, imageScope });
+    renderCardList(listEl, cards, { withImage, imageScope, withColor });
   });
 }
 
@@ -127,11 +149,11 @@ async function initOnlineClassCard() {
   document.getElementById('home-oc-title').value = data.title || '';
   document.getElementById('home-oc-body').value = data.body || '';
   ocCards = Array.isArray(data.cards) ? data.cards : [];
-  renderCardList(document.getElementById('home-oc-cards'), ocCards, { withImage: true, imageScope: 'home-online-class' });
+  renderCardList(document.getElementById('home-oc-cards'), ocCards, { withImage: true, imageScope: 'home-online-class', withColor: true });
 
   document.getElementById('home-oc-add').addEventListener('click', () => {
     ocCards.push({ image: '', title: '', body: '' });
-    renderCardList(document.getElementById('home-oc-cards'), ocCards, { withImage: true, imageScope: 'home-online-class' });
+    renderCardList(document.getElementById('home-oc-cards'), ocCards, { withImage: true, imageScope: 'home-online-class', withColor: true });
   });
   document.getElementById('home-oc-save').addEventListener('click', async () => {
     const status = document.getElementById('home-oc-status');
