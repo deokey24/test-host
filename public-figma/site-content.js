@@ -6,6 +6,26 @@ function escapeCmsHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// HLS(.m3u8)와 레거시 mp4를 모두 지원하는 공용 재생 헬퍼.
+// hls.js는 <video>에 직접 attachMedia하므로 HLS일 때는 video.load()를 호출하면 안 된다
+// (붙인 MediaSource 스트림이 끊김).
+let _hlsInstance = null;
+function attachVideoSource(videoEl, url) {
+  if (_hlsInstance) {
+    _hlsInstance.destroy();
+    _hlsInstance = null;
+  }
+  const isHls = !!url && /\.m3u8(\?|$)/i.test(url);
+  if (isHls && window.Hls && window.Hls.isSupported()) {
+    _hlsInstance = new window.Hls();
+    _hlsInstance.loadSource(url);
+    _hlsInstance.attachMedia(videoEl);
+    return;
+  }
+  videoEl.src = url; // Safari 네이티브 HLS 또는 레거시 mp4
+  videoEl.load();
+}
+
 // 관리자에서 TOAST UI 마크다운 에디터로 작성한 텍스트를 프론트 el에 읽기전용 뷰어로 렌더링
 // (이 TOAST UI 버전엔 문자열 변환용 정적 메서드가 없어 viewer:true 인스턴스를 직접 마운트해야 함 —
 //  el이 아직 보이지 않는 컨테이너(예: 닫힌 <details>) 안에 있으면 크기 계산이 틀어질 수 있으니
@@ -508,8 +528,7 @@ async function hydrateLecturePlayer() {
 
     const videoEl = document.getElementById('lpVideo');
     if (videoEl) {
-      videoEl.src = lecture.video_url || '';
-      videoEl.load();
+      attachVideoSource(videoEl, lecture.video_url || '');
       if (autoplay) videoEl.play().catch(() => {});
     }
 
