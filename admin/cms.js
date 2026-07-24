@@ -96,7 +96,7 @@ function initAspectImagePicker(containerEl, { scope, resourceId, initial, onChan
 }
 
 // ── ColorPaletteField: 프리셋 스와치 + 커스텀 hex ──
-const CMS_COLOR_PRESETS = ['#0ea968', '#5fd3a0', '#fee500', '#ffffff', '#15191c'];
+const CMS_COLOR_PRESETS = ['#a98254', '#e3cdaf', '#fee500', '#ffffff', '#15191c'];
 
 function initColorPaletteField(containerEl, { initial, onChange }) {
   let value = initial || CMS_COLOR_PRESETS[0];
@@ -108,7 +108,7 @@ function initColorPaletteField(containerEl, { initial, onChange }) {
     swatchWrap.querySelectorAll('.color-swatch').forEach(sw => {
       sw.classList.toggle('selected', sw.dataset.color.toLowerCase() === value.toLowerCase());
     });
-    customInput.value = /^#[0-9a-f]{6}$/i.test(value) ? value : '#0ea968';
+    customInput.value = /^#[0-9a-f]{6}$/i.test(value) ? value : '#a98254';
     hexLabel.textContent = value;
   }
 

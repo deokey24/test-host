@@ -3,7 +3,7 @@ const fsp = require('fs/promises');
 const pLimit = require('p-limit');
 
 const { getPool } = require('./lib/db');
-const { downloadToFile, uploadFromFile } = require('./lib/r2');
+const { downloadToFile, uploadDirectory } = require('./lib/r2');
 const {
   receiveVideoJobs,
   deleteMessage,
@@ -29,10 +29,10 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function deriveFinalKey(rawKey) {
+function deriveHlsPrefix(rawKey) {
   const withoutPrefix = rawKey.replace(/^raw\//, '');
   const withoutExt = withoutPrefix.replace(/\.[^./]+$/, '');
-  return `final/${withoutExt}.mp4`;
+  return `hls/${withoutExt}`;
 }
 
 async function processJob(message) {
@@ -50,8 +50,9 @@ async function processJob(message) {
   }
 
   const rawPath = path.join(TMP_DIR, `${videoId}-raw`);
-  const finalPath = path.join(TMP_DIR, `${videoId}-final.mp4`);
-  const finalKey = deriveFinalKey(rawKey);
+  const hlsDir = path.join(TMP_DIR, `${videoId}-hls`);
+  const hlsPrefix = deriveHlsPrefix(rawKey);
+  const finalKey = `${hlsPrefix}/master.m3u8`;
 
   // 하트비트: 처리하는 동안 메시지 visibility를 계속 연장.
   // 인스턴스가 급사하면 연장이 끊겨 30분 내 다른 인스턴스가 재수신한다.
@@ -65,9 +66,10 @@ async function processJob(message) {
     console.log(`[video ${videoId}] 처리 시작: ${rawKey}`);
     await getPool().query('UPDATE lecture_videos SET status = ? WHERE id = ?', ['processing', videoId]);
 
+    await fsp.mkdir(hlsDir, { recursive: true });
     await downloadToFile(rawKey, rawPath);
-    await transcode(rawPath, finalPath);
-    await uploadFromFile(finalKey, finalPath);
+    await transcode(rawPath, hlsDir);
+    await uploadDirectory(hlsPrefix, hlsDir);
 
     await getPool().query(
       'UPDATE lecture_videos SET status = ?, final_r2_key = ? WHERE id = ?',
@@ -82,9 +84,10 @@ async function processJob(message) {
     ).catch((dbErr) => console.error('DB 상태 갱신 실패:', dbErr));
   } finally {
     clearInterval(heartbeat);
-    await Promise.all(
-      [rawPath, finalPath].map((p) => fsp.rm(p, { force: true }).catch(() => {}))
-    );
+    await Promise.all([
+      fsp.rm(rawPath, { force: true }).catch(() => {}),
+      fsp.rm(hlsDir, { recursive: true, force: true }).catch(() => {})
+    ]);
     // 앱 레벨 실패(ffmpeg 에러 등)도 메시지를 삭제한다 — 재시도해도 같은 결과이므로
     // failed 기록 후 관리자 재업로드에 맡긴다. SQS 재전달은 인스턴스 급사 케이스만 담당.
     await deleteMessage(message.ReceiptHandle).catch((err) =>

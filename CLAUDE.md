@@ -32,13 +32,14 @@ npm start   # http://localhost:3000
 
 ### 대용량 영상 업로드 파이프라인
 
-관리자 페이지에서 20~30GB급 강의 영상을 업로드 → ffmpeg 압축 → Cloudflare R2 저장 → 경로를 MySQL에 기록하는 별도 파이프라인. 상세 설계는 `infra/README.md`와 바탕화면 `영상업로드-아키텍처.md` 참고.
+관리자 페이지에서 20~30GB급 강의 영상을 업로드 → ffmpeg로 HLS(`master.m3u8` + `segmentNNNNN.ts`) 트랜스코딩 → Cloudflare R2 저장 → 경로를 MySQL에 기록하는 별도 파이프라인. 상세 설계는 `infra/README.md`와 바탕화면 `영상업로드-아키텍처.md` 참고.
 
-- `lib/` — 운영 서버(`server.js`)가 쓰는 R2 presigned URL(`r2.js`), SQS 발행(`sqs.js`), 워커 ASG 스케일아웃(`asg.js`), MySQL(`db.js`) 헬퍼
+- `lib/` — 운영 서버(`server.js`)가 쓰는 R2 presigned URL(`r2.js`, PUT/GET 프리사인 + 프리픽스 일괄 삭제), SQS 발행(`sqs.js`), 워커 ASG 스케일아웃(`asg.js`), MySQL(`db.js`) 헬퍼
 - `admin/index.html` — 파일 선택 → R2 멀티파트 presigned URL로 브라우저가 R2에 직접 업로드 → 완료 시 SQS에 작업 발행
-- `worker/` — 골든 AMI로 구워 ASG(min=0, max=3)로 운영되는 독립 Node 프로젝트. SQS 컨슈머, ffmpeg 압축(동시 5개 캡핑), R2 재업로드, DB 갱신, 유휴 시 ASG를 통해 자기 자신 terminate. 스케일아웃은 운영 서버가 presign/complete 시점에 desired capacity를 올려서 수행. 상세 설계: `infra/autoscaling-design.md`
+- `worker/` — 골든 AMI로 구워 ASG(min=0, max=3)로 운영되는 독립 Node 프로젝트. SQS 컨슈머, ffmpeg HLS 트랜스코딩(동시 5개 캡핑), R2에 `hls/<uuid>-title/` 프리픽스로 재업로드, DB 갱신, 유휴 시 ASG를 통해 자기 자신 terminate. 스케일아웃은 운영 서버가 presign/complete 시점에 desired capacity를 올려서 수행. 상세 설계: `infra/autoscaling-design.md`
 - `infra/` — IAM 정책, AWS CLI 프로비저닝 스크립트(`provision-asg.sh`), MySQL 스키마, systemd 유닛, 골든 AMI 셋업(`install-worker-instance.sh`)·부팅 user-data(`worker-user-data.sh`) 스크립트
 - 운영 서버와 워커 인스턴스는 원본 대용량 파일이 오가지 않도록 분리되어 있고 (브라우저 ↔ R2 직접 통신), 완료 신호는 SQS 메타데이터만 오간다
+- **재생 접근 제어**: HLS 영상은 R2 커스텀 도메인(`cdn.dockteacher.co.kr`)에 공개 서빙하지 않는다 (`hls/` 프리픽스는 Cloudflare에서 공개 매핑 제외 필요). 대신 회원 세션 인증된 `/api/stream/class-lecture/:lectureId/master.m3u8`, `/api/stream/vod-lecture/:lectureId/master.m3u8`(`server.js`)가 매 요청마다 세그먼트 줄을 R2 프리사인 GET URL(`STREAM_URL_TTL_SECONDS`, 기본 6시간)로 치환한 매니페스트를 내려준다. 레거시로 이미 mp4로 인코딩된 영상(`final_r2_key`가 `.mp4`)은 하위호환을 위해 그대로 공개 CDN URL로 서빙.
 
 ### SPA 페이지 전환 방식
 
@@ -57,7 +58,8 @@ CSS 변수가 두 곳에 선언되어 있어 주의 필요:
 
 ### JavaScript 주요 함수 (script.js)
 
-- `loadLectureVideo(lectureNum)` — 강의 번호로 MP4 영상 로드 및 재생
+- `loadLectureVideo(lectureNum)` — 강의 번호로 영상 로드 및 재생
+- `attachVideoSource(videoEl, url)` — HLS(.m3u8)/레거시 mp4 공용 재생 헬퍼. HLS면 hls.js(`window.Hls`)로 attachMedia, Safari는 네이티브, 아니면 `<source>`에 직접 대입
 - `renderReviews()` / `renderCards()` — 무한 슬라이더용 카드 2배 복제 렌더링
 - `renderFaq()` — FAQ 아코디언 동적 생성
 - `initHamburger()` — 모바일 햄버거 메뉴
@@ -81,6 +83,7 @@ CSS 변수가 두 곳에 선언되어 있어 주의 필요:
 - 폰트: SUIT (CDN), Noto Serif KR, Nanum Brush Script (Google Fonts)
 - 영상/이미지 CDN: `img.wecandoeat.com`
 - OG 이미지: `https://img.wecandoeat.com/uploads/logo_resize.png`
+- HLS 재생: hls.js (jsDelivr CDN, `index.html`에서 `script.js`보다 먼저 로드)
 
 ## 실서버 (Production)
 

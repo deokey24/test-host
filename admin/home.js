@@ -104,7 +104,7 @@ async function initHeroCard() {
   updateHeroButtonEnabled();
 
   heroColorPicker = initColorPaletteField(document.getElementById('home-hero-color'), {
-    initial: data.accentColor || '#0ea968'
+    initial: data.accentColor || '#a98254'
   });
   heroImagePicker = initAspectImagePicker(document.getElementById('home-hero-image'), {
     scope: 'home-hero', resourceId: 'hero',

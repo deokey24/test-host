@@ -1,9 +1,9 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@main/dist/web/variable/pretendardvariable.css');
 
 :root {
-  --green: #0ea968;
-  --green-light: #5fd3a0;
-  --green-dark: #0a7a4c;
+  --green: #a98254;
+  --green-light: #e3cdaf;
+  --green-dark: #8a6a42;
   --dark: #15191c;
   --dark-card: #232a2e;
   --dark-footer: #0c1210;
@@ -309,11 +309,11 @@ th { color: var(--text-soft); font-weight: 700; font-size: 12px; }
 #videoSection th:nth-child(4), #videoSection td:nth-child(4) { width: 22%; overflow-wrap: break-word; }
 
 .badge { padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
-.badge-done { background: #e4f5ec; color: var(--green-dark); }
+.badge-done { background: #f3ead9; color: var(--green-dark); }
 .badge-processing { background: #e3ecf3; color: #3d6b8b; }
 .badge-uploading, .badge-queued { background: #fdf0d5; color: #9a6a1f; }
 .badge-failed { background: var(--danger-bg); color: var(--danger); }
-.badge-on { background: #e4f5ec; color: var(--green-dark); }
+.badge-on { background: #f3ead9; color: var(--green-dark); }
 .badge-off { background: var(--border); color: var(--text-soft); }
 
 /* ── modal ── */

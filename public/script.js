@@ -21,23 +21,51 @@ const lectureVideos = [
     { id: 10, title: '대조적 관점에서의 비판적 읽기',         url: 'https://img.wecandoeat.com/uploads/1780639259428-2026-05-13_compressed.mp4' },
 ];
 
+// HLS(.m3u8)와 레거시 mp4를 모두 지원하는 공용 재생 헬퍼.
+// hls.js는 <video>에 직접 attachMedia하므로 HLS일 때는 <source> 자식을 쓰지 않는다.
+let _hlsInstance = null;
+function attachVideoSource(videoEl, url) {
+    if (_hlsInstance) {
+        _hlsInstance.destroy();
+        _hlsInstance = null;
+    }
+    videoEl.removeAttribute('src');
+    const srcEl = videoEl.querySelector('source');
+    if (srcEl) srcEl.removeAttribute('src');
+
+    const isHls = !!url && /\.m3u8(\?|$)/i.test(url);
+    if (isHls && window.Hls && window.Hls.isSupported()) {
+        // hls.js가 MediaSource를 직접 붙이므로 video.load()를 호출하면 안 된다 (붙인 스트림이 끊김)
+        _hlsInstance = new window.Hls();
+        _hlsInstance.loadSource(url);
+        _hlsInstance.attachMedia(videoEl);
+        return;
+    }
+    if (isHls && videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+        videoEl.src = url; // Safari 네이티브 HLS
+    } else if (srcEl) {
+        srcEl.src = url;
+    } else {
+        videoEl.src = url;
+    }
+    videoEl.load();
+}
+
 function loadLectureVideo(lectureNum) {
     const lecture = lectureVideos.find(v => v.id === lectureNum);
     if (!lecture) return;
 
     const videoEl   = document.getElementById('lectureVideo');
-    const srcEl     = document.getElementById('lectureVideoSrc');
     const extWrap   = document.getElementById('lectureExtWrap');
     const extLink   = document.getElementById('lectureExtLink');
 
     const DEFAULT_VIDEO = 'https://img.wecandoeat.com/uploads/1780639259428-2026-05-13_compressed.mp4';
-    const isMp4 = lecture.url && /\.(mp4|webm|ogg)(\?|$)/i.test(lecture.url);
-    const videoUrl = isMp4 ? lecture.url : DEFAULT_VIDEO;
+    const isPlayable = lecture.url && /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(lecture.url);
+    const videoUrl = isPlayable ? lecture.url : DEFAULT_VIDEO;
 
     extWrap.style.display = 'none';
     videoEl.style.display = 'block';
-    srcEl.src = videoUrl;
-    videoEl.load();
+    attachVideoSource(videoEl, videoUrl);
     videoEl.play().catch(() => {});
 }
 
@@ -397,9 +425,7 @@ function selectLecture(idx) {
     document.getElementById('lpInfoTitle').textContent = lecture.title;
 
     const video = document.getElementById('lectureVideo');
-    const source = document.getElementById('lectureVideoSrc');
-    source.src = lecture.videoUrl;
-    video.load();
+    attachVideoSource(video, lecture.videoUrl);
 
     document.getElementById('lpProgressCount').textContent = `${idx + 1} / ${lecturePlayerLectures.length}강`;
     document.getElementById('lpProgressBarFill').style.width = `${Math.round((idx + 1) / lecturePlayerLectures.length * 100)}%`;

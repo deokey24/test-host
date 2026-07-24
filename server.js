@@ -23,6 +23,35 @@ function buildCdnUrl(r2Key) {
   return CDN_BASE_URL + '/' + r2Key.split('/').map(encodeURIComponent).join('/');
 }
 
+const STREAM_URL_TTL_SECONDS = Number(process.env.STREAM_URL_TTL_SECONDS || 21600); // 6시간
+
+function isHlsKey(key) {
+  return !!key && key.endsWith('.m3u8');
+}
+
+function streamToString(stream) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on('data', (chunk) => chunks.push(chunk));
+    stream.on('error', reject);
+    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+  });
+}
+
+// master.m3u8의 세그먼트 줄(상대경로)은 쿼리스트링을 상속받지 못하므로,
+// 요청마다 각 세그먼트를 새로 프리사인한 절대 URL로 치환해 내려준다.
+async function renderSignedManifest(manifestKey, ttlSeconds = STREAM_URL_TTL_SECONDS) {
+  const prefix = manifestKey.slice(0, manifestKey.lastIndexOf('/') + 1);
+  const obj = await r2.getObject(manifestKey);
+  const text = await streamToString(obj.Body);
+  const signedLines = await Promise.all(text.split('\n').map(async (line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) return line;
+    return r2.presignGetObject(prefix + trimmed, ttlSeconds);
+  }));
+  return signedLines.join('\n');
+}
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'dockteacher-admin-session',
   resave: false,
@@ -95,7 +124,12 @@ app.get('/admin/api/videos', requireAdminApi, wrapAsync(async (req, res) => {
     `SELECT id, title, status, final_r2_key, error_message, created_at, folder_id FROM lecture_videos ${where} ORDER BY created_at DESC`,
     params
   );
-  res.json(rows.map(v => ({ ...v, final_url: v.final_r2_key ? buildCdnUrl(v.final_r2_key) : null })));
+  res.json(rows.map(v => ({
+    ...v,
+    final_url: !v.final_r2_key ? null
+      : isHlsKey(v.final_r2_key) ? `/admin/api/videos/${v.id}/stream/master.m3u8`
+      : buildCdnUrl(v.final_r2_key)
+  })));
 }));
 
 app.post('/admin/api/videos/presign', requireAdminApi, wrapAsync(async (req, res) => {
@@ -203,7 +237,15 @@ app.delete('/admin/api/videos/:id', requireAdminApi, wrapAsync(async (req, res) 
     await r2.abortMultipartUpload(video.raw_r2_key, video.raw_upload_id).catch(() => {});
   }
   if (video.raw_r2_key) await r2.deleteObject(video.raw_r2_key);
-  if (video.final_r2_key) await r2.deleteObject(video.final_r2_key);
+  if (video.final_r2_key) {
+    if (isHlsKey(video.final_r2_key)) {
+      // HLS는 master.m3u8 + segment*.ts가 프리픽스 아래 여러 개 있으므로 폴더째로 지운다
+      const prefix = video.final_r2_key.slice(0, video.final_r2_key.lastIndexOf('/') + 1);
+      await r2.deleteObjectsByPrefix(prefix);
+    } else {
+      await r2.deleteObject(video.final_r2_key); // 레거시 mp4 단일 파일
+    }
+  }
 
   // DB 행을 지우면 큐에 남은 작업 메시지는 워커가 "행 없음"으로 판단해 스킵한다 (queued 상태도 안전)
   await getPool().query('DELETE FROM lecture_videos WHERE id = ?', [id]);
@@ -228,6 +270,67 @@ app.put('/admin/api/videos/:id/move', requireAdminApi, wrapAsync(async (req, res
   }
   await getPool().query('UPDATE lecture_videos SET folder_id = ? WHERE id = ?', [folderId || null, id]);
   res.json({ ok: true });
+}));
+
+// 관리자 미리보기용 — HLS 영상의 서명된 매니페스트를 내려준다 (레거시 mp4는 final_url을 그대로 재생)
+app.get('/admin/api/videos/:id/stream/master.m3u8', requireAdminApi, wrapAsync(async (req, res) => {
+  const [[video]] = await getPool().query('SELECT final_r2_key FROM lecture_videos WHERE id = ?', [req.params.id]);
+  if (!video || !isHlsKey(video.final_r2_key)) {
+    res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
+    return;
+  }
+  const manifest = await renderSignedManifest(video.final_r2_key);
+  res.set('Content-Type', 'application/vnd.apple.mpegurl');
+  res.set('Cache-Control', 'no-store');
+  res.send(manifest);
+}));
+
+// 회원이 실제로 수강 중인 클래스/VOD 강좌의 HLS 영상만 서명된 매니페스트로 내려준다.
+// videoUrl을 이 경로로 내려주는 쪽은 /api/members/my-lectures/:classId, /api/members/my-vod-lectures/:vodCourseId.
+app.get('/api/stream/class-lecture/:lectureId/master.m3u8', requireMember, wrapAsync(async (req, res) => {
+  const [[lecture]] = await getPool().query(
+    'SELECT class_id, video_r2_key FROM class_lectures WHERE id = ?',
+    [req.params.lectureId]
+  );
+  if (!lecture || !isHlsKey(lecture.video_r2_key)) {
+    res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
+    return;
+  }
+  const [enrollRows] = await getPool().query(
+    'SELECT id FROM member_class_enrollments WHERE member_id = ? AND class_id = ?',
+    [req.session.memberId, lecture.class_id]
+  );
+  if (!enrollRows[0]) {
+    res.status(403).json({ error: '수강 중인 클래스가 아닙니다.' });
+    return;
+  }
+  const manifest = await renderSignedManifest(lecture.video_r2_key);
+  res.set('Content-Type', 'application/vnd.apple.mpegurl');
+  res.set('Cache-Control', 'no-store');
+  res.send(manifest);
+}));
+
+app.get('/api/stream/vod-lecture/:lectureId/master.m3u8', requireMember, wrapAsync(async (req, res) => {
+  const [[lecture]] = await getPool().query(
+    'SELECT vod_course_id, video_r2_key FROM vod_course_lectures WHERE id = ?',
+    [req.params.lectureId]
+  );
+  if (!lecture || !isHlsKey(lecture.video_r2_key)) {
+    res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
+    return;
+  }
+  const [enrollRows] = await getPool().query(
+    'SELECT id FROM member_vod_enrollments WHERE member_id = ? AND vod_course_id = ?',
+    [req.session.memberId, lecture.vod_course_id]
+  );
+  if (!enrollRows[0]) {
+    res.status(403).json({ error: '수강 중인 강좌가 아닙니다.' });
+    return;
+  }
+  const manifest = await renderSignedManifest(lecture.video_r2_key);
+  res.set('Content-Type', 'application/vnd.apple.mpegurl');
+  res.set('Cache-Control', 'no-store');
+  res.send(manifest);
 }));
 
 // ── video_folders (영상 업로드 다중 계층 폴더, FTP 스타일) ──
@@ -1306,7 +1409,7 @@ app.get('/api/members/my-lectures/:classId', requireMember, wrapAsync(async (req
       id: l.id,
       lectureNumber: l.lecture_number,
       title: l.title,
-      videoUrl: buildCdnUrl(l.video_r2_key),
+      videoUrl: isHlsKey(l.video_r2_key) ? `/api/stream/class-lecture/${l.id}/master.m3u8` : buildCdnUrl(l.video_r2_key),
       materials: materialsByLecture[l.id] || []
     }))
   });
@@ -1364,7 +1467,9 @@ app.get('/api/members/my-vod-lectures/:vodCourseId', requireMember, wrapAsync(as
     course: courseRows[0],
     lectures: lectures.map(({ id, video_r2_key, ...l }) => ({
       ...l,
-      video_url: video_r2_key ? buildCdnUrl(video_r2_key) : null,
+      video_url: !video_r2_key ? null
+        : isHlsKey(video_r2_key) ? `/api/stream/vod-lecture/${id}/master.m3u8`
+        : buildCdnUrl(video_r2_key),
       materials: materialsByLecture[id] || []
     }))
   });
