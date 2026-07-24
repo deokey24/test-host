@@ -6,173 +6,294 @@
 <title>FAQ · 독편사 DOCK PASS</title>
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="stylesheet" href="style.css">
+<style>
+:root{
+  --navy-950:#020918;--navy-900:#031228;--navy-850:#071a34;--navy-800:#0e1c30;--navy-700:#162844;
+  --beige-700:#a98254;--beige-500:#d7bf9f;--beige-400:#e3cdaf;--beige-100:#f1e6d7;--beige-50:#f8f2ea;
+  --ivory:#f7f4f1;--warm-white:#fbfaf9;--text:#172033;--muted:#73737a;--line:#e1e1df;
+  --shadow-sm:0 4px 16px rgba(2,9,24,.06);
+}
+body[data-page="faq"]{background:var(--warm-white)}
+.container{width:min(1280px,calc(100% - 40px));margin:auto}
+.header{position:sticky;top:0;z-index:50;background:rgba(3,18,40,.96);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.08)}
+.header__inner{height:76px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.header .logo{display:flex;align-items:center;gap:10px;color:#fff;font-weight:900}
+.header .nav{display:flex;gap:36px;color:#eef2f7;font-weight:700}
+.header .nav a{position:relative;padding:27px 0}
+.header .nav a.active:after,.header .nav a:hover:after{content:"";position:absolute;left:0;right:0;bottom:15px;height:2px;background:var(--beige-400)}
+.header__actions{display:flex;gap:9px}
+.header__actions .btn{border:0;border-radius:10px;padding:13px 20px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.2s}
+.header__actions .btn:hover{transform:translateY(-1px)}
+.header__actions .btn--primary{background:linear-gradient(135deg,var(--beige-400),#f0d8b5);color:#14213a;box-shadow:0 8px 22px rgba(215,191,159,.22)}
+.header__actions .btn--ghost-dark{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.28)}
+.header .mobile-toggle{display:none;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:8px 10px}
+
+.faq-hero{background:radial-gradient(circle at 70% 20%,#10325b 0,transparent 34%),linear-gradient(135deg,var(--navy-950),#0b294b);color:#fff;padding:32px 0 40px}
+.faq-hero .crumb{color:#9fb0c7;font-size:12px;font-weight:700;letter-spacing:.06em;margin-bottom:12px}
+.faq-hero h1{font-size:38px;margin:0 0 10px;letter-spacing:-.02em}
+.faq-hero p{margin:0;color:#dbe3ee;font-size:15px}
+
+.faq-tabs{display:flex;gap:10px;flex-wrap:wrap;margin:26px 0 22px}
+.faq-tabs button{padding:10px 18px;border-radius:9px;font-size:13.5px;font-weight:700;cursor:pointer;border:1px solid var(--line);background:#fff;color:#4a5170;transition:.15s}
+.faq-tabs button.active{background:var(--navy-900);border-color:var(--navy-900);color:#fff}
+
+.faq-layout{display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start;padding-bottom:60px}
+
+.faq-list{display:flex;flex-direction:column;gap:12px}
+.faq-item{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.faq-question{width:100%;background:none;border:0;padding:20px 24px;display:flex;justify-content:space-between;align-items:center;gap:14px;cursor:pointer;text-align:left}
+.faq-question .q-mark{background:var(--beige-100);color:var(--beige-700);font-size:11.5px;font-weight:800;padding:5px 10px;border-radius:6px;flex:none}
+.faq-question .q-text{flex:1;font-size:15px;font-weight:700;color:var(--text)}
+.faq-question .q-icon{position:relative;font-size:18px;color:transparent;flex:none;width:14px;text-align:center}
+.faq-question .q-icon:before{content:'+';position:absolute;inset:0;color:var(--beige-700)}
+.faq-item.open .faq-question .q-icon{transform:none}
+.faq-item.open .faq-question .q-icon:before{content:'−'}
+.faq-answer{padding:0 24px 22px;font-size:14px;line-height:1.8;color:var(--muted);display:none}
+.faq-item.open .faq-answer{display:block}
+.faq-footnote{max-width:none;margin:12px 0 0;font-size:13px;opacity:.55}
+
+.notice-board{background:transparent;border:0;border-radius:0;box-shadow:none;display:flex;flex-direction:column;gap:12px}
+.notice-board-head{display:none}
+.notice-row{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.notice-row-head{width:100%;display:flex;align-items:center;gap:16px;padding:20px 24px;background:none;border:0;text-align:left;cursor:pointer;transition:background .15s}
+.notice-row-head:hover{background:var(--ivory)}
+.notice-col-cat,.notice-cat{width:auto;flex:none}
+.notice-cat{background:var(--beige-100);color:var(--beige-700);font-size:11.5px;font-weight:800;padding:5px 10px;border-radius:6px}
+.notice-col-title,.notice-title{flex:1;min-width:0;padding:0;font-size:15px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.notice-col-date,.notice-date{flex:none;width:auto;font-size:12.5px;color:var(--muted);text-align:right}
+.notice-chevron{flex:none;display:flex;align-items:center;color:var(--beige-700);transition:transform .25s ease}
+.notice-row.open .notice-chevron{transform:rotate(180deg)}
+.notice-body{max-height:0;overflow:hidden;padding:0 24px;font-size:14px;line-height:1.8;color:var(--muted);border-top:0 solid var(--line);transition:max-height .3s ease,padding .3s ease}
+.notice-row.open .notice-body{max-height:600px;padding:18px 24px 22px;border-top:1px solid var(--line)}
+.notice-body p{margin:0 0 12px}
+.notice-body p:last-child{margin-bottom:0}
+
+.faq-side{position:sticky;top:100px;background:var(--navy-900);border-radius:16px;padding:28px 24px;color:#fff}
+.faq-side h3{margin:0 0 8px;font-size:17px}
+.faq-side p{margin:0 0 20px;font-size:13px;line-height:1.7;color:#9aa4c2}
+.faq-side .btn--primary{width:100%;display:flex}
+.faq-side .btn--kakao{width:100%;border:0;border-radius:10px;padding:13px 20px;font-weight:800;font-size:14.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;background:#fee500;color:#191600;transition:.2s}
+.faq-side .btn--kakao:hover{transform:translateY(-1px)}
+.faq-side .side-divider{border-top:1px solid rgba(255,255,255,.12);margin-top:20px;padding-top:16px}
+.faq-side .side-label{color:#7d859f;font-size:12px;margin-bottom:6px}
+.faq-side .side-phone{color:#fff;font-size:19px;font-weight:800}
+.faq-side .side-hours{color:#7d859f;font-size:12px;margin-top:4px}
+
+.footer{background:var(--navy-950);color:#d7dde8;padding:38px 0 26px}
+.footer__grid{display:grid;grid-template-columns:1fr 1.4fr .8fr;gap:30px}
+.footer small{color:#9ba7b8}
+.footer .phone{font-size:28px;color:#fff;font-weight:900}
+.footer .social{display:flex;gap:8px;margin-top:14px}
+.footer .social a{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.28);display:grid;place-items:center;color:#d7dde8;transition:.2s}
+.footer .social a:hover{background:rgba(255,255,255,.12)}
+.footer .social svg{width:15px;height:15px}
+.footer__bottom{display:flex;justify-content:space-between;align-items:center;margin-top:28px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:#9ba7b8}
+.footer__bottom a{margin-left:16px;color:#c3ccd9}
+
+@media(max-width:1100px){.header .nav{gap:20px}.faq-layout{grid-template-columns:1fr 260px}.footer__grid{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){.faq-layout{grid-template-columns:1fr}.faq-side{position:static}}
+@media(max-width:760px){
+  .header__inner{height:64px}
+  .header .nav{display:none;position:absolute;left:12px;right:12px;top:70px;background:var(--navy-900);padding:16px;border-radius:12px;flex-direction:column;gap:0}
+  .header .nav.open{display:flex}
+  .header .nav a{padding:12px}
+  .header .nav a.active:after,.header .nav a:hover:after{display:none}
+  .header .mobile-toggle{display:block}
+  .header__actions .btn:not(.btn--primary){display:none}
+  .header__actions .btn{padding:10px 13px}
+  .faq-hero h1{font-size:28px}
+  .faq-question{padding:18px}
+  .faq-answer{padding:0 18px 20px}
+  .footer__grid{grid-template-columns:1fr}
+  .footer__bottom{flex-direction:column;gap:10px;align-items:flex-start}
+  .footer__bottom a{margin:0 16px 0 0}
+}
+</style>
 </head>
 <body data-page="faq">
 <div class="page">
 
-  <header class="site-header">
-    <a class="logo" href="/">
-      <img src="assets/home/header-logo.png" alt="DOCK PASS">
-    </a>
-    <nav class="site-nav">
+  <header class="header"><div class="container header__inner">
+    <a class="logo" href="index.html"><img src="assets/home/footer-logo.png" alt="DOCK PASS" style="height:42px;width:auto;display:block"></a>
+    <nav class="nav" aria-label="주요 메뉴">
       <a href="vod.html">VOD 강의</a>
       <a href="cert.html">합격 인증</a>
       <a href="curriculum.html">커리큘럼</a>
+      <a href="reviews.html">수강후기</a>
       <a href="faq.html" class="active">FAQ</a>
     </nav>
-    <div class="header-right">
-      <span class="login-link" id="loginTrigger">로그인</span>
-      <a class="my-info-link" id="myInfoBtn" href="mypage.html" style="display:none;">마이페이지</a>
-      <button class="hamburger" type="button" aria-label="메뉴 열기" aria-expanded="false">
-        <span></span><span></span><span></span>
-      </button>
+    <div class="header__actions">
+      <button class="mobile-toggle" type="button" aria-label="메뉴 열기">☰</button>
+      <a class="btn btn--ghost-dark" id="loginTrigger" href="javascript:void(0)">로그인</a>
+      <a class="btn btn--ghost-dark my-info-link" id="myInfoBtn" href="mypage.html" style="display:none;">마이페이지</a>
+      <a class="btn btn--primary" href="vodDetail.html">수강신청</a>
     </div>
-  </header>
+  </div></header>
 
-  <section class="hero-wrap">
-    <div class="vod-hero">
-      <img class="vod-hero-decor" src="assets/curriculum/decor.png" alt="">
-      <div class="breadcrumb">HOME / FAQ</div>
-      <div class="vod-hero-row" style="align-items:flex-start;">
-        <div>
-          <h1 data-cms="hero.title">FAQ</h1>
-          <p data-cms="hero.body">프리미엄 VOD 관련 자주 묻는 질문과 공지사항을 확인하세요.</p>
-        </div>
-      </div>
-      <div class="faq-tabs">
-        <button type="button" class="active" data-tab="faq">자주 묻는 질문</button>
-        <button type="button" data-tab="notice">공지사항</button>
-      </div>
-    </div>
-  </section>
+  <section class="faq-hero"><div class="container">
+    <div class="crumb">HOME / FAQ</div>
+    <h1 data-cms="hero.title">FAQ</h1>
+    <p data-cms="hero.body">자주 묻는 질문과 공지사항을 확인하세요.</p>
+  </div></section>
 
-  <section class="faq-body">
-    <div id="faqPanel">
-    <div class="faq-list" data-cms-faq-list>
-      <template>
-        <div class="faq-item">
-          <button type="button" class="faq-question">
-            <span class="q-mark">Q</span>
-            <span class="q-text"></span>
-            <span class="q-icon">+</span>
-          </button>
-          <div class="faq-answer"></div>
-        </div>
-      </template>
-      <div class="faq-item open">
-        <button type="button" class="faq-question">
-          <span class="q-mark">Q</span>
-          <span class="q-text">중도 환불이 가능한가요?</span>
-          <span class="q-icon">+</span>
-        </button>
-        <div class="faq-answer">
-          <p>본 상품은 등록 즉시 프리미엄 VOD, 자체 제작 모의논술, 학교별 분석자료, 학습 시스템 이용권이 개방되는 즉시 제공형 연간 패키지 상품입니다.</p>
-          <p>환불 요청 시 관계 법령 및 소비자분쟁해결기준에 따라 처리하되, 이미 제공되었거나 개방된 콘텐츠·자료·시스템 세팅 비용·사용된 첨삭권은 제공분으로 산정되어 공제될 수 있습니다.</p>
-          <p>학원법 시행령은 수강을 포기한 경우 반환사유가 발생한 것으로 보고, 발생일부터 5일 이내 별표 기준에 따라 반환하도록 정하며, 원격교습은 실제 수강했거나 저장한 부분을 제외하고 반환하도록 규정합니다.</p>
-        </div>
-      </div>
-
-      <div class="faq-item">
-        <button type="button" class="faq-question">
-          <span class="q-mark">Q</span>
-          <span class="q-text">7월에 등록하고 8월에 환불을 요청하면 어떻게 계산되나요?</span>
-          <span class="q-icon">+</span>
-        </button>
-        <div class="faq-answer">
-          <p>결제일과 환불 요청일 사이의 이용 기간, 열람한 콘텐츠, 사용한 첨삭권을 기준으로 관계 법령에 따라 공제 후 정산됩니다.</p>
-        </div>
-      </div>
-
-      <div class="faq-item">
-        <button type="button" class="faq-question">
-          <span class="q-mark">Q</span>
-          <span class="q-text">VOD를 아직 많이 보지 않았어도 공제되나요?</span>
-          <span class="q-icon">+</span>
-        </button>
-        <div class="faq-answer">
-          <p>시청 여부와 관계없이 등록 즉시 개방된 콘텐츠·시스템 이용권은 제공분으로 산정되어 공제될 수 있습니다.</p>
-        </div>
-      </div>
-
-      <div class="faq-item">
-        <button type="button" class="faq-question">
-          <span class="q-mark">Q</span>
-          <span class="q-text">첨삭권은 사용하지 않으면 환불되나요?</span>
-          <span class="q-icon">+</span>
-        </button>
-        <div class="faq-answer">
-          <p>사용하지 않은 첨삭권은 환불 산정 시 반영되며, 이미 사용된 첨삭권은 제공분으로 공제됩니다.</p>
-        </div>
-      </div>
-
-      <div class="faq-item">
-        <button type="button" class="faq-question">
-          <span class="q-mark">Q</span>
-          <span class="q-text">첨삭권은 다음 달로 이월되나요?</span>
-          <span class="q-icon">+</span>
-        </button>
-        <div class="faq-answer">
-          <p>첨삭권 이월 여부는 상품별 이용 약관에 따라 다르므로 고객센터로 문의해주세요.</p>
-        </div>
-      </div>
-
-      <div class="faq-item">
-        <button type="button" class="faq-question">
-          <span class="q-mark">Q</span>
-          <span class="q-text">단순 변심으로도 환불이 가능한가요?</span>
-          <span class="q-icon">+</span>
-        </button>
-        <div class="faq-answer">
-          <p>관계 법령 및 소비자분쟁해결기준에 따라 단순 변심의 경우에도 환불 요청이 가능하나, 이미 제공된 콘텐츠·자료·시스템 세팅 비용은 공제될 수 있습니다.</p>
-        </div>
-      </div>
+  <section><div class="container">
+    <div class="faq-tabs">
+      <button type="button" class="active" data-tab="faq">자주 묻는 질문</button>
+      <button type="button" data-tab="notice">공지사항</button>
     </div>
 
-    <p class="faq-footnote">※ 실제 환불 금액은 결제일·환불 요청일·콘텐츠 이용 여부·첨삭권 사용 여부 및 관계 법령(학원법 시행령·소비자분쟁해결기준)에 따라 달라질 수 있습니다.</p>
-    </div>
-
-    <div id="noticePanel" style="display:none;">
-      <div class="notice-board" data-cms-notice-list>
-        <div class="notice-board-head">
-          <span class="notice-col-cat">카테고리</span>
-          <span class="notice-col-title">제목</span>
-          <span class="notice-col-date">날짜</span>
-        </div>
-        <template>
-          <div class="notice-row">
-            <button type="button" class="notice-row-head">
-              <span class="notice-cat"></span>
-              <span class="notice-title"></span>
-              <span class="notice-date"></span>
+    <div class="faq-layout">
+      <div>
+        <div id="faqPanel">
+        <div class="faq-list" data-cms-faq-list>
+          <template>
+            <div class="faq-item">
+              <button type="button" class="faq-question">
+                <span class="q-mark">Q</span>
+                <span class="q-text"></span>
+                <span class="q-icon">+</span>
+              </button>
+              <div class="faq-answer"></div>
+            </div>
+          </template>
+          <div class="faq-item open">
+            <button type="button" class="faq-question">
+              <span class="q-mark">Q</span>
+              <span class="q-text">중도 환불이 가능한가요?</span>
+              <span class="q-icon">+</span>
             </button>
-            <div class="notice-body"></div>
+            <div class="faq-answer">
+              <p>본 상품은 등록 즉시 프리미엄 VOD, 자체 제작 모의논술, 학교별 분석자료, 학습 시스템 이용권이 개방되는 즉시 제공형 연간 패키지 상품입니다.</p>
+              <p>환불 요청 시 관계 법령 및 소비자분쟁해결기준에 따라 처리하되, 이미 제공되었거나 개방된 콘텐츠·자료·시스템 세팅 비용·사용된 첨삭권은 제공분으로 산정되어 공제될 수 있습니다.</p>
+              <p>학원법 시행령은 수강을 포기한 경우 반환사유가 발생한 것으로 보고, 발생일부터 5일 이내 별표 기준에 따라 반환하도록 정하며, 원격교습은 실제 수강했거나 저장한 부분을 제외하고 반환하도록 규정합니다.</p>
+            </div>
           </div>
-        </template>
-      </div>
-    </div>
-  </section>
 
-  <footer class="site-footer">
-    <div class="footer-top">
-      <div class="footer-brand">
-        <img src="assets/home/footer-logo.png" alt="DOCK PASS">
-        <p>서울특별시 서대문구 신촌로 221 엠앤씨빌딩 2층 201호<br>
-        학원설립·운영등록번호 제2020-0006호 · 사업자등록번호 104-94-47747<br>
-        평일 운영 월~금 14:00–22:00 · 상담 월~금 15:00–20:00</p>
+          <div class="faq-item">
+            <button type="button" class="faq-question">
+              <span class="q-mark">Q</span>
+              <span class="q-text">7월에 등록하고 8월에 환불을 요청하면 어떻게 계산되나요?</span>
+              <span class="q-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <p>결제일과 환불 요청일 사이의 이용 기간, 열람한 콘텐츠, 사용한 첨삭권을 기준으로 관계 법령에 따라 공제 후 정산됩니다.</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button type="button" class="faq-question">
+              <span class="q-mark">Q</span>
+              <span class="q-text">VOD를 아직 많이 보지 않았어도 공제되나요?</span>
+              <span class="q-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <p>시청 여부와 관계없이 등록 즉시 개방된 콘텐츠·시스템 이용권은 제공분으로 산정되어 공제될 수 있습니다.</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button type="button" class="faq-question">
+              <span class="q-mark">Q</span>
+              <span class="q-text">첨삭권은 사용하지 않으면 환불되나요?</span>
+              <span class="q-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <p>사용하지 않은 첨삭권은 환불 산정 시 반영되며, 이미 사용된 첨삭권은 제공분으로 공제됩니다.</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button type="button" class="faq-question">
+              <span class="q-mark">Q</span>
+              <span class="q-text">첨삭권은 다음 달로 이월되나요?</span>
+              <span class="q-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <p>첨삭권 이월 여부는 상품별 이용 약관에 따라 다르므로 고객센터로 문의해주세요.</p>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button type="button" class="faq-question">
+              <span class="q-mark">Q</span>
+              <span class="q-text">단순 변심으로도 환불이 가능한가요?</span>
+              <span class="q-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <p>관계 법령 및 소비자분쟁해결기준에 따라 단순 변심의 경우에도 환불 요청이 가능하나, 이미 제공된 콘텐츠·자료·시스템 세팅 비용은 공제될 수 있습니다.</p>
+            </div>
+          </div>
+        </div>
+
+        <p class="faq-footnote">※ 실제 환불 금액은 결제일·환불 요청일·콘텐츠 이용 여부·첨삭권 사용 여부 및 관계 법령(학원법 시행령·소비자분쟁해결기준)에 따라 달라질 수 있습니다.</p>
+        </div>
+
+        <div id="noticePanel" style="display:none;">
+          <div class="notice-board" data-cms-notice-list>
+            <div class="notice-board-head">
+              <span class="notice-col-cat">카테고리</span>
+              <span class="notice-col-title">제목</span>
+              <span class="notice-col-date">날짜</span>
+            </div>
+            <template>
+              <div class="notice-row">
+                <button type="button" class="notice-row-head">
+                  <span class="notice-cat"></span>
+                  <span class="notice-title"></span>
+                  <span class="notice-date"></span>
+                  <span class="notice-chevron"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+                </button>
+                <div class="notice-body"></div>
+              </div>
+            </template>
+          </div>
+        </div>
       </div>
-      <div class="footer-contact">
-        <div class="label">CONTACT</div>
-        <div class="phone">02-6404-1018</div>
-        <div class="hours">상담 월~금 15:00–20:00</div>
+
+      <aside class="faq-side">
+        <h3>더 궁금한 점이 있으신가요?</h3>
+        <p>1:1 카카오톡 상담이나 전화 문의로<br>빠르게 답변 받아보세요.</p>
+        <a class="btn btn--kakao" href="#" target="_blank" rel="noopener" data-kakao-link>1:1 카카오톡 상담</a>
+        <div class="side-divider">
+          <div class="side-label">전화 상담</div>
+          <div class="side-phone">02-6404-1018</div>
+          <div class="side-hours">상담 월~금 15:00–20:00</div>
+        </div>
+      </aside>
+    </div>
+  </div></section>
+
+  <footer class="footer"><div class="container footer__grid">
+    <div>
+      <a class="logo" href="index.html"><img src="assets/home/footer-logo.png" alt="DOCK PASS" style="height:39px;width:auto;display:block"></a>
+      <p>독편사 편입논술은 결과로 증명합니다.</p>
+      <div class="social">
+        <a href="#" aria-label="유튜브"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="m10.5 9.5 4.5 2.5-4.5 2.5v-5Z"/></svg></a>
+        <a href="#" aria-label="인스타그램"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4.5"/><circle cx="12" cy="12" r="3.6"/><circle cx="16.8" cy="7.2" r=".5" fill="currentColor" stroke="none"/></svg></a>
+        <a href="#" aria-label="블로그"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6v12"/><path d="M9 12.6c.4-1.1 1.5-1.8 2.8-1.8 1.9 0 3.2 1.4 3.2 3.3S13.7 17.4 11.8 17.4c-1.3 0-2.4-.7-2.8-1.8"/></svg></a>
+        <a href="#" aria-label="더보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 8.5v7M8.5 12h7"/></svg></a>
       </div>
     </div>
-    <div class="copyright">Copyright © 독편사편입학원 All Rights Reserved</div>
+    <div><small>(주)독패스 | 대표이사 김독패<br>사업자등록번호 000-00-00000 | 통신판매업신고 2020-서울강남-00000<br>서울특별시 서대문구 신촌로 221, 2층<br>학원설립·운영등록번호 제2020-0006호 | 사업자등록번호 104-94-47747<br>평일 운영 14:00~22:00 · 상담 운영 15:00~20:00</small></div>
+    <div>
+      <small>상담 문의</small>
+      <div class="phone">02-6404-1018</div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <a class="btn btn--primary" href="#">카카오톡 상담</a>
+        <a class="btn btn--ghost-dark" href="#">이메일 문의</a>
+      </div>
+    </div>
+  </div>
+  <div class="container footer__bottom">
+    <span>© DOCK PASS. All rights reserved.</span>
+    <span><a href="#">이용약관</a><a href="#">개인정보처리방침</a></span>
+  </div>
   </footer>
 
   <a class="kakao-float" href="#" target="_blank" rel="noopener">카카오톡 상담</a>
 
   <script>
-    document.querySelector('.faq-body').addEventListener('click', function (e) {
+    document.querySelector('.faq-layout').addEventListener('click', function (e) {
       const btn = e.target.closest('.faq-question');
       if (btn) { btn.closest('.faq-item').classList.toggle('open'); return; }
       const row = e.target.closest('.notice-row-head');
@@ -189,6 +310,7 @@
       });
     });
   </script>
+  <script>document.querySelector('.mobile-toggle')?.addEventListener('click',()=>document.querySelector('.header .nav')?.classList.toggle('open'));</script>
 
   <div class="auth-modal-overlay" id="loginModalOverlay">
     <div class="auth-modal-box">
@@ -219,7 +341,6 @@
   </div>
 
 </div>
-<script src="nav.js"></script>
 <script src="site-content.js"></script>
 <script src="auth.js"></script>
 </body>

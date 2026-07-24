@@ -85,10 +85,12 @@ function applyCmsData(data) {
 
 function applyCmsSettings(settings) {
   if (!settings || typeof settings !== 'object') return;
-  const kakao = document.querySelector('.kakao-float');
-  if (kakao && settings.kakaoUrl) {
-    kakao.href = settings.kakaoUrl;
-    kakao.target = settings.kakaoUrl.startsWith('http') ? '_blank' : '_self';
+  const kakaoLinks = document.querySelectorAll('.kakao-float, [data-kakao-link]');
+  if (kakaoLinks.length && settings.kakaoUrl) {
+    kakaoLinks.forEach(kakao => {
+      kakao.href = settings.kakaoUrl;
+      kakao.target = settings.kakaoUrl.startsWith('http') ? '_blank' : '_self';
+    });
   }
   document.querySelectorAll('.footer-contact .phone').forEach(el => { if (settings.phone) el.textContent = settings.phone; });
   document.querySelectorAll('.footer-contact .hours').forEach(el => { if (settings.hours) el.textContent = settings.hours; });
@@ -416,20 +418,20 @@ async function hydrateLecturePlayer() {
   const params = new URLSearchParams(location.search);
   const courseId = params.get('id');
   if (!courseId) {
-    window.location.href = '/';
+    window.location.href = 'index.html';
     return;
   }
 
   const res = await fetch(`/api/members/my-vod-lectures/${courseId}`).catch(() => null);
   if (!res || !res.ok) {
-    window.location.href = '/';
+    window.location.href = 'index.html';
     return;
   }
   const data = await res.json();
   const course = data.course;
   const lectures = data.lectures;
   if (!course || !lectures.length) {
-    window.location.href = '/';
+    window.location.href = 'index.html';
     return;
   }
 
@@ -678,6 +680,45 @@ async function hydrateNoticeList() {
   });
 }
 
+// ── 수강후기(reviews) ──
+async function fetchReviews() {
+  try {
+    const res = await fetch('/api/reviews');
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : null;
+  } catch {
+    return null;
+  }
+}
+
+function starsFromRating(rating) {
+  const n = Number(rating) || 0;
+  const full = Math.max(0, Math.min(5, Math.floor(n)));
+  return '★'.repeat(full) + '☆'.repeat(5 - full);
+}
+
+async function hydrateReviewList() {
+  const wrap = document.querySelector('[data-cms-review-list]');
+  if (!wrap) return;
+  const rows = await fetchReviews();
+  if (!rows || !rows.length) return;
+  const template = wrap.querySelector('template');
+  if (!template) return;
+  [...wrap.children].filter(c => c.tagName !== 'TEMPLATE').forEach(c => c.remove());
+  rows.forEach((item) => {
+    const node = template.content.firstElementChild.cloneNode(true);
+    node.dataset.course = item.course_name || '';
+    node.querySelector('.stars').textContent = starsFromRating(item.rating);
+    node.querySelector('h3').textContent = item.student_name || '';
+    node.querySelector('.rc-date').textContent = item.review_date || '';
+    node.querySelector('.rc-course').textContent = item.course_name || '';
+    node.querySelector('p').textContent = item.review_text || '';
+    wrap.appendChild(node);
+  });
+  window.dispatchEvent(new CustomEvent('reviews:hydrated'));
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const page = document.body.dataset.page;
 
@@ -686,6 +727,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (page === 'home') { hydrateHomeVodPreview(); hydrateHomeGalleryPreview(); }
   if (page === 'cert') hydrateCertGallery();
   if (page === 'faq') { hydrateFaqList(); hydrateNoticeList(); }
+  if (page === 'reviews') hydrateReviewList();
   if (page === 'classDetail') hydrateClassDetail();
   if (page === 'lecturePlayer') hydrateLecturePlayer();
 

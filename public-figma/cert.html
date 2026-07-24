@@ -6,28 +6,43 @@
 <title>합격 인증 · 독편사 DOCK PASS</title>
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="stylesheet" href="style.css">
+<style>
+.container{width:min(1280px,calc(100% - 40px));margin:auto}
+.header{position:sticky;top:0;z-index:50;background:rgba(3,18,40,.96);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.08)}
+.header__inner{height:76px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.header .logo{display:flex;align-items:center;gap:10px;color:#fff;font-weight:900}
+.header .nav{display:flex;gap:36px;color:#eef2f7;font-weight:700}
+.header .nav a{position:relative;padding:27px 0}
+.header .nav a.active:after,.header .nav a:hover:after{content:"";position:absolute;left:0;right:0;bottom:15px;height:2px;background:var(--beige-400)}
+.header__actions{display:flex;gap:9px}
+.header__actions .btn{border:0;border-radius:10px;padding:13px 20px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.2s}
+.header__actions .btn:hover{transform:translateY(-1px)}
+.header__actions .btn--primary{background:linear-gradient(135deg,var(--beige-400),#f0d8b5);color:#14213a;box-shadow:0 8px 22px rgba(215,191,159,.22)}
+.header__actions .btn--ghost-dark{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.28)}
+.header .mobile-toggle{display:none;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:8px 10px}
+@media(max-width:1100px){.header .nav{gap:20px}}
+@media(max-width:760px){.header__inner{height:64px}.header .nav{display:none;position:absolute;left:12px;right:12px;top:70px;background:var(--navy-900);padding:16px;border-radius:12px;flex-direction:column;gap:0}.header .nav.open{display:flex}.header .nav a{padding:12px}.header .nav a.active:after,.header .nav a:hover:after{display:none}.header .mobile-toggle{display:block}.header__actions .btn:not(.btn--primary){display:none}.header__actions .btn{padding:10px 13px}}
+</style>
 </head>
 <body data-page="cert">
 <div class="page">
 
-  <header class="site-header">
-    <a class="logo" href="/">
-      <img src="assets/home/header-logo.png" alt="DOCK PASS">
-    </a>
-    <nav class="site-nav">
+  <header class="header"><div class="container header__inner">
+    <a class="logo" href="index.html"><img src="assets/home/footer-logo.png" alt="DOCK PASS" style="height:42px;width:auto;display:block"></a>
+    <nav class="nav" aria-label="주요 메뉴">
       <a href="vod.html">VOD 강의</a>
       <a href="cert.html" class="active">합격 인증</a>
       <a href="curriculum.html">커리큘럼</a>
+      <a href="reviews.html">수강후기</a>
       <a href="faq.html">FAQ</a>
     </nav>
-    <div class="header-right">
-      <span class="login-link" id="loginTrigger">로그인</span>
-      <a class="my-info-link" id="myInfoBtn" href="mypage.html" style="display:none;">마이페이지</a>
-      <button class="hamburger" type="button" aria-label="메뉴 열기" aria-expanded="false">
-        <span></span><span></span><span></span>
-      </button>
+    <div class="header__actions">
+      <button class="mobile-toggle" type="button" aria-label="메뉴 열기">☰</button>
+      <a class="btn btn--ghost-dark" id="loginTrigger" href="javascript:void(0)">로그인</a>
+      <a class="btn btn--ghost-dark my-info-link" id="myInfoBtn" href="mypage.html" style="display:none;">마이페이지</a>
+      <a class="btn btn--primary" href="vodDetail.html">수강신청</a>
     </div>
-  </header>
+  </div></header>
 
   <section class="hero-wrap">
     <div class="cert-hero">
@@ -154,7 +169,7 @@
   </div>
 
 </div>
-<script src="nav.js"></script>
+<script>document.querySelector('.mobile-toggle')?.addEventListener('click',()=>document.querySelector('.header .nav')?.classList.toggle('open'));</script>
 <script src="chart-animate.js"></script>
 <script src="site-content.js"></script>
 <script src="auth.js"></script>
