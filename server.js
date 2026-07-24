@@ -100,6 +100,22 @@ app.use(session({
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
+// 네이티브 앱(일렉트론/RN) renderer/WebView가 hls.js로 매니페스트를 직접 fetch하면
+// dockteacher.co.kr과 다른 origin(file://, localhost dev 서버 등)에서 요청하게 되어
+// 브라우저가 CORS를 강제한다 — Authorization 헤더를 실으면 preflight(OPTIONS)까지 발생.
+// 이 두 네임스페이스는 쿠키가 아니라 Bearer 토큰/자체 서명 URL로 인증하므로
+// Allow-Credentials 없이 Allow-Origin: * 를 열어도 세션 쿠키 노출 위험이 없다.
+app.use(['/api/v1', '/api/stream'], (req, res, next) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+});
+
 function requireAdmin(req, res, next) {
   if (req.session.isAdmin) return next();
   res.redirect('/admin');
