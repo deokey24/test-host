@@ -1939,6 +1939,60 @@ app.delete('/admin/api/faq-items/:id', requireAdminApi, wrapAsync(async (req, re
   res.json({ ok: true });
 }));
 
+// ── reviews (수강후기) ──
+app.get('/api/reviews', wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT id, student_name, DATE_FORMAT(review_date, '%Y.%m.%d') AS review_date, course_name, rating, review_text
+     FROM reviews WHERE is_active = 1 ORDER BY review_date DESC, sort_order`
+  );
+  res.json(rows);
+}));
+
+app.get('/admin/api/reviews', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT id, student_name, DATE_FORMAT(review_date, '%Y-%m-%d') AS review_date, course_name, rating, review_text, sort_order, is_active, created_at
+     FROM reviews ORDER BY sort_order, id`
+  );
+  res.json(rows);
+}));
+
+app.post('/admin/api/reviews', requireAdminApi, wrapAsync(async (req, res) => {
+  const { student_name, review_date, course_name, rating, review_text, sort_order } = req.body;
+  if (!student_name || !String(student_name).trim() || !review_date || !course_name || !String(course_name).trim() || !review_text || !String(review_text).trim()) {
+    res.status(400).json({ error: 'student_name, review_date, course_name, review_text가 필요합니다.' });
+    return;
+  }
+  const [result] = await getPool().query(
+    'INSERT INTO reviews (student_name, review_date, course_name, rating, review_text, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+    [String(student_name).trim(), review_date, String(course_name).trim(), parseFloat(rating) || 5.0, String(review_text).trim(), parseInt(sort_order, 10) || 0]
+  );
+  res.json({ ok: true, id: result.insertId });
+}));
+
+app.put('/admin/api/reviews/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const { student_name, review_date, course_name, rating, review_text, sort_order, is_active } = req.body;
+  const fields = [];
+  const values = [];
+  if (student_name !== undefined) { fields.push('student_name = ?'); values.push(String(student_name).trim()); }
+  if (review_date !== undefined) { fields.push('review_date = ?'); values.push(review_date); }
+  if (course_name !== undefined) { fields.push('course_name = ?'); values.push(String(course_name).trim()); }
+  if (rating !== undefined) { fields.push('rating = ?'); values.push(parseFloat(rating) || 5.0); }
+  if (review_text !== undefined) { fields.push('review_text = ?'); values.push(String(review_text).trim()); }
+  if (sort_order !== undefined) { fields.push('sort_order = ?'); values.push(parseInt(sort_order, 10) || 0); }
+  if (is_active !== undefined) { fields.push('is_active = ?'); values.push(is_active ? 1 : 0); }
+  if (fields.length === 0) { res.status(400).json({ error: '변경할 값이 없습니다.' }); return; }
+  values.push(req.params.id);
+  const [result] = await getPool().query(`UPDATE reviews SET ${fields.join(', ')} WHERE id = ?`, values);
+  if (result.affectedRows === 0) { res.status(404).json({ error: '항목을 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+app.delete('/admin/api/reviews/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const [result] = await getPool().query('DELETE FROM reviews WHERE id = ?', [req.params.id]);
+  if (result.affectedRows === 0) { res.status(404).json({ error: '항목을 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
 // ── notice_categories (class_categories와 동일 패턴) ──
 app.get('/api/notice-categories', wrapAsync(async (req, res) => {
   const [rows] = await getPool().query('SELECT id, name, sort_order FROM notice_categories ORDER BY sort_order, id');

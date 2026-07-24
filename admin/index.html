@@ -21,6 +21,7 @@
       <button class="side-link" data-target="certSection">합격 인증</button>
       <button class="side-link" data-target="curriculumSection">커리큘럼</button>
       <button class="side-link" data-target="faqSection">FAQ</button>
+      <button class="side-link" data-target="reviewsSection">수강후기</button>
       <button class="side-link" data-target="noticeSection">공지사항</button>
       <button class="side-link" data-target="settingsSection">사이트 설정</button>
       <div class="sidebar-divider"></div>
@@ -537,6 +538,64 @@
         </div>
       </div>
 
+      <section id="reviewsSection" class="admin-section">
+        <div class="card">
+          <h2>타이틀</h2>
+          <div class="field-row">
+            <label class="field-label">제목</label>
+            <input type="text" id="reviews-hero-title" placeholder="예: 수강후기">
+          </div>
+          <div class="field-row">
+            <label class="field-label">내용</label>
+            <textarea id="reviews-hero-body" rows="2"></textarea>
+          </div>
+          <button class="btn" id="reviews-hero-save" type="button">저장</button>
+          <div class="status-text" id="reviews-hero-status"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h2>수강후기 항목 관리</h2>
+            <button class="btn" id="review-item-add" type="button">+ 항목 추가</button>
+          </div>
+          <ul class="drag-list" id="review-item-list" style="margin-top:10px;"></ul>
+          <div class="status-text" id="review-item-status"></div>
+        </div>
+      </section>
+
+      <div class="modal-overlay" id="reviewModalOverlay">
+        <div class="modal-box">
+          <div class="modal-head">
+            <h2>수강후기 항목 추가</h2>
+            <button class="row-btn" id="reviewModalCloseBtn" type="button">닫기</button>
+          </div>
+          <div class="field-grid">
+            <div class="field-row">
+              <label class="field-label">작성자 *</label>
+              <input type="text" id="rfName" placeholder="예: 이○준 수강생">
+            </div>
+            <div class="field-row">
+              <label class="field-label">작성일 *</label>
+              <input type="date" id="rfDate">
+            </div>
+            <div class="field-row">
+              <label class="field-label">강의명 *</label>
+              <input type="text" id="rfCourse">
+            </div>
+            <div class="field-row">
+              <label class="field-label">평점 (1~5)</label>
+              <input type="number" id="rfRating" min="1" max="5" step="0.5" value="5">
+            </div>
+            <div class="field-row full">
+              <label class="field-label">후기 내용 *</label>
+              <textarea id="rfText" rows="4"></textarea>
+            </div>
+          </div>
+          <button class="btn" id="reviewModalSaveBtn" type="button">추가</button>
+          <div class="status-text" id="reviewModalStatus"></div>
+        </div>
+      </div>
+
       <section id="noticeSection" class="admin-section">
         <div class="card">
           <div class="card-head-row">
@@ -753,6 +812,7 @@
 <script src="/admin/cert.js"></script>
 <script src="/admin/curriculum.js"></script>
 <script src="/admin/faq.js"></script>
+<script src="/admin/reviews.js"></script>
 <script src="/admin/notice.js"></script>
 <script src="/admin/settings.js"></script>
 <script src="/admin/video.js"></script>
