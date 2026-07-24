@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS lecture_videos (
   raw_r2_key VARCHAR(512) NOT NULL,
   raw_upload_id VARCHAR(1024),  -- R2 멀티파트 UploadId는 300자 이상 (255면 ER_DATA_TOO_LONG)
   final_r2_key VARCHAR(512),
+  hls_key_base64 VARCHAR(32),  -- HLS AES-128 세그먼트 암호화 키 (16바이트, base64) — mp4 레거시 행은 NULL
   status ENUM('uploading', 'queued', 'processing', 'done', 'failed') NOT NULL DEFAULT 'uploading',
   error_message TEXT,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

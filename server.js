@@ -40,16 +40,31 @@ function streamToString(stream) {
 
 // master.m3u8의 세그먼트 줄(상대경로)은 쿼리스트링을 상속받지 못하므로,
 // 요청마다 각 세그먼트를 새로 프리사인한 절대 URL로 치환해 내려준다.
-async function renderSignedManifest(manifestKey, ttlSeconds = STREAM_URL_TTL_SECONDS) {
+// AES-128 암호화된 영상은 #EXT-X-KEY의 URI(워커가 심어둔 placeholder "key.bin")도
+// 이 요청의 인증된 키 배포 엔드포인트(keyUrl)로 치환한다 — 키 파일 자체는 R2에 없다.
+async function renderSignedManifest(manifestKey, keyUrl, ttlSeconds = STREAM_URL_TTL_SECONDS) {
   const prefix = manifestKey.slice(0, manifestKey.lastIndexOf('/') + 1);
   const obj = await r2.getObject(manifestKey);
   const text = await streamToString(obj.Body);
   const signedLines = await Promise.all(text.split('\n').map(async (line) => {
     const trimmed = line.trim();
+    if (trimmed.startsWith('#EXT-X-KEY')) {
+      return keyUrl ? line.replace(/URI="[^"]*"/, `URI="${keyUrl}"`) : line;
+    }
     if (!trimmed || trimmed.startsWith('#')) return line;
     return r2.presignGetObject(prefix + trimmed, ttlSeconds);
   }));
   return signedLines.join('\n');
+}
+
+function sendHlsKey(res, hlsKeyBase64) {
+  if (!hlsKeyBase64) {
+    res.status(404).json({ error: '키를 찾을 수 없습니다.' });
+    return;
+  }
+  res.set('Content-Type', 'application/octet-stream');
+  res.set('Cache-Control', 'no-store');
+  res.send(Buffer.from(hlsKeyBase64, 'base64'));
 }
 
 app.use(session({
@@ -279,10 +294,15 @@ app.get('/admin/api/videos/:id/stream/master.m3u8', requireAdminApi, wrapAsync(a
     res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
     return;
   }
-  const manifest = await renderSignedManifest(video.final_r2_key);
+  const manifest = await renderSignedManifest(video.final_r2_key, `/admin/api/videos/${req.params.id}/stream/key`);
   res.set('Content-Type', 'application/vnd.apple.mpegurl');
   res.set('Cache-Control', 'no-store');
   res.send(manifest);
+}));
+
+app.get('/admin/api/videos/:id/stream/key', requireAdminApi, wrapAsync(async (req, res) => {
+  const [[video]] = await getPool().query('SELECT hls_key_base64 FROM lecture_videos WHERE id = ?', [req.params.id]);
+  sendHlsKey(res, video?.hls_key_base64);
 }));
 
 // 회원이 실제로 수강 중인 클래스/VOD 강좌의 HLS 영상만 서명된 매니페스트로 내려준다.
@@ -304,10 +324,31 @@ app.get('/api/stream/class-lecture/:lectureId/master.m3u8', requireMember, wrapA
     res.status(403).json({ error: '수강 중인 클래스가 아닙니다.' });
     return;
   }
-  const manifest = await renderSignedManifest(lecture.video_r2_key);
+  const manifest = await renderSignedManifest(lecture.video_r2_key, `/api/stream/class-lecture/${req.params.lectureId}/key`);
   res.set('Content-Type', 'application/vnd.apple.mpegurl');
   res.set('Cache-Control', 'no-store');
   res.send(manifest);
+}));
+
+app.get('/api/stream/class-lecture/:lectureId/key', requireMember, wrapAsync(async (req, res) => {
+  const [[lecture]] = await getPool().query(
+    'SELECT class_id, video_r2_key FROM class_lectures WHERE id = ?',
+    [req.params.lectureId]
+  );
+  if (!lecture) {
+    res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
+    return;
+  }
+  const [enrollRows] = await getPool().query(
+    'SELECT id FROM member_class_enrollments WHERE member_id = ? AND class_id = ?',
+    [req.session.memberId, lecture.class_id]
+  );
+  if (!enrollRows[0]) {
+    res.status(403).json({ error: '수강 중인 클래스가 아닙니다.' });
+    return;
+  }
+  const [[video]] = await getPool().query('SELECT hls_key_base64 FROM lecture_videos WHERE final_r2_key = ?', [lecture.video_r2_key]);
+  sendHlsKey(res, video?.hls_key_base64);
 }));
 
 app.get('/api/stream/vod-lecture/:lectureId/master.m3u8', requireMember, wrapAsync(async (req, res) => {
@@ -327,10 +368,31 @@ app.get('/api/stream/vod-lecture/:lectureId/master.m3u8', requireMember, wrapAsy
     res.status(403).json({ error: '수강 중인 강좌가 아닙니다.' });
     return;
   }
-  const manifest = await renderSignedManifest(lecture.video_r2_key);
+  const manifest = await renderSignedManifest(lecture.video_r2_key, `/api/stream/vod-lecture/${req.params.lectureId}/key`);
   res.set('Content-Type', 'application/vnd.apple.mpegurl');
   res.set('Cache-Control', 'no-store');
   res.send(manifest);
+}));
+
+app.get('/api/stream/vod-lecture/:lectureId/key', requireMember, wrapAsync(async (req, res) => {
+  const [[lecture]] = await getPool().query(
+    'SELECT vod_course_id, video_r2_key FROM vod_course_lectures WHERE id = ?',
+    [req.params.lectureId]
+  );
+  if (!lecture) {
+    res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
+    return;
+  }
+  const [enrollRows] = await getPool().query(
+    'SELECT id FROM member_vod_enrollments WHERE member_id = ? AND vod_course_id = ?',
+    [req.session.memberId, lecture.vod_course_id]
+  );
+  if (!enrollRows[0]) {
+    res.status(403).json({ error: '수강 중인 강좌가 아닙니다.' });
+    return;
+  }
+  const [[video]] = await getPool().query('SELECT hls_key_base64 FROM lecture_videos WHERE final_r2_key = ?', [lecture.video_r2_key]);
+  sendHlsKey(res, video?.hls_key_base64);
 }));
 
 // ── video_folders (영상 업로드 다중 계층 폴더, FTP 스타일) ──

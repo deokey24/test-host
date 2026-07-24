@@ -39,7 +39,8 @@ npm start   # http://localhost:3000
 - `worker/` — 골든 AMI로 구워 ASG(min=0, max=3)로 운영되는 독립 Node 프로젝트. SQS 컨슈머, ffmpeg HLS 트랜스코딩(동시 5개 캡핑), R2에 `hls/<uuid>-title/` 프리픽스로 재업로드, DB 갱신, 유휴 시 ASG를 통해 자기 자신 terminate. 스케일아웃은 운영 서버가 presign/complete 시점에 desired capacity를 올려서 수행. 상세 설계: `infra/autoscaling-design.md`
 - `infra/` — IAM 정책, AWS CLI 프로비저닝 스크립트(`provision-asg.sh`), MySQL 스키마, systemd 유닛, 골든 AMI 셋업(`install-worker-instance.sh`)·부팅 user-data(`worker-user-data.sh`) 스크립트
 - 운영 서버와 워커 인스턴스는 원본 대용량 파일이 오가지 않도록 분리되어 있고 (브라우저 ↔ R2 직접 통신), 완료 신호는 SQS 메타데이터만 오간다
-- **재생 접근 제어**: HLS 영상은 R2 커스텀 도메인(`cdn.dockteacher.co.kr`)에 공개 서빙하지 않는다 (`hls/` 프리픽스는 Cloudflare에서 공개 매핑 제외 필요). 대신 회원 세션 인증된 `/api/stream/class-lecture/:lectureId/master.m3u8`, `/api/stream/vod-lecture/:lectureId/master.m3u8`(`server.js`)가 매 요청마다 세그먼트 줄을 R2 프리사인 GET URL(`STREAM_URL_TTL_SECONDS`, 기본 6시간)로 치환한 매니페스트를 내려준다. 레거시로 이미 mp4로 인코딩된 영상(`final_r2_key`가 `.mp4`)은 하위호환을 위해 그대로 공개 CDN URL로 서빙.
+- **재생 접근 제어**: HLS 영상은 R2 커스텀 도메인(`cdn.dockteacher.co.kr`)에 공개 서빙하지 않는다 (`hls/` 프리픽스는 Cloudflare WAF 커스텀 규칙으로 공개 차단됨). 대신 회원 세션 인증된 `/api/stream/class-lecture/:lectureId/master.m3u8`, `/api/stream/vod-lecture/:lectureId/master.m3u8`(`server.js`)가 매 요청마다 세그먼트 줄을 R2 프리사인 GET URL(`STREAM_URL_TTL_SECONDS`, 기본 6시간)로 치환한 매니페스트를 내려준다. 레거시로 이미 mp4로 인코딩된 영상(`final_r2_key`가 `.mp4`)은 하위호환을 위해 그대로 공개 CDN URL로 서빙.
+- **AES-128 세그먼트 암호화**: 워커가 인코딩 시 영상별 랜덤 16바이트 키로 세그먼트를 암호화(`worker/src/transcode.js`, `-hls_key_info_file`). 키는 R2에 절대 올리지 않고 `lecture_videos.hls_key_base64` 컬럼에만 저장, 매니페스트의 `#EXT-X-KEY` URI는 서버가 요청마다 인증된 키 엔드포인트(`/api/stream/class-lecture/:lectureId/key` 등)로 치환해서 내려준다. 캐주얼한 세그먼트 다운로더 도구를 막는 용도이며 정식 DRM은 아님(권한 있는 클라이언트는 키도 그대로 받아감).
 
 ### SPA 페이지 전환 방식
 

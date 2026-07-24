@@ -68,12 +68,12 @@ async function processJob(message) {
 
     await fsp.mkdir(hlsDir, { recursive: true });
     await downloadToFile(rawKey, rawPath);
-    await transcode(rawPath, hlsDir);
+    const encryptionKey = await transcode(rawPath, hlsDir);
     await uploadDirectory(hlsPrefix, hlsDir);
 
     await getPool().query(
-      'UPDATE lecture_videos SET status = ?, final_r2_key = ? WHERE id = ?',
-      ['done', finalKey, videoId]
+      'UPDATE lecture_videos SET status = ?, final_r2_key = ?, hls_key_base64 = ? WHERE id = ?',
+      ['done', finalKey, encryptionKey.toString('base64'), videoId]
     );
     console.log(`[video ${videoId}] 완료: ${finalKey}`);
   } catch (err) {
