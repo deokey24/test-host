@@ -24,6 +24,10 @@ function buildCdnUrl(r2Key) {
 }
 
 const STREAM_URL_TTL_SECONDS = Number(process.env.STREAM_URL_TTL_SECONDS || 21600); // 6시간
+// AES-128 키 URL 자체 서명용 — 세그먼트 프리사인 URL과 달리 이건 R2 서명이 아니라
+// 우리가 직접 발급하는 exp+sig 쿼리라 별도 시크릿이 필요하다 (네이티브 HLS 플레이어가
+// 커스텀 인증 헤더 없이도 키를 받아갈 수 있어야 하므로).
+const STREAM_SIGNING_SECRET = process.env.STREAM_SIGNING_SECRET || 'dockteacher-stream-signing';
 
 function isHlsKey(key) {
   return !!key && key.endsWith('.m3u8');
@@ -55,6 +59,26 @@ async function renderSignedManifest(manifestKey, keyUrl, ttlSeconds = STREAM_URL
     return r2.presignGetObject(prefix + trimmed, ttlSeconds);
   }));
   return signedLines.join('\n');
+}
+
+// AES-128 키 URL 자체 서명 — 세그먼트처럼 URL 자체가 자기완결적 capability token이
+// 되도록 만든다. 매니페스트 발급 시(enrollment 확인이 끝난 시점) 서명해서 심어두면,
+// 네이티브 HLS 플레이어 엔진이 인증 헤더 없이 이 URL만으로 키를 받아갈 수 있다.
+function signKeyUrl(basePath, ttlSeconds = STREAM_URL_TTL_SECONDS) {
+  const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
+  const sig = crypto.createHmac('sha256', STREAM_SIGNING_SECRET).update(`${basePath}.${exp}`).digest('hex');
+  return `${basePath}?exp=${exp}&sig=${sig}`;
+}
+
+function verifySignedKeyUrl(basePath, exp, sig) {
+  if (!exp || !sig) return false;
+  const expNum = Number(exp);
+  if (!Number.isFinite(expNum) || expNum < Math.floor(Date.now() / 1000)) return false;
+  const expected = crypto.createHmac('sha256', STREAM_SIGNING_SECRET).update(`${basePath}.${expNum}`).digest('hex');
+  const expectedBuf = Buffer.from(expected, 'hex');
+  const sigBuf = Buffer.from(String(sig), 'hex');
+  if (expectedBuf.length !== sigBuf.length) return false;
+  return crypto.timingSafeEqual(expectedBuf, sigBuf);
 }
 
 function sendHlsKey(res, hlsKeyBase64) {
@@ -89,6 +113,49 @@ function requireAdminApi(req, res, next) {
 function requireMember(req, res, next) {
   if (req.session.memberId) return next();
   res.status(401).json({ error: '로그인이 필요합니다.' });
+}
+
+// 일렉트론/RN 등 네이티브 앱 전용 — 웹의 express-session(인메모리)과 완전히 분리된
+// DB 기반 Bearer 토큰 인증. api_tokens에는 원본 토큰이 아니라 SHA-256 해시만 저장한다.
+function hashApiToken(rawToken) {
+  return crypto.createHash('sha256').update(rawToken).digest('hex');
+}
+
+async function requireApiToken(req, res, next) {
+  const auth = req.headers.authorization || '';
+  const rawToken = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+  if (!rawToken) {
+    res.status(401).json({ error: '로그인이 필요합니다.' });
+    return;
+  }
+  try {
+    const [[row]] = await getPool().query(
+      'SELECT id, member_id FROM api_tokens WHERE token_hash = ?',
+      [hashApiToken(rawToken)]
+    );
+    if (!row) {
+      res.status(401).json({ error: '유효하지 않은 토큰입니다.' });
+      return;
+    }
+    req.memberId = row.member_id;
+    req.apiTokenId = row.id;
+    getPool().query('UPDATE api_tokens SET last_used_at = NOW() WHERE id = ?', [row.id]).catch(() => {});
+    next();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: '서버 오류가 발생했습니다.' });
+  }
+}
+
+// 웹 세션 쿠키와 네이티브 앱 Bearer 토큰을 모두 받아 req.memberId로 통일 —
+// 매니페스트 라우트처럼 두 종류 클라이언트가 같이 호출하는 경로에 사용한다.
+async function requireMemberOrApiToken(req, res, next) {
+  if (req.session.memberId) {
+    req.memberId = req.session.memberId;
+    next();
+    return;
+  }
+  await requireApiToken(req, res, next);
 }
 
 app.get('/admin', (req, res) => {
@@ -294,13 +361,21 @@ app.get('/admin/api/videos/:id/stream/master.m3u8', requireAdminApi, wrapAsync(a
     res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
     return;
   }
-  const manifest = await renderSignedManifest(video.final_r2_key, `/admin/api/videos/${req.params.id}/stream/key`);
+  const manifest = await renderSignedManifest(video.final_r2_key, signKeyUrl(`/admin/api/videos/${req.params.id}/stream/key`));
   res.set('Content-Type', 'application/vnd.apple.mpegurl');
   res.set('Cache-Control', 'no-store');
   res.send(manifest);
 }));
 
-app.get('/admin/api/videos/:id/stream/key', requireAdminApi, wrapAsync(async (req, res) => {
+// 키 라우트는 세션/토큰이 아니라 매니페스트 발급 시점에 심어둔 exp+sig 서명으로만 인증한다 —
+// 네이티브 HLS 플레이어(AVPlayer/ExoPlayer, 일렉트론)는 매니페스트 안의 URI를 플레이어 엔진이
+// 직접 요청하므로 커스텀 인증 헤더를 실을 수 없다. 세그먼트가 이미 R2 프리사인 절대 URL로
+// "자체완결적"인 것과 같은 이유 — enrollment 확인은 매니페스트 발급 시 이미 끝났다.
+app.get('/admin/api/videos/:id/stream/key', wrapAsync(async (req, res) => {
+  if (!verifySignedKeyUrl(`/admin/api/videos/${req.params.id}/stream/key`, req.query.exp, req.query.sig)) {
+    res.status(403).json({ error: '유효하지 않거나 만료된 요청입니다.' });
+    return;
+  }
   const [[video]] = await getPool().query('SELECT hls_key_base64 FROM lecture_videos WHERE id = ?', [req.params.id]);
   sendHlsKey(res, video?.hls_key_base64);
 }));
@@ -324,34 +399,29 @@ app.get('/api/stream/class-lecture/:lectureId/master.m3u8', requireMember, wrapA
     res.status(403).json({ error: '수강 중인 클래스가 아닙니다.' });
     return;
   }
-  const manifest = await renderSignedManifest(lecture.video_r2_key, `/api/stream/class-lecture/${req.params.lectureId}/key`);
+  const manifest = await renderSignedManifest(lecture.video_r2_key, signKeyUrl(`/api/stream/class-lecture/${req.params.lectureId}/key`));
   res.set('Content-Type', 'application/vnd.apple.mpegurl');
   res.set('Cache-Control', 'no-store');
   res.send(manifest);
 }));
 
-app.get('/api/stream/class-lecture/:lectureId/key', requireMember, wrapAsync(async (req, res) => {
-  const [[lecture]] = await getPool().query(
-    'SELECT class_id, video_r2_key FROM class_lectures WHERE id = ?',
-    [req.params.lectureId]
-  );
-  if (!lecture) {
-    res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
+app.get('/api/stream/class-lecture/:lectureId/key', wrapAsync(async (req, res) => {
+  if (!verifySignedKeyUrl(`/api/stream/class-lecture/${req.params.lectureId}/key`, req.query.exp, req.query.sig)) {
+    res.status(403).json({ error: '유효하지 않거나 만료된 요청입니다.' });
     return;
   }
-  const [enrollRows] = await getPool().query(
-    'SELECT id FROM member_class_enrollments WHERE member_id = ? AND class_id = ?',
-    [req.session.memberId, lecture.class_id]
-  );
-  if (!enrollRows[0]) {
-    res.status(403).json({ error: '수강 중인 클래스가 아닙니다.' });
+  const [[lecture]] = await getPool().query('SELECT video_r2_key FROM class_lectures WHERE id = ?', [req.params.lectureId]);
+  if (!lecture) {
+    res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
     return;
   }
   const [[video]] = await getPool().query('SELECT hls_key_base64 FROM lecture_videos WHERE final_r2_key = ?', [lecture.video_r2_key]);
   sendHlsKey(res, video?.hls_key_base64);
 }));
 
-app.get('/api/stream/vod-lecture/:lectureId/master.m3u8', requireMember, wrapAsync(async (req, res) => {
+// 웹 세션(쿠키)과 네이티브 앱 Bearer 토큰 둘 다 허용 — 매니페스트는 앱 코드가 직접 fetch로
+// 호출하므로(플레이어 엔진이 아니라) 둘 중 하나만 실으면 된다.
+app.get('/api/stream/vod-lecture/:lectureId/master.m3u8', requireMemberOrApiToken, wrapAsync(async (req, res) => {
   const [[lecture]] = await getPool().query(
     'SELECT vod_course_id, video_r2_key FROM vod_course_lectures WHERE id = ?',
     [req.params.lectureId]
@@ -362,33 +432,26 @@ app.get('/api/stream/vod-lecture/:lectureId/master.m3u8', requireMember, wrapAsy
   }
   const [enrollRows] = await getPool().query(
     'SELECT id FROM member_vod_enrollments WHERE member_id = ? AND vod_course_id = ?',
-    [req.session.memberId, lecture.vod_course_id]
+    [req.memberId, lecture.vod_course_id]
   );
   if (!enrollRows[0]) {
     res.status(403).json({ error: '수강 중인 강좌가 아닙니다.' });
     return;
   }
-  const manifest = await renderSignedManifest(lecture.video_r2_key, `/api/stream/vod-lecture/${req.params.lectureId}/key`);
+  const manifest = await renderSignedManifest(lecture.video_r2_key, signKeyUrl(`/api/stream/vod-lecture/${req.params.lectureId}/key`));
   res.set('Content-Type', 'application/vnd.apple.mpegurl');
   res.set('Cache-Control', 'no-store');
   res.send(manifest);
 }));
 
-app.get('/api/stream/vod-lecture/:lectureId/key', requireMember, wrapAsync(async (req, res) => {
-  const [[lecture]] = await getPool().query(
-    'SELECT vod_course_id, video_r2_key FROM vod_course_lectures WHERE id = ?',
-    [req.params.lectureId]
-  );
-  if (!lecture) {
-    res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
+app.get('/api/stream/vod-lecture/:lectureId/key', wrapAsync(async (req, res) => {
+  if (!verifySignedKeyUrl(`/api/stream/vod-lecture/${req.params.lectureId}/key`, req.query.exp, req.query.sig)) {
+    res.status(403).json({ error: '유효하지 않거나 만료된 요청입니다.' });
     return;
   }
-  const [enrollRows] = await getPool().query(
-    'SELECT id FROM member_vod_enrollments WHERE member_id = ? AND vod_course_id = ?',
-    [req.session.memberId, lecture.vod_course_id]
-  );
-  if (!enrollRows[0]) {
-    res.status(403).json({ error: '수강 중인 강좌가 아닙니다.' });
+  const [[lecture]] = await getPool().query('SELECT video_r2_key FROM vod_course_lectures WHERE id = ?', [req.params.lectureId]);
+  if (!lecture) {
+    res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
     return;
   }
   const [[video]] = await getPool().query('SELECT hls_key_base64 FROM lecture_videos WHERE final_r2_key = ?', [lecture.video_r2_key]);
@@ -1379,6 +1442,113 @@ app.get('/api/members/me', (req, res) => {
   }
 });
 
+// ── /api/v1 — 네이티브 앱(일렉트론/RN) 전용, Bearer 토큰 인증. 웹 세션과 완전히 분리 ──
+
+app.post('/api/v1/auth/login', wrapAsync(async (req, res) => {
+  const { username, password, deviceId, platform } = req.body;
+  if (!username || !password || !deviceId || !platform) {
+    res.status(400).json({ error: 'username, password, deviceId, platform이 모두 필요합니다.' });
+    return;
+  }
+  if (!['electron', 'ios', 'android'].includes(platform)) {
+    res.status(400).json({ error: 'platform은 electron/ios/android 중 하나여야 합니다.' });
+    return;
+  }
+
+  const [rows] = await getPool().query('SELECT id, name, password FROM members WHERE username = ?', [username]);
+  const member = rows[0];
+  if (!member || !member.password || !(await bcrypt.compare(password, member.password))) {
+    res.status(401).json({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' });
+    return;
+  }
+
+  // 기기 3대 cap은 웹 로그인과 같은 풀을 공유한다 (registerMemberDevice 재사용)
+  const deviceResult = await registerMemberDevice(member.id, deviceId, req);
+  if (!deviceResult.ok) {
+    res.status(403).json({ error: deviceResult.error });
+    return;
+  }
+
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const [tokenResult] = await getPool().query(
+    'INSERT INTO api_tokens (member_id, device_id, token_hash, platform) VALUES (?, ?, ?, ?)',
+    [member.id, deviceId, hashApiToken(rawToken), platform]
+  );
+  await getPool().query(
+    'UPDATE member_devices SET token_id = ? WHERE member_id = ? AND device_id = ?',
+    [tokenResult.insertId, member.id, deviceId]
+  );
+
+  res.json({ token: rawToken, member: { id: member.id, name: member.name } });
+}));
+
+app.post('/api/v1/auth/logout', requireApiToken, wrapAsync(async (req, res) => {
+  await getPool().query('DELETE FROM member_devices WHERE token_id = ?', [req.apiTokenId]);
+  await getPool().query('DELETE FROM api_tokens WHERE id = ?', [req.apiTokenId]);
+  res.json({ ok: true });
+}));
+
+app.get('/api/v1/me', requireApiToken, wrapAsync(async (req, res) => {
+  const [[member]] = await getPool().query('SELECT id, name FROM members WHERE id = ?', [req.memberId]);
+  res.json(member);
+}));
+
+app.get('/api/v1/courses', requireApiToken, wrapAsync(async (req, res) => {
+  const rows = await getMemberVodCourses(req.memberId);
+  res.json(rows.map(c => ({
+    id: c.id,
+    title: c.title,
+    thumbnailUrl: c.thumbnail_url,
+    status: c.status,
+    progressNote: c.progress_note
+  })));
+}));
+
+app.get('/api/v1/courses/:id/lectures', requireApiToken, wrapAsync(async (req, res) => {
+  const result = await getVodCourseLectures(req.memberId, req.params.id);
+  if (result.error) {
+    res.status(result.status).json({ error: result.error });
+    return;
+  }
+  res.json({
+    course: result.course,
+    lectures: result.lectures.map(l => ({
+      id: l.id,
+      lectureNumber: l.lecture_number,
+      title: l.title,
+      contentMarkdown: l.content_markdown,
+      hasVideo: !!l.video_r2_key,
+      materials: l.materials
+    }))
+  });
+}));
+
+// 재생 직전에만 호출 — 여기서만 실제 서명된 스트림 URL을 발급한다 (목록 조회 시점엔 발급 안 함).
+app.get('/api/v1/lectures/:id/playback', requireApiToken, wrapAsync(async (req, res) => {
+  const [[lecture]] = await getPool().query(
+    'SELECT vod_course_id, video_r2_key FROM vod_course_lectures WHERE id = ?',
+    [req.params.id]
+  );
+  if (!lecture || !lecture.video_r2_key) {
+    res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
+    return;
+  }
+  const [enrollRows] = await getPool().query(
+    'SELECT id FROM member_vod_enrollments WHERE member_id = ? AND vod_course_id = ?',
+    [req.memberId, lecture.vod_course_id]
+  );
+  if (!enrollRows[0]) {
+    res.status(403).json({ error: '수강 중인 강좌가 아닙니다.' });
+    return;
+  }
+
+  if (isHlsKey(lecture.video_r2_key)) {
+    res.json({ kind: 'hls', url: `/api/stream/vod-lecture/${req.params.id}/master.m3u8` });
+  } else {
+    res.json({ kind: 'mp4', url: buildCdnUrl(lecture.video_r2_key) });
+  }
+}));
+
 app.get('/api/members/my-info', requireMember, wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
     'SELECT username, name, email, phone, mobile FROM members WHERE id = ?',
@@ -1477,7 +1647,8 @@ app.get('/api/members/my-lectures/:classId', requireMember, wrapAsync(async (req
   });
 }));
 
-app.get('/api/members/my-vod-courses', requireMember, wrapAsync(async (req, res) => {
+// 회원이 수강 중인 VOD 강좌 목록 — 웹(/api/members/my-vod-courses)과 신규 /api/v1/courses가 공유.
+async function getMemberVodCourses(memberId) {
   const [rows] = await getPool().query(
     `SELECT c.id, c.tag, c.category_label, c.title, c.description, c.meta_text,
             c.is_best, c.color_variant, c.old_price, c.new_price, c.thumbnail_url,
@@ -1486,31 +1657,28 @@ app.get('/api/members/my-vod-courses', requireMember, wrapAsync(async (req, res)
      JOIN vod_courses c ON c.id = e.vod_course_id
      WHERE e.member_id = ?
      ORDER BY e.enrolled_at DESC`,
-    [req.session.memberId]
+    [memberId]
   );
-  res.json(rows);
-}));
+  return rows;
+}
 
-// 로그인한 회원이 실제로 그 VOD 강좌를 수강 중일 때만 강의 목록(영상+콘텐츠)을 내려준다.
-app.get('/api/members/my-vod-lectures/:vodCourseId', requireMember, wrapAsync(async (req, res) => {
+// 실제로 그 회원이 수강 중인 강좌일 때만 강의 목록(원본 video_r2_key 포함)을 반환한다.
+// 응답 모양(video_url 노출 여부 등)은 호출부(웹 라우트 vs /api/v1)가 각자 조립한다.
+// 반환: { error, status } 실패 시, 또는 { course, lectures } 성공 시 — lectures[i]는
+// { id, lecture_number, title, content_markdown, video_r2_key, materials } 원본 필드 그대로.
+async function getVodCourseLectures(memberId, vodCourseId) {
   const [enrollRows] = await getPool().query(
     'SELECT id FROM member_vod_enrollments WHERE member_id = ? AND vod_course_id = ?',
-    [req.session.memberId, req.params.vodCourseId]
+    [memberId, vodCourseId]
   );
-  if (!enrollRows[0]) {
-    res.status(403).json({ error: '수강 중인 강좌가 아닙니다.' });
-    return;
-  }
+  if (!enrollRows[0]) return { error: '수강 중인 강좌가 아닙니다.', status: 403 };
 
-  const [courseRows] = await getPool().query('SELECT id, title FROM vod_courses WHERE id = ?', [req.params.vodCourseId]);
-  if (!courseRows[0]) {
-    res.status(404).json({ error: '강좌를 찾을 수 없습니다.' });
-    return;
-  }
+  const [courseRows] = await getPool().query('SELECT id, title FROM vod_courses WHERE id = ?', [vodCourseId]);
+  if (!courseRows[0]) return { error: '강좌를 찾을 수 없습니다.', status: 404 };
 
   const [lectures] = await getPool().query(
     'SELECT id, lecture_number, title, video_r2_key, content_markdown FROM vod_course_lectures WHERE vod_course_id = ? ORDER BY sort_order, lecture_number',
-    [req.params.vodCourseId]
+    [vodCourseId]
   );
   const [materials] = await getPool().query(
     `SELECT m.vod_course_lecture_id, m.title, m.file_url
@@ -1518,21 +1686,37 @@ app.get('/api/members/my-vod-lectures/:vodCourseId', requireMember, wrapAsync(as
      JOIN vod_course_lectures l ON l.id = m.vod_course_lecture_id
      WHERE l.vod_course_id = ?
      ORDER BY m.sort_order, m.id`,
-    [req.params.vodCourseId]
+    [vodCourseId]
   );
   const materialsByLecture = {};
   materials.forEach(m => {
     (materialsByLecture[m.vod_course_lecture_id] ||= []).push({ title: m.title, url: m.file_url });
   });
 
-  res.json({
+  return {
     course: courseRows[0],
-    lectures: lectures.map(({ id, video_r2_key, ...l }) => ({
+    lectures: lectures.map(l => ({ ...l, materials: materialsByLecture[l.id] || [] }))
+  };
+}
+
+app.get('/api/members/my-vod-courses', requireMember, wrapAsync(async (req, res) => {
+  res.json(await getMemberVodCourses(req.session.memberId));
+}));
+
+// 로그인한 회원이 실제로 그 VOD 강좌를 수강 중일 때만 강의 목록(영상+콘텐츠)을 내려준다.
+app.get('/api/members/my-vod-lectures/:vodCourseId', requireMember, wrapAsync(async (req, res) => {
+  const result = await getVodCourseLectures(req.session.memberId, req.params.vodCourseId);
+  if (result.error) {
+    res.status(result.status).json({ error: result.error });
+    return;
+  }
+  res.json({
+    course: result.course,
+    lectures: result.lectures.map(({ video_r2_key, ...l }) => ({
       ...l,
       video_url: !video_r2_key ? null
-        : isHlsKey(video_r2_key) ? `/api/stream/vod-lecture/${id}/master.m3u8`
-        : buildCdnUrl(video_r2_key),
-      materials: materialsByLecture[id] || []
+        : isHlsKey(video_r2_key) ? `/api/stream/vod-lecture/${l.id}/master.m3u8`
+        : buildCdnUrl(video_r2_key)
     }))
   });
 }));
@@ -1552,14 +1736,20 @@ app.get('/api/members/devices', requireMember, wrapAsync(async (req, res) => {
 }));
 
 app.delete('/api/members/devices/:id', requireMember, wrapAsync(async (req, res) => {
-  const [result] = await getPool().query(
-    'DELETE FROM member_devices WHERE id = ? AND member_id = ?',
+  const [[device]] = await getPool().query(
+    'SELECT device_id FROM member_devices WHERE id = ? AND member_id = ?',
     [req.params.id, req.session.memberId]
   );
-  if (result.affectedRows === 0) {
+  if (!device) {
     res.status(404).json({ error: '기기를 찾을 수 없습니다.' });
     return;
   }
+  // 네이티브 앱 로그인으로 만들어진 기기라면 api_tokens도 같이 지워서 즉시 무효화한다.
+  await getPool().query(
+    'DELETE FROM api_tokens WHERE member_id = ? AND device_id = ?',
+    [req.session.memberId, device.device_id]
+  );
+  await getPool().query('DELETE FROM member_devices WHERE id = ?', [req.params.id]);
   res.json({ ok: true });
 }));
 

@@ -123,6 +123,8 @@ ALTER TABLE members
   ADD COLUMN IF NOT EXISTS reset_token_expires DATETIME DEFAULT NULL;
 
 -- 마이페이지 기기 관리 (OTT 방식, 회원당 최대 3개 기기 등록 — server.js에서 강제)
+-- token_id: 네이티브 앱(일렉트론/RN) 로그인으로 만들어진 기기는 api_tokens.id를 연결해
+-- 마이페이지에서 기기 삭제 시 해당 토큰도 같이 폐기한다. 웹 브라우저 로그인은 NULL.
 CREATE TABLE IF NOT EXISTS member_devices (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   member_id BIGINT NOT NULL,
@@ -131,10 +133,25 @@ CREATE TABLE IF NOT EXISTS member_devices (
   user_agent VARCHAR(500),
   ip_address VARCHAR(100),
   session_id VARCHAR(255),
+  token_id BIGINT DEFAULT NULL,
   last_login_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_member_device (member_id, device_id),
   CONSTRAINT fk_member_devices_member FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 네이티브 앱(일렉트론/RN) 전용 Bearer 토큰 — 웹의 express-session(인메모리, 재시작 시 소실)과
+-- 완전히 분리된 DB 기반 인증. 원본 토큰은 저장하지 않고 SHA-256 해시만 보관한다.
+CREATE TABLE IF NOT EXISTS api_tokens (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  member_id BIGINT NOT NULL,
+  device_id VARCHAR(191) NOT NULL,
+  token_hash CHAR(64) NOT NULL,
+  platform ENUM('electron', 'ios', 'android') NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_used_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_token_hash (token_hash),
+  CONSTRAINT fk_api_tokens_member FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- 내 강의실 등록 (관리자 수동 배정 또는 향후 결제 자동 등록 — server.js의 enrollMemberInClass가 공통 진입점)
