@@ -9,6 +9,7 @@ const r2 = require('./lib/r2');
 const { sendVideoJob } = require('./lib/sqs');
 const { ensureWorkerCapacity } = require('./lib/asg');
 const { sendEmail } = require('./lib/ses');
+const payup = require('./lib/payup');
 
 const app = express();
 app.set('trust proxy', 1); // nginx가 X-Forwarded-For를 넘겨줌 — req.ip가 실제 클라이언트 IP를 보게 함
@@ -1180,6 +1181,102 @@ async function enrollMemberInVod(memberId, vodCourseId, source = 'admin', extra 
     [memberId, vodCourseId, status, progressNote, source]
   );
 }
+
+// ── PayUp 표준결제 (VOD 강좌 구매) ──
+// 1) POST /api/payments/init      — 결제창(goPayupPay)에 넘길 데이터 발급, payments 행을 pending으로 선기록
+// 2) POST /api/payments/approve   — PC: PayupPaymentStandardForm이 그대로 POST하는 승인 요청 URL (풀 페이지 이동, 응답도 redirect)
+// 3) POST /api/payments/approve-mobile — 모바일: returnUrl 페이지가 fetch로 호출 (JSON 응답)
+function parseKoreanWonPrice(priceText) {
+  const digits = String(priceText || '').replace(/[^0-9]/g, '');
+  return digits ? parseInt(digits, 10) : 0;
+}
+
+function makeOrderNumber(memberId) {
+  const ts = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14); // YYYYMMDDHHMISS
+  const rand = crypto.randomBytes(3).toString('hex').toUpperCase();
+  return `${ts}M${memberId}${rand}`;
+}
+
+app.post('/api/payments/init', requireMember, wrapAsync(async (req, res) => {
+  const vodCourseId = parseInt(req.body.vodCourseId, 10);
+  if (!vodCourseId) { res.status(400).json({ error: 'vodCourseId가 필요합니다.' }); return; }
+
+  const [[course]] = await getPool().query(
+    'SELECT id, title, new_price FROM vod_courses WHERE id = ? AND is_active = 1', [vodCourseId]
+  );
+  if (!course) { res.status(404).json({ error: 'VOD 강의를 찾을 수 없습니다.' }); return; }
+
+  const amount = parseKoreanWonPrice(course.new_price);
+  if (!amount) { res.status(400).json({ error: '이 강의는 가격이 설정되어 있지 않습니다.' }); return; }
+
+  const [[member]] = await getPool().query('SELECT name FROM members WHERE id = ?', [req.session.memberId]);
+  const orderNumber = makeOrderNumber(req.session.memberId);
+
+  await getPool().query(
+    `INSERT INTO payments (member_id, vod_course_id, order_number, item_name, amount, status)
+     VALUES (?, ?, ?, ?, ?, 'pending')`,
+    [req.session.memberId, vodCourseId, orderNumber, course.title, amount]
+  );
+
+  res.json({
+    merchantId: payup.MERCHANT_ID,
+    itemName: course.title,
+    amount: String(amount),
+    userName: member?.name || '',
+    orderNumber,
+    // 모바일 SDK 전용 — goPayupPay에 그대로 얹으면 됨 (PC에서는 무시됨)
+    returnUrl: `${process.env.SITE_URL || ''}/payupReturn.html`
+  });
+}));
+
+async function settlePayment({ orderNumber, transactionId, amount, memberId }) {
+  const [[payment]] = await getPool().query('SELECT * FROM payments WHERE order_number = ?', [orderNumber]);
+  if (!payment) return { ok: false, redirect: 'vod.html', reason: '주문 정보를 찾을 수 없습니다.' };
+  if (payment.member_id !== memberId) return { ok: false, redirect: 'vod.html', reason: '본인 주문이 아닙니다.' };
+  if (payment.status === 'approved') {
+    return { ok: true, redirect: `classDetail.html?id=${payment.vod_course_id}&payment=success` };
+  }
+  if (String(payment.amount) !== String(amount)) {
+    return { ok: false, redirect: `classDetail.html?id=${payment.vod_course_id}&payment=fail`, reason: '결제 금액이 일치하지 않습니다.' };
+  }
+
+  const result = await payup.approvePayment({ transactionId, orderNumber, amount: payment.amount });
+  const data = result.raw?.data || {};
+
+  if (result.ok) {
+    await getPool().query(
+      `UPDATE payments SET status = 'approved', transaction_id = ?, response_code = ?, response_msg = ?, approved_at = NOW()
+       WHERE order_number = ?`,
+      [transactionId, data.responseCode || null, data.responseMsg || null, orderNumber]
+    );
+    await enrollMemberInVod(memberId, payment.vod_course_id, 'payment');
+    return { ok: true, redirect: `classDetail.html?id=${payment.vod_course_id}&payment=success` };
+  }
+
+  await getPool().query(
+    `UPDATE payments SET status = 'failed', transaction_id = ?, response_code = ?, response_msg = ?
+     WHERE order_number = ?`,
+    [transactionId || null, data.responseCode || result.raw?.messageCode || null, data.responseMsg || result.raw?.message || null, orderNumber]
+  );
+  return { ok: false, redirect: `classDetail.html?id=${payment.vod_course_id}&payment=fail`, reason: data.responseMsg || result.raw?.message };
+}
+
+// PC 표준결제창 SDK가 만든 PayupPaymentStandardForm이 그대로 POST하는 승인 요청 URL.
+// 브라우저 풀 페이지 이동으로 도착하므로 JSON이 아니라 redirect로 응답한다.
+app.post('/api/payments/approve', requireMember, wrapAsync(async (req, res) => {
+  const { orderNumber, transactionId, amount } = req.body;
+  if (!orderNumber || !transactionId || !amount) { res.redirect('/vod.html'); return; }
+  const result = await settlePayment({ orderNumber, transactionId, amount, memberId: req.session.memberId });
+  res.redirect('/' + result.redirect);
+}));
+
+// 모바일 SDK — 인증 완료 후 returnUrl(payupReturn.html)이 이 엔드포인트를 fetch로 호출한다.
+app.post('/api/payments/approve-mobile', requireMember, wrapAsync(async (req, res) => {
+  const { orderNumber, transactionId, amount } = req.body;
+  if (!orderNumber || !transactionId || !amount) { res.status(400).json({ ok: false, redirect: 'vod.html' }); return; }
+  const result = await settlePayment({ orderNumber, transactionId, amount, memberId: req.session.memberId });
+  res.json(result);
+}));
 
 app.get('/admin/api/members/:id/vod-enrollments', requireAdminApi, wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(

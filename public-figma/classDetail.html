@@ -8,6 +8,9 @@
 <link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css">
 <script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
 <link rel="stylesheet" href="style.css">
+<!-- 페이업 표준결제 SDK — 지금은 실서버(ssmin2가 live 계정이라 테스트서버 계정이 따로 없음). 테스트서버 발급되면 아래 두 줄을 바꾼다. -->
+<!-- <script src="https://standard.testpayup.co.kr/assets/js/payup_standard_dev-1.0.js"></script> -->
+<script src="https://standard.payup.co.kr/assets/js/payup_standard-1.0.js"></script>
 </head>
 <body data-page="classDetail">
 <div class="page">
@@ -61,6 +64,8 @@
   <section class="vod-body cd-body">
     <div class="cd-layout">
 
+      <div id="cdPaymentNotice" style="display:none;grid-column:1/-1;border-radius:12px;padding:16px 20px;font-weight:700;margin-bottom:4px"></div>
+
       <div class="cd-main">
         <div id="introPanel">
           <div class="cd-section">
@@ -93,7 +98,7 @@
         </div>
         <div class="btn-row">
           <a href="#" class="btn-outline" id="cdShareBtn">공유하기</a>
-          <a href="#" class="btn-fill">결제하기 →</a>
+          <a href="#" class="btn-fill" id="cdBuyBtn">결제하기 →</a>
         </div>
         <div class="cd-panel-meta">
           <div class="cd-panel-row"><span class="key">신청 기간</span><span class="val">무제한 상시 모집</span></div>

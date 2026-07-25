@@ -429,6 +429,68 @@ async function hydrateClassDetail() {
   const oldPriceEl = document.getElementById('cdOldPrice');
   if (oldPriceEl) { if (course.old_price) oldPriceEl.textContent = course.old_price; else oldPriceEl.remove(); }
   const newPriceEl = document.getElementById('cdNewPrice'); if (newPriceEl) newPriceEl.textContent = course.new_price || '';
+
+  wireVodCoursePayment(courseId);
+  showPaymentResultNotice();
+}
+
+// ── PayUp 표준결제 (VOD 강좌 구매, classDetail.html 전용) ──
+function showPaymentResultNotice() {
+  const notice = document.getElementById('cdPaymentNotice');
+  if (!notice) return;
+  const result = new URLSearchParams(location.search).get('payment');
+  if (result !== 'success' && result !== 'fail') return;
+  notice.style.display = '';
+  if (result === 'success') {
+    notice.style.background = '#eaf7ee';
+    notice.style.color = '#1a7d3a';
+    notice.textContent = '결제가 완료되었습니다. 마이페이지에서 강의를 확인해주세요.';
+  } else {
+    notice.style.background = '#fdecec';
+    notice.style.color = '#c62828';
+    notice.textContent = '결제에 실패했습니다. 다시 시도해주세요.';
+  }
+}
+
+function wireVodCoursePayment(vodCourseId) {
+  const buyBtn = document.getElementById('cdBuyBtn');
+  if (!buyBtn) return;
+  buyBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const trigger = document.getElementById('loginTrigger');
+    if (trigger && trigger.dataset.loggedIn !== 'true') { openLoginModal(); return; }
+    if (typeof goPayupPay !== 'function') { alert('결제 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.'); return; }
+    buyBtn.style.pointerEvents = 'none';
+    try {
+      const res = await fetch('/api/payments/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vodCourseId })
+      });
+      const payData = await res.json();
+      if (!res.ok) { alert(payData.error || '결제 준비 중 오류가 발생했습니다.'); return; }
+      goPayupPay(payData);
+    } catch {
+      alert('서버와 통신 중 오류가 발생했습니다.');
+    } finally {
+      buyBtn.style.pointerEvents = '';
+    }
+  });
+}
+
+// 페이업 SDK가 결제 인증 완료 시 호출하는 콜백 — 함수명 고정(변경 금지).
+// SDK가 자동 생성한 PayupPaymentStandardForm을 우리 승인 요청 URL로 그대로 제출한다.
+function payupPaymentSubmit(payForm) {
+  const form = typeof payForm === 'string' ? document.getElementById(payForm) : payForm;
+  if (!form) return;
+  form.action = '/api/payments/approve';
+  form.submit();
+}
+
+// 결제창을 닫았을 때(결제 취소) 호출되는 콜백 — 함수명 고정(변경 금지).
+function payupPaymentClose() {
+  const buyBtn = document.getElementById('cdBuyBtn');
+  if (buyBtn) buyBtn.style.pointerEvents = '';
 }
 
 // ── 강의 플레이어(lecturePlayer.html) — ?id=강좌ID&lecture=강의번호 ──
@@ -746,6 +808,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (page === 'home') { hydrateHomeVodPreview(); hydrateHomeGalleryPreview(); }
   if (page === 'cert') hydrateCertGallery();
   if (page === 'faq') { hydrateFaqList(); hydrateNoticeList(); }
+  if (page === 'notice') { hydrateFaqList(); hydrateNoticeList(); }
   if (page === 'reviews') hydrateReviewList();
   if (page === 'classDetail') hydrateClassDetail();
   if (page === 'lecturePlayer') hydrateLecturePlayer();

@@ -186,6 +186,28 @@ CREATE TABLE IF NOT EXISTS member_vod_enrollments (
   CONSTRAINT fk_vod_enrollment_course FOREIGN KEY (vod_course_id) REFERENCES vod_courses(id) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- PayUp 표준결제 거래 기록. order_number를 /api/payments/init에서 미리 발급해두고,
+-- 결제창 인증 완료 후 /api/payments/approve에서 같은 행을 승인 상태로 갱신한다
+-- (member_vod_enrollments.source='payment' 등록의 근거 레코드 겸 중복 승인 방지용).
+CREATE TABLE IF NOT EXISTS payments (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  member_id BIGINT NOT NULL,
+  vod_course_id BIGINT NOT NULL,
+  order_number VARCHAR(128) NOT NULL,
+  item_name VARCHAR(300) NOT NULL,
+  amount INT NOT NULL,
+  status ENUM('pending', 'approved', 'failed', 'canceled') NOT NULL DEFAULT 'pending',
+  transaction_id VARCHAR(20),
+  response_code VARCHAR(20),
+  response_msg VARCHAR(255),
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  approved_at DATETIME,
+  canceled_at DATETIME,
+  UNIQUE KEY uq_order_number (order_number),
+  CONSTRAINT fk_payment_member FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
+  CONSTRAINT fk_payment_vod_course FOREIGN KEY (vod_course_id) REFERENCES vod_courses(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- 클래스별 강의 커리큘럼 (R2 courses/{course}/lectures/{번호 3자리}/video/ 경로와 1:1 대응)
 CREATE TABLE IF NOT EXISTS class_lectures (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,

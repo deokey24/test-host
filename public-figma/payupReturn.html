@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>결제 처리 중 · 독편사 DOCK PASS</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:Pretendard,"Noto Sans KR",system-ui,-apple-system,sans-serif;color:#172033;background:#fbfaf9}
+p{font-size:15px;font-weight:700}
+</style>
+</head>
+<body>
+<p>결제 처리 중입니다. 잠시만 기다려주세요...</p>
+<script>
+  (async () => {
+    const params = new URLSearchParams(location.search);
+    const transactionId = params.get('transactionId');
+    const orderNumber = params.get('orderNumber');
+    const amount = params.get('amount');
+    if (!transactionId || !orderNumber || !amount) {
+      location.href = 'vod.html';
+      return;
+    }
+    try {
+      const res = await fetch('/api/payments/approve-mobile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactionId, orderNumber, amount })
+      });
+      const data = await res.json();
+      location.href = data.redirect || 'vod.html';
+    } catch {
+      location.href = 'vod.html';
+    }
+  })();
+</script>
+</body>
+</html>
