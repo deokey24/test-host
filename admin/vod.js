@@ -105,6 +105,7 @@ let vodLecturesCache = [];
 let vodChecklistCache = [];
 let vodTagsCache = [];
 let vodSectionsCache = [];
+let vodThumbnailUrl = '';
 
 async function loadVodCourses() {
   vodCache = await apiFetch('/admin/api/vod-courses');
@@ -212,7 +213,23 @@ function closeVodEditPage() {
   document.getElementById('sectionTitle').textContent = 'VOD 강의';
 }
 
+function renderVodThumbnailPreview() {
+  const picker = document.getElementById('vfThumbnailPicker');
+  const img = picker.querySelector('.preview-img');
+  const emptyNote = picker.querySelector('.empty-note');
+  if (vodThumbnailUrl) {
+    img.src = vodThumbnailUrl;
+    img.style.display = 'block';
+    emptyNote.style.display = 'none';
+  } else {
+    img.style.display = 'none';
+    emptyNote.style.display = 'block';
+  }
+}
+
 function fillVodForm(course) {
+  vodThumbnailUrl = course?.thumbnail_url || '';
+  renderVodThumbnailPreview();
   document.getElementById('vfTag').value = course?.tag || '';
   renderVodCategoryOptions();
   document.getElementById('vfCategoryLabel').value = course?.category_label || '';
@@ -257,6 +274,7 @@ function ensureIntroEditor() {
 function readVodForm() {
   const hasDiscount = document.getElementById('vfHasDiscount').checked;
   return {
+    thumbnail_url: vodThumbnailUrl,
     tag: document.getElementById('vfTag').value.trim(),
     category_label: document.getElementById('vfCategoryLabel').value,
     title: document.getElementById('vfTitle').value.trim(),
@@ -318,6 +336,24 @@ document.getElementById('vodList').addEventListener('click', async (e) => {
 
 document.getElementById('vodEditBackBtn').addEventListener('click', closeVodEditPage);
 document.getElementById('vfHasDiscount').addEventListener('change', () => toggleDiscountRow('vfHasDiscount', 'vfOldPriceRow', 'vfNewPriceLabel'));
+
+document.querySelector('#vfThumbnailPicker input[type="file"]').addEventListener('change', async (e) => {
+  const fileInput = e.target;
+  const file = fileInput.files[0];
+  if (!file) return;
+  const statusEl = document.querySelector('#vfThumbnailPicker .status-text');
+  setStatus(statusEl, '업로드 중...');
+  try {
+    const { url } = await uploadImage(file, 'vod-course', String(currentVodId));
+    vodThumbnailUrl = url;
+    renderVodThumbnailPreview();
+    setStatus(statusEl, '업로드 완료', 'ok');
+  } catch (err) {
+    setStatus(statusEl, err.message, 'error');
+  } finally {
+    fileInput.value = '';
+  }
+});
 
 // 타이틀영역/클래스소개 탭 모두 같은 강의 레코드(vod_courses) 하나를 통째로 저장한다 —
 // 어느 탭에서 눌러도 두 탭의 필드가 전부 함께 반영된다.
