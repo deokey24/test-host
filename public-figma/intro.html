@@ -3,10 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>커리큘럼 · 독편사 DOCK PASS</title>
+<title>학습소개 · 독편사 DOCK PASS</title>
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="stylesheet" href="style.css">
 <style>
+:root{
+  --navy-950:#020918;--navy-900:#031228;--navy-850:#071a34;--navy-800:#0e1c30;--navy-700:#162844;
+  --beige-700:#a98254;--beige-500:#d7bf9f;--beige-400:#e3cdaf;--beige-100:#f1e6d7;--beige-50:#f8f2ea;
+  --ivory:#f7f4f1;--warm-white:#fbfaf9;--text:#172033;--muted:#73737a;--line:#e1e1df;
+  --shadow-sm:0 4px 16px rgba(2,9,24,.06);
+}
+body[data-page="intro"]{background:var(--warm-white)}
+.page{max-width:none;margin:0;min-height:100vh;display:flex;flex-direction:column}
+.faq-hero+section{flex:1}
 .container{width:min(1280px,calc(100% - 40px));margin:auto}
 .header{position:sticky;top:0;z-index:50;background:rgba(3,18,40,.96);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.08)}
 .header__inner{height:76px;display:flex;align-items:center;justify-content:space-between;gap:24px}
@@ -20,14 +29,19 @@
 .header__actions .btn--primary{background:linear-gradient(135deg,var(--beige-400),#f0d8b5);color:#14213a;box-shadow:0 8px 22px rgba(215,191,159,.22)}
 .header__actions .btn--ghost-dark{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.28)}
 .header .mobile-toggle{display:none;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:8px 10px}
-@media(max-width:1100px){.header .nav{gap:20px}}
-@media(max-width:760px){.header__inner{height:64px}.header .nav{display:none;position:absolute;left:12px;right:12px;top:70px;background:var(--navy-900);padding:16px;border-radius:12px;flex-direction:column;gap:0}.header .nav.open{display:flex}.header .nav a{padding:12px}.header .nav a.active:after,.header .nav a:hover:after{display:none}.header .mobile-toggle{display:block}.header__actions .btn:not(.btn--primary){display:none}.header__actions .btn{padding:10px 13px}}
-.hero-wrap{padding-top:0}
-.vod-hero{border-radius:0;padding-left:0;padding-right:0}
-.btn{border:0;border-radius:10px;padding:13px 20px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.2s}
-.btn:hover{transform:translateY(-1px)}
-.btn--primary{background:linear-gradient(135deg,var(--beige-400),#f0d8b5);color:#14213a;box-shadow:0 8px 22px rgba(215,191,159,.22)}
-.btn--ghost-dark{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.28)}
+
+.faq-hero{background:radial-gradient(circle at 70% 20%,#10325b 0,transparent 34%),linear-gradient(135deg,var(--navy-950),#0b294b);color:#fff;padding:32px 0 40px}
+.faq-hero .crumb{color:#9fb0c7;font-size:12px;font-weight:700;letter-spacing:.06em;margin-bottom:12px}
+.faq-hero h1{font-size:38px;margin:0 0 10px;letter-spacing:-.02em}
+.faq-hero p{margin:0;color:#dbe3ee;font-size:15px}
+
+.intro-layout{display:grid;grid-template-columns:180px minmax(0,900px);gap:24px;align-items:start;padding:26px 0 60px}
+.intro-tabs{display:flex;flex-direction:column;gap:8px;position:sticky;top:100px}
+.intro-tabs button{width:100%;text-align:left;padding:14px 18px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:1px solid var(--line);background:#fff;color:#4a5170;transition:.15s}
+.intro-tabs button.active{background:linear-gradient(135deg,var(--beige-400),#f0d8b5);border-color:transparent;color:#14213a;box-shadow:0 8px 22px rgba(215,191,159,.22)}
+.intro-content img{display:block;width:100%;height:auto;border-radius:12px}
+.intro-placeholder{border:1px dashed var(--line);border-radius:12px;padding:100px 24px;text-align:center;color:var(--muted);font-size:14px;line-height:1.7;background:#fff}
+
 .footer{background:var(--navy-950);color:#d7dde8;padding:38px 0 26px}
 .footer__grid{display:grid;grid-template-columns:1fr 1.4fr .8fr;gap:30px}
 .footer small{color:#9ba7b8}
@@ -38,16 +52,38 @@
 .footer .social svg{width:15px;height:15px}
 .footer__bottom{display:flex;justify-content:space-between;align-items:center;margin-top:28px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:#9ba7b8}
 .footer__bottom a{margin-left:16px;color:#c3ccd9}
+
+@media(max-width:1100px){.header .nav{gap:20px}.intro-layout{grid-template-columns:150px minmax(0,900px)}.footer__grid{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){
+  .intro-layout{grid-template-columns:1fr;padding-top:18px}
+  .intro-tabs{position:static;flex-direction:row;flex-wrap:wrap}
+  .intro-tabs button{width:auto}
+}
+@media(max-width:760px){
+  .header__inner{height:64px}
+  .header .nav{display:none;position:absolute;left:12px;right:12px;top:70px;background:var(--navy-900);padding:16px;border-radius:12px;flex-direction:column;gap:0}
+  .header .nav.open{display:flex}
+  .header .nav a{padding:12px}
+  .header .nav a.active:after,.header .nav a:hover:after{display:none}
+  .header .mobile-toggle{display:block}
+  .header__actions .btn:not(.btn--primary){display:none}
+  .header__actions .btn{padding:10px 13px}
+  .faq-hero h1{font-size:28px}
+  .intro-placeholder{padding:60px 20px}
+  .footer__grid{grid-template-columns:1fr}
+  .footer__bottom{flex-direction:column;gap:10px;align-items:flex-start}
+  .footer__bottom a{margin:0 16px 0 0}
+}
 </style>
 </head>
-<body data-page="curriculum">
+<body data-page="intro">
 <div class="page">
 
   <header class="header"><div class="container header__inner">
     <a class="logo" href="index.html"><img src="assets/home/footer-logo.png" alt="DOCK PASS" style="height:42px;width:auto;display:block"></a>
     <nav class="nav" aria-label="주요 메뉴">
       <a href="vod.html">VOD 강좌</a>
-      <a href="intro.html">학습소개</a>
+      <a href="intro.html" class="active">학습소개</a>
       <a href="notice.html">공지사항</a>
       <a href="cert.html">합격인증</a>
     </nav>
@@ -59,49 +95,29 @@
     </div>
   </div></header>
 
-  <section class="hero-wrap">
-    <div class="vod-hero">
-      <img class="vod-hero-decor" src="assets/curriculum/decor.png" alt="">
-      <div class="container">
-      <div class="breadcrumb">HOME / 커리큘럼</div>
-      <div class="vod-hero-row" style="align-items:flex-start;">
-        <div>
-          <h1 data-cms="hero.title">커리큘럼</h1>
-          <p style="max-width:620px;" data-cms="hero.body">강좌별 상세 커리큘럼입니다. 독해 원리부터 유형별 실전, 대학별 특화까지 단계적으로 구성했습니다.</p>
-        </div>
+  <section class="faq-hero"><div class="container">
+    <div class="crumb">HOME / 학습소개</div>
+    <h1 data-cms="hero.title">학습소개</h1>
+    <p data-cms="hero.body">독해 원리부터 유형별 실전, 대학별 특화까지 단계적으로 구성했습니다.</p>
+  </div></section>
+
+  <section><div class="container intro-layout">
+    <div class="intro-tabs">
+      <button type="button" class="active" data-intro-tab="transfer">편입논술</button>
+      <button type="button" data-intro-tab="police">경찰대 로드맵</button>
+    </div>
+
+    <div class="intro-content">
+      <div id="introPanelTransfer">
+        <img src="assets/intro/intro-detail.png" alt="편입논술 상세 이미지">
       </div>
+      <div id="introPanelPolice" style="display:none;">
+        <img src="assets/intro/police-detail.png" alt="경찰대 로드맵 상세 이미지">
       </div>
     </div>
-  </section>
+  </div></section>
 
-  <section class="curriculum-body" data-cms-vod-curriculum="grid">
-    <template>
-      <div class="curriculum-row">
-        <div class="curriculum-summary">
-          <img class="decor" src="assets/curriculum/decor.png" alt="">
-          <div>
-            <div class="eng"></div>
-            <h3></h3>
-            <p></p>
-          </div>
-          <div class="price-row">
-            <span class="old-price"></span>
-            <span class="new-price"></span>
-          </div>
-        </div>
-        <div class="curriculum-detail">
-          <div class="curriculum-detail-head">
-            <span class="label">CURRICULUM</span>
-            <span class="meta"></span>
-          </div>
-          <ul class="curriculum-steps"></ul>
-          <a class="curriculum-more" href="vod.html">전체 보기 +</a>
-        </div>
-      </div>
-    </template>
-  </section>
-
-  <footer class="footer"><div class="container"><div class="footer__grid">
+  <footer class="footer"><div class="container footer__grid">
     <div>
       <a class="logo" href="index.html"><img src="assets/home/footer-logo.png" alt="DOCK PASS" style="height:39px;width:auto;display:block"></a>
       <p>독편사 편입논술은 결과로 증명합니다.</p>
@@ -122,13 +138,26 @@
       </div>
     </div>
   </div>
-  <div class="footer__bottom">
+  <div class="container footer__bottom">
     <span>© DOCK PASS. All rights reserved.</span>
     <span><a href="#">이용약관</a><a href="#">개인정보처리방침</a></span>
   </div>
-  </div></footer>
+  </footer>
 
   <a class="kakao-float" href="#" target="_blank" rel="noopener">카카오톡 상담</a>
+
+  <script>
+    document.querySelectorAll('.intro-tabs button').forEach(function (tabBtn) {
+      tabBtn.addEventListener('click', function () {
+        document.querySelectorAll('.intro-tabs button').forEach(function (b) { b.classList.remove('active'); });
+        tabBtn.classList.add('active');
+        const tab = tabBtn.dataset.introTab;
+        document.getElementById('introPanelTransfer').style.display = tab === 'transfer' ? '' : 'none';
+        document.getElementById('introPanelPolice').style.display = tab === 'police' ? '' : 'none';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+  </script>
 
   <div class="auth-modal-overlay" id="loginModalOverlay">
     <div class="auth-modal-box">

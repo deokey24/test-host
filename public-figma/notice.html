@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FAQ · 독편사 DOCK PASS</title>
+<title>공지사항 · 독편사 DOCK PASS</title>
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="stylesheet" href="style.css">
 <style>
@@ -13,7 +13,9 @@
   --ivory:#f7f4f1;--warm-white:#fbfaf9;--text:#172033;--muted:#73737a;--line:#e1e1df;
   --shadow-sm:0 4px 16px rgba(2,9,24,.06);
 }
-body[data-page="faq"]{background:var(--warm-white)}
+body[data-page="notice"]{background:var(--warm-white)}
+.page{max-width:none;margin:0;min-height:100vh;display:flex;flex-direction:column}
+.faq-hero+section{flex:1}
 .container{width:min(1280px,calc(100% - 40px));margin:auto}
 .header{position:sticky;top:0;z-index:50;background:rgba(3,18,40,.96);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.08)}
 .header__inner{height:76px;display:flex;align-items:center;justify-content:space-between;gap:24px}
@@ -110,7 +112,7 @@ body[data-page="faq"]{background:var(--warm-white)}
 }
 </style>
 </head>
-<body data-page="faq">
+<body data-page="notice">
 <div class="page">
 
   <header class="header"><div class="container header__inner">
@@ -118,7 +120,7 @@ body[data-page="faq"]{background:var(--warm-white)}
     <nav class="nav" aria-label="주요 메뉴">
       <a href="vod.html">VOD 강좌</a>
       <a href="intro.html">학습소개</a>
-      <a href="notice.html">공지사항</a>
+      <a href="notice.html" class="active">공지사항</a>
       <a href="cert.html">합격인증</a>
     </nav>
     <div class="header__actions">
@@ -130,20 +132,41 @@ body[data-page="faq"]{background:var(--warm-white)}
   </div></header>
 
   <section class="faq-hero"><div class="container">
-    <div class="crumb">HOME / FAQ</div>
-    <h1 data-cms="hero.title">FAQ</h1>
+    <div class="crumb">HOME / NOTICE</div>
+    <h1 data-cms="hero.title">NOTICE</h1>
     <p data-cms="hero.body">자주 묻는 질문과 공지사항을 확인하세요.</p>
   </div></section>
 
   <section><div class="container">
     <div class="faq-tabs">
-      <button type="button" class="active" data-tab="faq">자주 묻는 질문</button>
-      <button type="button" data-tab="notice">공지사항</button>
+      <button type="button" class="active" data-tab="notice">공지사항</button>
+      <button type="button" data-tab="faq">자주 묻는 질문</button>
     </div>
 
     <div class="faq-layout">
       <div>
-        <div id="faqPanel">
+        <div id="noticePanel">
+          <div class="notice-board" data-cms-notice-list>
+            <div class="notice-board-head">
+              <span class="notice-col-cat">카테고리</span>
+              <span class="notice-col-title">제목</span>
+              <span class="notice-col-date">날짜</span>
+            </div>
+            <template>
+              <div class="notice-row">
+                <button type="button" class="notice-row-head">
+                  <span class="notice-cat"></span>
+                  <span class="notice-title"></span>
+                  <span class="notice-date"></span>
+                  <span class="notice-chevron"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+                </button>
+                <div class="notice-body"></div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <div id="faqPanel" style="display:none;">
         <div class="faq-list" data-cms-faq-list>
           <template>
             <div class="faq-item">
@@ -225,27 +248,6 @@ body[data-page="faq"]{background:var(--warm-white)}
         </div>
 
         <p class="faq-footnote">※ 실제 환불 금액은 결제일·환불 요청일·콘텐츠 이용 여부·첨삭권 사용 여부 및 관계 법령(학원법 시행령·소비자분쟁해결기준)에 따라 달라질 수 있습니다.</p>
-        </div>
-
-        <div id="noticePanel" style="display:none;">
-          <div class="notice-board" data-cms-notice-list>
-            <div class="notice-board-head">
-              <span class="notice-col-cat">카테고리</span>
-              <span class="notice-col-title">제목</span>
-              <span class="notice-col-date">날짜</span>
-            </div>
-            <template>
-              <div class="notice-row">
-                <button type="button" class="notice-row-head">
-                  <span class="notice-cat"></span>
-                  <span class="notice-title"></span>
-                  <span class="notice-date"></span>
-                  <span class="notice-chevron"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
-                </button>
-                <div class="notice-body"></div>
-              </div>
-            </template>
-          </div>
         </div>
       </div>
 
