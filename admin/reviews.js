@@ -35,7 +35,7 @@ function reviewRowHtml(item) {
           <input type="date" class="review-date-input" value="${escapeHtml(String(item.review_date).slice(0, 10))}">
         </div>
         <div class="field-row">
-          <label class="field-label">강의명</label>
+          <label class="field-label">강좌명</label>
           <input type="text" class="review-course-input" value="${escapeHtml(item.course_name)}">
         </div>
         <div class="field-row">
@@ -96,7 +96,7 @@ function initReviewItems() {
     const rating = document.getElementById('rfRating').value;
     const review_text = document.getElementById('rfText').value.trim();
     if (!student_name || !review_date || !course_name || !review_text) {
-      setStatus(modalStatus, '작성자, 작성일, 강의명, 후기 내용을 모두 입력해주세요.', 'error');
+      setStatus(modalStatus, '작성자, 작성일, 강좌명, 후기 내용을 모두 입력해주세요.', 'error');
       return;
     }
     try {

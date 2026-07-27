@@ -122,7 +122,7 @@ function applyCmsSettings(settings) {
   document.querySelectorAll('.copyright').forEach(el => { if (settings.copyright) el.textContent = settings.copyright; });
 }
 
-// ── VOD 강의(vod_courses) 공용 하이드레이션: vod.html 그리드 / curriculum.html 행 / 홈 미리보기 ──
+// ── VOD 강좌(vod_courses) 공용 하이드레이션: vod.html 그리드 / curriculum.html 행 / 홈 미리보기 ──
 async function fetchVodCourses() {
   try {
     const res = await fetch('/api/vod-courses');
@@ -323,12 +323,12 @@ async function hydrateHomeVodPreview() {
   }
 }
 
-// ── VOD 강의 상세보기(classDetail.html) — ?id= 쿼리로 넘어온 강좌를 하이드레이션 ──
+// ── VOD 강좌 상세보기(classDetail.html) — ?id= 쿼리로 넘어온 강좌를 하이드레이션 ──
 async function hydrateClassDetail() {
   const courseId = new URLSearchParams(location.search).get('id');
   const main = document.querySelector('.cd-body .cd-layout');
   if (!courseId) {
-    if (main) main.innerHTML = '<p class="faq-footnote">강의 정보를 찾을 수 없습니다.</p>';
+    if (main) main.innerHTML = '<p class="faq-footnote">강좌 정보를 찾을 수 없습니다.</p>';
     return;
   }
 
@@ -337,7 +337,7 @@ async function hydrateClassDetail() {
     fetch(`/api/vod-courses/${courseId}/lectures`).then(r => r.ok ? r.json() : []).catch(() => [])
   ]);
   if (!courseRes) {
-    if (main) main.innerHTML = '<p class="faq-footnote">강의 정보를 찾을 수 없습니다.</p>';
+    if (main) main.innerHTML = '<p class="faq-footnote">강좌 정보를 찾을 수 없습니다.</p>';
     return;
   }
   const course = courseRes;
@@ -345,7 +345,7 @@ async function hydrateClassDetail() {
   document.title = `${course.title} · 독편사 DOCK PASS`;
 
   const breadcrumb = document.getElementById('cdBreadcrumb');
-  if (breadcrumb) breadcrumb.textContent = `HOME / VOD 강의 / ${course.category_label || course.title}`;
+  if (breadcrumb) breadcrumb.textContent = `HOME / VOD 강좌 / ${course.category_label || course.title}`;
 
   const badge = document.getElementById('cdBadge');
   if (badge) badge.style.display = course.is_best ? '' : 'none';
@@ -444,7 +444,7 @@ function showPaymentResultNotice() {
   if (result === 'success') {
     notice.style.background = '#eaf7ee';
     notice.style.color = '#1a7d3a';
-    notice.textContent = '결제가 완료되었습니다. 마이페이지에서 강의를 확인해주세요.';
+    notice.textContent = '결제가 완료되었습니다. 마이페이지에서 강좌를 확인해주세요.';
   } else {
     notice.style.background = '#fdecec';
     notice.style.color = '#c62828';
@@ -523,7 +523,7 @@ async function hydrateLecturePlayer() {
   if (backBtn) {
     const referrer = document.referrer;
     if (referrer && referrer.startsWith(location.origin)) {
-      // 마이페이지 '내 강의' → 수강하기, 커리큘럼 목록 등 어디서 들어왔든 그 페이지로 그대로 되돌아간다.
+      // 마이페이지 '내 강좌' → 수강하기, 커리큘럼 목록 등 어디서 들어왔든 그 페이지로 그대로 되돌아간다.
       backBtn.href = referrer;
       backBtn.addEventListener('click', (e) => {
         e.preventDefault();

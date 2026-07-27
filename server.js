@@ -209,7 +209,7 @@ app.use('/admin', express.static(path.join(__dirname, 'admin')));
 
 app.get('/admin/api/videos', requireAdminApi, wrapAsync(async (req, res) => {
   const { folderId, all } = req.query;
-  // all=1: 폴더 무관하게 전체 조회 (VOD 강의 편집기의 "강의 영상 선택"처럼 폴더 트리와 무관하게
+  // all=1: 폴더 무관하게 전체 조회 (VOD 강좌 편집기의 "강의 영상 선택"처럼 폴더 트리와 무관하게
   // 검색으로 골라야 하는 화면용). 그 외에는 폴더 브라우저(admin/video.js)용 폴더 스코프 필터.
   let where = 'WHERE folder_id IS NULL';
   let params = [];
@@ -368,6 +368,22 @@ app.put('/admin/api/videos/:id/move', requireAdminApi, wrapAsync(async (req, res
     }
   }
   await getPool().query('UPDATE lecture_videos SET folder_id = ? WHERE id = ?', [folderId || null, id]);
+  res.json({ ok: true });
+}));
+
+app.put('/admin/api/videos/:id/rename', requireAdminApi, wrapAsync(async (req, res) => {
+  const { id } = req.params;
+  const title = (req.body.title || '').trim();
+  if (!title) {
+    res.status(400).json({ error: '제목을 입력해주세요.' });
+    return;
+  }
+  const [rows] = await getPool().query('SELECT id FROM lecture_videos WHERE id = ?', [id]);
+  if (!rows[0]) {
+    res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
+    return;
+  }
+  await getPool().query('UPDATE lecture_videos SET title = ? WHERE id = ?', [title, id]);
   res.json({ ok: true });
 }));
 
@@ -1074,7 +1090,7 @@ app.get('/admin/api/members', requireAdminApi, async (req, res) => {
     likeParams
   );
   const [rows] = await getPool().query(
-    `SELECT id, username, name, email, phone, mobile, joined_at, (password IS NOT NULL) AS has_password
+    `SELECT id, username, name, email, phone, mobile, joined_at, member_group, (password IS NOT NULL) AS has_password
      FROM members ${where}
      ORDER BY id DESC
      LIMIT ? OFFSET ?`,
@@ -1086,7 +1102,7 @@ app.get('/admin/api/members', requireAdminApi, async (req, res) => {
 
 app.get('/admin/api/members/:id', requireAdminApi, wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
-    `SELECT id, username, name, member_group, phone, mobile, email,
+    `SELECT id, username, name, birth_date, member_group, phone, mobile, email,
             signup_channel, search_keyword, referrer_code,
             email_marketing_consent, sms_marketing_consent,
             joined_at, general_notes, consultation_notes,
@@ -1204,10 +1220,10 @@ app.post('/api/payments/init', requireMember, wrapAsync(async (req, res) => {
   const [[course]] = await getPool().query(
     'SELECT id, title, new_price FROM vod_courses WHERE id = ? AND is_active = 1', [vodCourseId]
   );
-  if (!course) { res.status(404).json({ error: 'VOD 강의를 찾을 수 없습니다.' }); return; }
+  if (!course) { res.status(404).json({ error: 'VOD 강좌를 찾을 수 없습니다.' }); return; }
 
   const amount = parseKoreanWonPrice(course.new_price);
-  if (!amount) { res.status(400).json({ error: '이 강의는 가격이 설정되어 있지 않습니다.' }); return; }
+  if (!amount) { res.status(400).json({ error: '이 강좌는 가격이 설정되어 있지 않습니다.' }); return; }
 
   const [[member]] = await getPool().query('SELECT name FROM members WHERE id = ?', [req.session.memberId]);
   const orderNumber = makeOrderNumber(req.session.memberId);
@@ -1428,8 +1444,8 @@ app.post('/api/members/signup', async (req, res) => {
   try {
     const [result] = await getPool().query(
       `INSERT INTO members
-        (username, password, name, birth_date, phone, mobile, email, signup_channel, search_keyword, referrer_code, email_marketing_consent, sms_marketing_consent, joined_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        (username, password, name, birth_date, member_group, phone, mobile, email, signup_channel, search_keyword, referrer_code, email_marketing_consent, sms_marketing_consent, joined_at)
+       VALUES (?, ?, ?, ?, '1001', ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         username, passwordHash, name, birthDate || null, phone || null, mobile || null, email,
         channelStr, searchKeyword || null, referrerCode || null,
@@ -1923,7 +1939,7 @@ app.put('/admin/api/site/:page/:section', requireAdminApi, wrapAsync(async (req,
   res.json({ ok: true });
 }));
 
-// ── vod_courses: VOD 강의 상품 (vod.html/curriculum.html/홈 미리보기 공용 소스) ──
+// ── vod_courses: VOD 강좌 상품 (vod.html/curriculum.html/홈 미리보기 공용 소스) ──
 const VOD_COURSE_FIELDS = [
   'tag', 'category_label', 'title', 'description', 'meta_text', 'is_best',
   'color_variant', 'old_price', 'new_price', 'thumbnail_url', 'sort_order', 'is_active',
@@ -1977,14 +1993,14 @@ async function fetchVodCourseIntroParts(courseId) {
 
 app.get('/api/vod-courses/:id', wrapAsync(async (req, res) => {
   const [[course]] = await getPool().query('SELECT * FROM vod_courses WHERE id = ? AND is_active = 1', [req.params.id]);
-  if (!course) { res.status(404).json({ error: 'VOD 강의를 찾을 수 없습니다.' }); return; }
+  if (!course) { res.status(404).json({ error: 'VOD 강좌를 찾을 수 없습니다.' }); return; }
   const introParts = await fetchVodCourseIntroParts(req.params.id);
   res.json({ ...course, ...introParts });
 }));
 
 app.get('/admin/api/vod-courses/:id', requireAdminApi, wrapAsync(async (req, res) => {
   const [[course]] = await getPool().query('SELECT * FROM vod_courses WHERE id = ?', [req.params.id]);
-  if (!course) { res.status(404).json({ error: 'VOD 강의를 찾을 수 없습니다.' }); return; }
+  if (!course) { res.status(404).json({ error: 'VOD 강좌를 찾을 수 없습니다.' }); return; }
   const introParts = await fetchVodCourseIntroParts(req.params.id);
   res.json({ ...course, ...introParts });
 }));
@@ -2006,13 +2022,13 @@ app.put('/admin/api/vod-courses/:id', requireAdminApi, wrapAsync(async (req, res
     `UPDATE vod_courses SET ${VOD_COURSE_FIELDS.map(f => `${f} = ?`).join(', ')} WHERE id = ?`,
     [...vodCourseValues(req.body), req.params.id]
   );
-  if (result.affectedRows === 0) { res.status(404).json({ error: 'VOD 강의를 찾을 수 없습니다.' }); return; }
+  if (result.affectedRows === 0) { res.status(404).json({ error: 'VOD 강좌를 찾을 수 없습니다.' }); return; }
   res.json({ ok: true });
 }));
 
 app.delete('/admin/api/vod-courses/:id', requireAdminApi, wrapAsync(async (req, res) => {
   const [result] = await getPool().query('DELETE FROM vod_courses WHERE id = ?', [req.params.id]);
-  if (result.affectedRows === 0) { res.status(404).json({ error: 'VOD 강의를 찾을 수 없습니다.' }); return; }
+  if (result.affectedRows === 0) { res.status(404).json({ error: 'VOD 강좌를 찾을 수 없습니다.' }); return; }
   res.json({ ok: true });
 }));
 
@@ -2067,7 +2083,7 @@ app.post('/admin/api/vod-courses/:id/lectures', requireAdminApi, wrapAsync(async
       return;
     }
     if (err.code === 'ER_NO_REFERENCED_ROW_2') {
-      res.status(404).json({ error: 'VOD 강의를 찾을 수 없습니다.' });
+      res.status(404).json({ error: 'VOD 강좌를 찾을 수 없습니다.' });
       return;
     }
     throw err;
@@ -2261,7 +2277,7 @@ app.delete('/admin/api/vod-categories/:id', requireAdminApi, wrapAsync(async (re
   }
   const [[{ cnt }]] = await getPool().query('SELECT COUNT(*) AS cnt FROM vod_courses WHERE category_label = ?', [category.name]);
   if (cnt > 0) {
-    res.status(409).json({ error: `이 카테고리를 사용 중인 강의가 ${cnt}개 있습니다. 먼저 해당 강의의 카테고리를 변경해주세요.` });
+    res.status(409).json({ error: `이 카테고리를 사용 중인 강좌가 ${cnt}개 있습니다. 먼저 해당 강좌의 카테고리를 변경해주세요.` });
     return;
   }
   await getPool().query('DELETE FROM vod_categories WHERE id = ?', [req.params.id]);
@@ -2284,7 +2300,7 @@ function registerVodCourseSubListRoutes(resourcePath, table, textFields) {
       );
       res.json({ ok: true, id: result.insertId });
     } catch (err) {
-      if (err.code === 'ER_NO_REFERENCED_ROW_2') { res.status(404).json({ error: 'VOD 강의를 찾을 수 없습니다.' }); return; }
+      if (err.code === 'ER_NO_REFERENCED_ROW_2') { res.status(404).json({ error: 'VOD 강좌를 찾을 수 없습니다.' }); return; }
       throw err;
     }
   }));
@@ -2619,7 +2635,7 @@ app.get(/^\/v1(\/.*)?$/, (req, res, next) => {
 // 신규 루트: 피그마 디자인 기반 페이지
 app.use(express.static(path.join(__dirname, 'public-figma')));
 
-// 강의 상세페이지 시안 (확장자 없이 /classDetail로 접근)
+// 강좌 상세페이지 시안 (확장자 없이 /classDetail로 접근)
 app.get('/classDetail', (req, res) => {
   res.sendFile(path.join(__dirname, 'public-figma', 'classDetail.html'));
 });

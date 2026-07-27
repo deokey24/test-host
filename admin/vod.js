@@ -98,7 +98,7 @@ function initVodCategories() {
   });
 }
 
-// ── VOD 강의 목록 ──
+// ── VOD 강좌 목록 ──
 let vodCache = [];
 let currentVodId = null;
 let vodLecturesCache = [];
@@ -203,14 +203,14 @@ function showVodEditPage() {
   document.querySelectorAll('.side-link').forEach(l => l.classList.remove('active'));
   document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
   document.getElementById('vodEditSection').classList.add('active');
-  document.getElementById('sectionTitle').textContent = 'VOD 강의 수정';
+  document.getElementById('sectionTitle').textContent = 'VOD 강좌 수정';
 }
 function closeVodEditPage() {
   collapseLectureContent();
   document.getElementById('vodEditSection').classList.remove('active');
   document.querySelector('.side-link[data-target="vodSection"]').classList.add('active');
   document.getElementById('vodSection').classList.add('active');
-  document.getElementById('sectionTitle').textContent = 'VOD 강의';
+  document.getElementById('sectionTitle').textContent = 'VOD 강좌';
 }
 
 function renderVodThumbnailPreview() {
@@ -298,7 +298,7 @@ function readVodForm() {
 
 async function openEditModal(courseStub) {
   currentVodId = courseStub.id;
-  document.getElementById('vodFormTitle').textContent = 'VOD 강의 수정';
+  document.getElementById('vodFormTitle').textContent = 'VOD 강좌 수정';
   setStatus(document.getElementById('vodFormStatus'), '');
   showVodEditPage();
   selectVodTab('title');
@@ -355,7 +355,7 @@ document.querySelector('#vfThumbnailPicker input[type="file"]').addEventListener
   }
 });
 
-// 타이틀영역/클래스소개 탭 모두 같은 강의 레코드(vod_courses) 하나를 통째로 저장한다 —
+// 타이틀영역/클래스소개 탭 모두 같은 강좌 레코드(vod_courses) 하나를 통째로 저장한다 —
 // 어느 탭에서 눌러도 두 탭의 필드가 전부 함께 반영된다.
 async function saveVodCourse(statusEl) {
   const body = readVodForm();

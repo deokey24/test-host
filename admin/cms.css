@@ -127,7 +127,7 @@ main { max-width: 1200px; width: 100%; margin: 0 auto; padding: 28px 32px 60px; 
 .card-head-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .card-head-row h2 { margin: 0; }
 
-/* ── admin modal tabs (VOD 강의 수정 등) ── */
+/* ── admin modal tabs (VOD 강좌 수정 등) ── */
 .admin-tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
 .admin-tabs button {
   padding: 9px 14px; border: none; background: none; cursor: pointer; font-family: inherit;
@@ -137,7 +137,7 @@ main { max-width: 1200px; width: 100%; margin: 0 auto; padding: 28px 32px 60px; 
 .drag-item-body .field-label { margin-top: 2px; }
 .drag-item-body textarea { margin-top: 6px; }
 
-/* ── 모달 대신 페이지 이동으로 여는 수정 화면 (VOD 강의 수정 등) ── */
+/* ── 모달 대신 페이지 이동으로 여는 수정 화면 (VOD 강좌 수정 등) ── */
 .content-header-row { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
 .content-header-row h2 { margin: 0; font-size: 16px; font-weight: 800; }
 
@@ -313,6 +313,8 @@ th { color: var(--text-soft); font-weight: 700; font-size: 12px; }
 .badge-failed { background: var(--danger-bg); color: var(--danger); }
 .badge-on { background: #f3ead9; color: var(--green-dark); }
 .badge-off { background: var(--border); color: var(--text-soft); }
+.badge-new { background: #f3ead9; color: var(--green-dark); }
+.badge-existing { background: var(--border); color: var(--text-soft); }
 
 /* ── modal ── */
 .modal-overlay {
@@ -349,7 +351,18 @@ th { color: var(--text-soft); font-weight: 700; font-size: 12px; }
 .video-breadcrumb-sep { margin: 0 6px; color: var(--border-strong); }
 .video-breadcrumb-current { font-weight: 700; color: var(--text); }
 
-.video-folder-list { list-style: none; margin: 0; padding: 0; }
+.btn-beige {
+  padding: 8px 14px; border: none; border-radius: 8px;
+  background: var(--green-light); color: var(--green-dark);
+  font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.btn-beige:hover { background: #d7bf9f; }
+.btn-beige:disabled { background: var(--border); color: var(--text-soft); cursor: not-allowed; }
+
+.video-folder-list { list-style: none; margin: 0; padding: 0; max-height: 215px; overflow-y: auto; }
+.video-table-scroll { max-height: 230px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+.video-table-scroll table { margin: 0; }
+.video-table-scroll thead th { position: sticky; top: 0; background: var(--white); z-index: 1; }
 .video-folder-row {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 10px 4px; border-bottom: 1px solid var(--border);

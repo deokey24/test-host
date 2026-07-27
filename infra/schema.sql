@@ -97,12 +97,11 @@ WHERE NOT EXISTS (SELECT 1 FROM classes);
 -- 회원 (기존 엑셀 회원 리스트 마이그레이션, 2026-07-06 1770건 적용)
 CREATE TABLE IF NOT EXISTS members (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  seq_no INT,
   username VARCHAR(100) NOT NULL,
   password VARCHAR(255) DEFAULT NULL,
   name VARCHAR(100),
   birth_date DATE,
-  member_group VARCHAR(50),
+  member_group VARCHAR(50), -- '1000'=기존회원(2026-07-27 이전 가입), '1001'=신규회원(회원가입 폼을 통해 새로 가입)
   phone VARCHAR(50),
   mobile VARCHAR(50),
   email VARCHAR(255),

@@ -98,6 +98,10 @@ CSS 변수가 두 곳에 선언되어 있어 주의 필요:
 - OG 이미지: `https://img.wecandoeat.com/uploads/logo_resize.png`
 - HLS 재생: hls.js (jsDelivr CDN, `index.html`에서 `script.js`보다 먼저 로드)
 
+## Git
+
+**커밋은 요청 시 자유롭게 할 수 있지만, `git push`는 사용자가 `git-push`라고 명시적으로 입력한 경우에만 실행한다. 그 전까지는 로컬 커밋만 하고 원격 저장소에 반영하지 않는다.**
+
 ## 실서버 (Production)
 
 **원격 서버 작업은 사용자가 명시적으로 요청한 경우에만 수행한다. 코드 수정, 배포, 테스트 등 어떤 작업도 요청 없이 실서버에 적용하지 않는다.**

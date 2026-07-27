@@ -451,11 +451,11 @@
           <div class="card">
             <div class="content-header-row">
               <button id="contentBackBtn" class="row-btn">← 목록으로</button>
-              <h2 id="contentClassTitle">강의 소개 · 커리큘럼 편집</h2>
+              <h2 id="contentClassTitle">강좌 소개 · 커리큘럼 편집</h2>
             </div>
             <div class="content-subtabs">
               <button class="content-subtab active" data-content-tab="contentBannerPanel">배너</button>
-              <button class="content-subtab" data-content-tab="contentIntroPanel">강의 소개</button>
+              <button class="content-subtab" data-content-tab="contentIntroPanel">강좌 소개</button>
               <button class="content-subtab" data-content-tab="contentCurriculumPanel">커리큘럼</button>
               <button class="content-subtab" data-content-tab="contentLecturesPanel">강의 영상</button>
             </div>
@@ -1009,7 +1009,7 @@
     loadCategories();
     loadClasses();
 
-    // ── 강의 소개 / 커리큘럼 편집 (강좌명 클릭 시 진입) ──
+    // ── 강좌 소개 / 커리큘럼 편집 (강좌명 클릭 시 진입) ──
     let contentClassId = null;
     let contentState = { intro: { sections: [] }, curriculum: { totalLabel: '', chapters: [] } };
     let chapterAttachmentsCache = [];
@@ -1300,7 +1300,7 @@
       document.getElementById('lectureNumberInput').value = '';
       await loadClassLectures();
 
-      document.getElementById('contentClassTitle').textContent = `${data.name} — 배너 · 강의 소개 · 커리큘럼 편집`;
+      document.getElementById('contentClassTitle').textContent = `${data.name} — 배너 · 강좌 소개 · 커리큘럼 편집`;
       document.getElementById('contentStatus').textContent = '';
       document.getElementById('bnImageStatus').textContent = '';
       fillBannerForm();
@@ -1309,7 +1309,7 @@
       document.querySelectorAll('.side-link').forEach(l => l.classList.remove('active'));
       document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
       document.getElementById('classContentSection').classList.add('active');
-      document.getElementById('sectionTitle').textContent = '강의 소개 · 커리큘럼';
+      document.getElementById('sectionTitle').textContent = '강좌 소개 · 커리큘럼';
     }
 
     document.getElementById('contentBackBtn').addEventListener('click', () => {

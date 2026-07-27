@@ -16,7 +16,7 @@ const VIDEO_STATUS_LABELS = {
 let videoCache = [];
 let foldersCache = [];
 let currentFolderId = null;
-let moveContext = null; // { type: 'video' | 'folder', id }
+let moveContext = null; // { id } (영상 이동)
 
 function idEq(a, b) {
   const an = a === null || a === undefined || a === '' ? null : String(a);
@@ -114,6 +114,15 @@ function renderBreadcrumb() {
       : `<button type="button" class="video-breadcrumb-item" data-crumb="${f.id}">${escapeHtml(f.name)}</button>`);
   });
   document.getElementById('videoBreadcrumb').innerHTML = parts.join('');
+
+  const backBtn = document.getElementById('videoFolderBackBtn');
+  const currentFolder = path[path.length - 1];
+  if (currentFolder) {
+    backBtn.style.display = '';
+    backBtn.onclick = () => navigateToFolder(currentFolder.parent_id);
+  } else {
+    backBtn.style.display = 'none';
+  }
 }
 
 function renderFolderList() {
@@ -131,7 +140,6 @@ function renderFolderList() {
       </button>
       <div class="video-folder-actions">
         <button class="row-btn" data-rename-folder="${f.id}" type="button">이름변경</button>
-        <button class="row-btn" data-move-folder="${f.id}" type="button">이동</button>
         <button class="row-btn danger" data-delete-folder="${f.id}" type="button">삭제</button>
       </div>
     </li>
@@ -165,7 +173,7 @@ async function loadVideos() {
       <td>${escapeHtml(v.title)}</td>
       <td><span class="badge badge-${v.status}"${v.status === 'failed' && v.error_message ? ` title="${escapeHtml(v.error_message)}"` : ''}>${VIDEO_STATUS_LABELS[v.status] || v.status}</span></td>
       <td>${new Date(v.created_at).toLocaleString('ko-KR')}</td>
-      <td>${v.status === 'done' && v.final_url ? `<button class="row-btn" data-copy-url="${escapeHtml(v.final_url)}" type="button">복사</button>` : ''}<button class="row-btn" data-move-video="${v.id}" type="button">이동</button><button class="row-btn danger" data-delete-video="${v.id}" type="button"
+      <td><button class="row-btn" data-rename-video="${v.id}" type="button">이름변경</button><button class="row-btn" data-move-video="${v.id}" type="button">이동</button><button class="row-btn danger" data-delete-video="${v.id}" type="button"
         ${v.status === 'processing' ? 'disabled title="인코딩이 진행 중인 영상은 삭제할 수 없습니다"' : ''}>삭제</button></td>
     </tr>
   `).join('');
@@ -199,12 +207,6 @@ document.getElementById('videoFolderList').addEventListener('click', async (e) =
     } catch (err) {
       alert(err.message);
     }
-    return;
-  }
-
-  const moveBtn = e.target.closest('[data-move-folder]');
-  if (moveBtn) {
-    openMoveModal('folder', moveBtn.dataset.moveFolder);
     return;
   }
 
@@ -246,17 +248,14 @@ document.getElementById('videoFolderNewInput').addEventListener('keydown', (e) =
   if (e.key === 'Enter') { e.preventDefault(); document.getElementById('videoFolderAddBtn').click(); }
 });
 
-// ── 이동 모달 (영상/폴더 공용) ──
+// ── 이동 모달 (영상) ──
 
-function openMoveModal(type, id) {
-  moveContext = { type, id };
-  document.getElementById('videoMoveModalTitle').textContent = type === 'folder' ? '폴더 이동' : '영상 이동';
+function openMoveModal(id) {
+  moveContext = { id };
+  document.getElementById('videoMoveModalTitle').textContent = '영상 이동';
   const selectEl = document.getElementById('videoMoveFolderSelect');
   renderFolderSelectEl(selectEl, {
-    excludeId: type === 'folder' ? id : undefined,
-    selected: type === 'folder'
-      ? (foldersCache.find(f => idEq(f.id, id))?.parent_id ?? '')
-      : (videoCache.find(v => idEq(v.id, id))?.folder_id ?? '')
+    selected: videoCache.find(v => idEq(v.id, id))?.folder_id ?? ''
   });
   setStatus(document.getElementById('videoMoveStatus'), '', null);
   document.getElementById('videoMoveModalOverlay').classList.add('open');
@@ -274,20 +273,12 @@ document.getElementById('videoMoveConfirmBtn').addEventListener('click', async (
   const status = document.getElementById('videoMoveStatus');
   const targetFolderId = document.getElementById('videoMoveFolderSelect').value || null;
   try {
-    if (moveContext.type === 'folder') {
-      await apiFetch(`/admin/api/video-folders/${moveContext.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ parent_id: targetFolderId })
-      });
-      await loadFolders();
-    } else {
-      await apiFetch(`/admin/api/videos/${moveContext.id}/move`, {
-        method: 'PUT',
-        body: JSON.stringify({ folderId: targetFolderId })
-      });
-      await loadFolders();
-      await loadVideos();
-    }
+    await apiFetch(`/admin/api/videos/${moveContext.id}/move`, {
+      method: 'PUT',
+      body: JSON.stringify({ folderId: targetFolderId })
+    });
+    await loadFolders();
+    await loadVideos();
     closeMoveModal();
   } catch (err) {
     setStatus(status, err.message, 'error');
@@ -295,23 +286,27 @@ document.getElementById('videoMoveConfirmBtn').addEventListener('click', async (
 });
 
 document.getElementById('videoList').addEventListener('click', async (e) => {
-  const copyBtn = e.target.closest('[data-copy-url]');
-  if (copyBtn) {
-    const copyUrl = copyBtn.dataset.copyUrl;
+  const renameBtn = e.target.closest('[data-rename-video]');
+  if (renameBtn) {
+    const renameId = renameBtn.dataset.renameVideo;
+    const video = videoCache.find(v => idEq(v.id, renameId));
+    const title = window.prompt('새 영상 제목', video ? video.title : '');
+    if (!title || !title.trim()) return;
     try {
-      await navigator.clipboard.writeText(copyUrl);
-      const prevLabel = copyBtn.textContent;
-      copyBtn.textContent = '복사됨';
-      setTimeout(() => { copyBtn.textContent = prevLabel; }, 1200);
+      await apiFetch(`/admin/api/videos/${renameId}/rename`, {
+        method: 'PUT',
+        body: JSON.stringify({ title: title.trim() })
+      });
+      await loadVideos();
     } catch (err) {
-      alert('복사에 실패했습니다. 링크: ' + copyUrl);
+      alert(err.message);
     }
     return;
   }
 
   const moveBtn = e.target.closest('[data-move-video]');
   if (moveBtn) {
-    openMoveModal('video', moveBtn.dataset.moveVideo);
+    openMoveModal(moveBtn.dataset.moveVideo);
     return;
   }
 
