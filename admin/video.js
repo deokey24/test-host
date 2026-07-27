@@ -165,9 +165,6 @@ async function loadVideos() {
       <td>${escapeHtml(v.title)}</td>
       <td><span class="badge badge-${v.status}"${v.status === 'failed' && v.error_message ? ` title="${escapeHtml(v.error_message)}"` : ''}>${VIDEO_STATUS_LABELS[v.status] || v.status}</span></td>
       <td>${new Date(v.created_at).toLocaleString('ko-KR')}</td>
-      <td>${v.status === 'done' && v.final_url
-        ? `<a href="${escapeHtml(v.final_url)}" target="_blank" rel="noopener" style="word-break:break-all; font-size:12px;">${escapeHtml(v.final_url)}</a>`
-        : '<span class="field-hint">-</span>'}</td>
       <td>${v.status === 'done' && v.final_url ? `<button class="row-btn" data-copy-url="${escapeHtml(v.final_url)}" type="button">복사</button>` : ''}<button class="row-btn" data-move-video="${v.id}" type="button">이동</button><button class="row-btn danger" data-delete-video="${v.id}" type="button"
         ${v.status === 'processing' ? 'disabled title="인코딩이 진행 중인 영상은 삭제할 수 없습니다"' : ''}>삭제</button></td>
     </tr>
@@ -332,64 +329,109 @@ document.getElementById('videoList').addEventListener('click', async (e) => {
   }
 });
 
+const VIDEO_BATCH_FILE_CONCURRENCY = 2;
+
+async function uploadOneVideo(file, title, folderId, onProgress) {
+  const { videoId, partSize, urls } = await apiFetch('/admin/api/videos/presign', {
+    method: 'POST',
+    body: JSON.stringify({ title, fileSize: file.size, folderId })
+  });
+
+  let uploadedBytes = 0;
+  const parts = await uploadVideoPartsInParallel(urls, async ({ partNumber, url }) => {
+    const start = (partNumber - 1) * partSize;
+    const end = Math.min(partNumber * partSize, file.size);
+    const blob = file.slice(start, end);
+    return uploadVideoPart(url, blob, partNumber, (bytes) => {
+      uploadedBytes += bytes;
+      onProgress(uploadedBytes, file.size);
+    });
+  }, VIDEO_PART_CONCURRENCY);
+
+  parts.sort((a, b) => a.PartNumber - b.PartNumber);
+  await apiFetch(`/admin/api/videos/${videoId}/complete`, {
+    method: 'POST',
+    body: JSON.stringify({ parts })
+  });
+}
+
 document.getElementById('videoUploadBtn').addEventListener('click', async () => {
-  const title = document.getElementById('videoTitleInput').value.trim();
+  const titleInput = document.getElementById('videoTitleInput');
   const fileInput = document.getElementById('videoFileInput');
-  const file = fileInput.files[0];
+  const files = Array.from(fileInput.files);
   const folderId = document.getElementById('videoFolderSelect').value || null;
   const btn = document.getElementById('videoUploadBtn');
   const progress = document.getElementById('videoProgress');
   const progressBar = document.getElementById('videoProgressBar');
   const statusText = document.getElementById('videoStatusText');
+  const batchList = document.getElementById('videoBatchList');
 
-  if (!title || !file) {
+  if (!files.length) {
+    setStatus(statusText, '파일을 선택해주세요.', 'error');
+    return;
+  }
+  if (files.length === 1 && !titleInput.value.trim()) {
     setStatus(statusText, '제목과 파일을 모두 선택해주세요.', 'error');
     return;
   }
 
+  const titleFor = (file) => files.length === 1
+    ? titleInput.value.trim()
+    : file.name.replace(/\.[^./\\]+$/, '');
+
   btn.disabled = true;
-  progress.style.display = 'block';
-  setStatus(statusText, '업로드 준비 중...');
+  setStatus(statusText, '');
+  progress.style.display = 'none';
+  batchList.style.display = 'flex';
+  batchList.innerHTML = files.map((f, i) => `
+    <div class="video-batch-row" id="videoBatchRow-${i}">
+      <div class="video-batch-row-head">
+        <span class="name">${escapeHtml(titleFor(f))}</span>
+        <span class="status" id="videoBatchStatus-${i}">대기 중</span>
+      </div>
+      <div class="progress"><div class="progress-bar" id="videoBatchProgressBar-${i}"></div></div>
+    </div>
+  `).join('');
 
-  try {
-    const { videoId, partSize, urls } = await apiFetch('/admin/api/videos/presign', {
-      method: 'POST',
-      body: JSON.stringify({ title, fileSize: file.size, folderId })
-    });
-
-    let uploadedBytes = 0;
-    const onProgress = (bytes) => {
-      uploadedBytes += bytes;
-      progressBar.style.width = `${Math.min(100, (uploadedBytes / file.size) * 100)}%`;
-      setStatus(statusText, `업로드 중... ${(uploadedBytes / 1e9).toFixed(2)}GB / ${(file.size / 1e9).toFixed(2)}GB`);
-    };
-
-    const parts = await uploadVideoPartsInParallel(urls, async ({ partNumber, url }) => {
-      const start = (partNumber - 1) * partSize;
-      const end = Math.min(partNumber * partSize, file.size);
-      const blob = file.slice(start, end);
-      return uploadVideoPart(url, blob, partNumber, onProgress);
-    }, VIDEO_PART_CONCURRENCY);
-
-    setStatus(statusText, '업로드 완료 처리 중...');
-    parts.sort((a, b) => a.PartNumber - b.PartNumber);
-    await apiFetch(`/admin/api/videos/${videoId}/complete`, {
-      method: 'POST',
-      body: JSON.stringify({ parts })
-    });
-
-    setStatus(statusText, '압축 대기열에 등록되었습니다.', 'ok');
-    document.getElementById('videoTitleInput').value = '';
-    fileInput.value = '';
-    await loadFolders();
-    await loadVideos();
-  } catch (err) {
-    setStatus(statusText, `오류: ${err.message}`, 'error');
-  } finally {
-    btn.disabled = false;
-    progress.style.display = 'none';
-    progressBar.style.width = '0%';
+  async function uploadIndexed(i) {
+    const file = files[i];
+    const statusEl = document.getElementById(`videoBatchStatus-${i}`);
+    const barEl = document.getElementById(`videoBatchProgressBar-${i}`);
+    try {
+      await uploadOneVideo(file, titleFor(file), folderId, (uploaded, total) => {
+        barEl.style.width = `${Math.min(100, (uploaded / total) * 100)}%`;
+        statusEl.textContent = `업로드 중... ${(uploaded / 1e9).toFixed(2)}GB / ${(total / 1e9).toFixed(2)}GB`;
+      });
+      barEl.style.width = '100%';
+      statusEl.textContent = '압축 대기열 등록 완료';
+      statusEl.classList.add('ok');
+    } catch (err) {
+      statusEl.textContent = `오류: ${err.message}`;
+      statusEl.classList.add('error');
+    }
   }
+
+  let cursor = 0;
+  async function runNext() {
+    const i = cursor++;
+    if (i >= files.length) return;
+    await uploadIndexed(i);
+    return runNext();
+  }
+  await Promise.all(Array.from({ length: Math.min(VIDEO_BATCH_FILE_CONCURRENCY, files.length) }, runNext));
+
+  const failedCount = files.filter((_, i) => document.getElementById(`videoBatchStatus-${i}`)?.classList.contains('error')).length;
+  setStatus(
+    statusText,
+    failedCount ? `${files.length - failedCount}/${files.length}개 완료, ${failedCount}개 실패` : `${files.length}개 모두 압축 대기열에 등록되었습니다.`,
+    failedCount ? 'error' : 'ok'
+  );
+
+  titleInput.value = '';
+  fileInput.value = '';
+  btn.disabled = false;
+  await loadFolders();
+  await loadVideos();
 });
 
 document.addEventListener('DOMContentLoaded', async () => {

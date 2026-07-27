@@ -18,5 +18,8 @@
     "express": "^4.19.2",
     "express-session": "^1.18.0",
     "mysql2": "^3.22.5"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.0"
   }
 }

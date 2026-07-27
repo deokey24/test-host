@@ -1334,7 +1334,7 @@ app.delete('/admin/api/members/:id/vod-enrollments/:enrollmentId', requireAdminA
   res.json({ ok: true });
 }));
 
-const USERNAME_RE = /^[A-Za-z][A-Za-z0-9]{4,19}$/;
+const USERNAME_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,16}$/;
 
 function parseDeviceLabel(userAgent) {
@@ -1395,7 +1395,7 @@ async function registerMemberDevice(memberId, deviceId, req) {
 app.post('/api/members/check-username', async (req, res) => {
   const { username } = req.body;
   if (!username || !USERNAME_RE.test(username)) {
-    res.status(400).json({ error: '아이디 형식이 올바르지 않습니다.' });
+    res.status(400).json({ error: '올바른 이메일 형식을 입력해주세요.' });
     return;
   }
   const [rows] = await getPool().query('SELECT id FROM members WHERE username = ?', [username]);
@@ -1404,7 +1404,7 @@ app.post('/api/members/check-username', async (req, res) => {
 
 app.post('/api/members/signup', async (req, res) => {
   const {
-    username, password, email, name, phone, mobile,
+    username, password, email, name, birthDate, phone, mobile,
     signupChannel, searchKeyword, referrerCode, emailConsent, smsConsent,
     deviceId, keepLoggedIn
   } = req.body;
@@ -1414,7 +1414,7 @@ app.post('/api/members/signup', async (req, res) => {
     return;
   }
   if (!USERNAME_RE.test(username)) {
-    res.status(400).json({ error: '아이디는 영문자로 시작하는 영문자/숫자 5~20자여야 합니다.' });
+    res.status(400).json({ error: '올바른 이메일 형식을 입력해주세요.' });
     return;
   }
   if (!PASSWORD_RE.test(password)) {
@@ -1428,10 +1428,10 @@ app.post('/api/members/signup', async (req, res) => {
   try {
     const [result] = await getPool().query(
       `INSERT INTO members
-        (username, password, name, phone, mobile, email, signup_channel, search_keyword, referrer_code, email_marketing_consent, sms_marketing_consent, joined_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        (username, password, name, birth_date, phone, mobile, email, signup_channel, search_keyword, referrer_code, email_marketing_consent, sms_marketing_consent, joined_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
-        username, passwordHash, name, phone || null, mobile || null, email,
+        username, passwordHash, name, birthDate || null, phone || null, mobile || null, email,
         channelStr, searchKeyword || null, referrerCode || null,
         emailConsent === '1' ? '허용' : '거부',
         smsConsent === '1' ? '허용' : '거부'

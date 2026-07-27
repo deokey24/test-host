@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>개인정보처리방침 · 독편사 DOCK PASS</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="stylesheet" href="style.css">
+<style>
+:root{
+  --navy-950:#020918;--navy-900:#031228;--navy-850:#071a34;--navy-800:#0e1c30;--navy-700:#162844;
+  --beige-700:#a98254;--beige-500:#d7bf9f;--beige-400:#e3cdaf;--beige-100:#f1e6d7;--beige-50:#f8f2ea;
+  --ivory:#f7f4f1;--warm-white:#fbfaf9;--text:#172033;--body:#343a46;--muted:#73737a;--line:#e1e1df;
+  --shadow-sm:0 4px 16px rgba(2,9,24,.06);
+}
+body[data-page="privacy"]{background:var(--warm-white)}
+.container{width:min(1280px,calc(100% - 40px));margin:auto}
+.header{position:sticky;top:0;z-index:50;background:rgba(3,18,40,.96);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.08)}
+.header__inner{height:76px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.header .logo{display:flex;align-items:center;gap:10px;color:#fff;font-weight:900}
+.header .nav{display:flex;gap:36px;color:#eef2f7;font-weight:700}
+.header .nav a{position:relative;padding:27px 0}
+.header .nav a.active:after,.header .nav a:hover:after{content:"";position:absolute;left:0;right:0;bottom:15px;height:2px;background:var(--beige-400)}
+.header__actions{display:flex;gap:9px}
+.header__actions .btn{border:0;border-radius:10px;padding:13px 20px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.2s}
+.header__actions .btn:hover{transform:translateY(-1px)}
+.header__actions .btn--primary{background:linear-gradient(135deg,var(--beige-400),#f0d8b5);color:#14213a;box-shadow:0 8px 22px rgba(215,191,159,.22)}
+.header__actions .btn--ghost-dark{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.28)}
+.header .mobile-toggle{display:none;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:8px 10px}
+
+.auth-modal-overlay{display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;background:rgba(2,9,24,.55);padding:20px}
+.auth-modal-overlay.open{display:flex}
+.auth-modal-box{position:relative;width:400px;max-width:100%;max-height:90vh;overflow-y:auto;background:#fff;border-radius:18px;padding:36px 32px 28px;box-shadow:0 24px 60px -20px rgba(14,21,38,.45)}
+.auth-modal-close{position:absolute;top:18px;right:18px;width:30px;height:30px;border-radius:999px;font-size:15px;color:var(--text);opacity:.5;border:0;background:transparent;cursor:pointer}
+.auth-modal-close:hover{opacity:.9}
+.auth-modal-title{font-size:20px;font-weight:800;text-align:center;letter-spacing:-.2px;margin-bottom:24px}
+.auth-field{margin-bottom:16px}
+.auth-field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px}
+.auth-field input{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:10px;font-size:14.5px;font-family:inherit;color:var(--text);background:#fff}
+.auth-field input:focus{outline:none;border-color:var(--beige-700)}
+.auth-check-row{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;opacity:.75;margin-bottom:18px}
+.auth-check-row input{accent-color:var(--beige-700)}
+.auth-error-msg{font-size:13px;font-weight:600;color:#d64545;margin-bottom:14px}
+.auth-submit-btn{width:100%;padding:15px;border-radius:10px;font-size:15px;font-weight:700;text-align:center;border:0;cursor:pointer;background:var(--navy-900);color:#fff}
+.auth-modal-divider{height:1px;background:var(--line);margin:24px 0 18px}
+.auth-modal-links{text-align:center;font-size:13px;font-weight:600}
+.auth-modal-links a{opacity:.6}
+.auth-modal-links a:hover{opacity:1}
+.auth-links-sep{margin:0 10px;opacity:.35}
+
+.legal-hero{background:radial-gradient(circle at 70% 20%,#10325b 0,transparent 34%),linear-gradient(135deg,var(--navy-950),#0b294b);color:#fff;padding:32px 0 40px}
+.legal-hero .crumb{color:#9fb0c7;font-size:12px;font-weight:700;letter-spacing:.06em;margin-bottom:12px}
+.legal-hero h1{font-size:38px;margin:0 0 10px;letter-spacing:-.02em}
+.legal-hero p{margin:0;color:#dbe3ee;font-size:15px}
+
+.legal-wrap{padding:36px 0 70px}
+.legal-doc{max-width:820px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:20px;padding:44px 48px;box-shadow:var(--shadow-sm)}
+.legal-doc .legal-lead{font-size:14px;line-height:1.85;color:var(--body);margin:0 0 24px;padding-bottom:22px;border-bottom:1px solid var(--line)}
+.legal-doc .legal-lead ul{margin:8px 0 0;padding-left:20px}
+.legal-doc h2{font-size:17px;font-weight:800;color:var(--navy-900);margin:30px 0 12px;padding-top:20px;border-top:1px solid var(--line)}
+.legal-doc h2:first-of-type{margin-top:0;padding-top:0;border-top:0}
+.legal-doc h3{font-size:14.5px;font-weight:800;color:var(--beige-700);margin:18px 0 6px}
+.legal-doc p{font-size:14px;line-height:1.85;color:var(--body);margin:0 0 10px}
+.legal-doc ol,.legal-doc ul{margin:4px 0 12px;padding-left:22px;font-size:13.5px;line-height:1.85;color:var(--body)}
+.legal-doc .legal-footnote{margin-top:30px;padding-top:20px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.legal-doc .legal-footnote p{font-size:12.5px;color:var(--muted);margin:0 0 4px}
+
+.footer{background:var(--navy-950);color:#d7dde8;padding:38px 0 26px}
+.footer__grid{display:grid;grid-template-columns:1fr 1.4fr .8fr;gap:30px}
+.footer small{color:#9ba7b8}
+.footer .phone{font-size:28px;color:#fff;font-weight:900}.footer .hours{font-size:12.5px;color:#9ba7b8;margin-top:4px}
+.footer .social{display:flex;gap:8px;margin-top:14px}
+.footer .social a{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.28);display:grid;place-items:center;color:#d7dde8;transition:.2s}
+.footer .social a:hover{background:rgba(255,255,255,.12)}
+.footer .social svg{width:15px;height:15px}
+.footer__bottom{display:flex;justify-content:space-between;align-items:center;margin-top:28px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:#9ba7b8}
+.footer__bottom a{margin-left:16px;color:#c3ccd9}
+
+@media(max-width:760px){
+  .header__inner{height:64px}
+  .header .nav{display:none;position:absolute;left:12px;right:12px;top:70px;background:var(--navy-900);padding:16px;border-radius:12px;flex-direction:column;gap:0}
+  .header .nav.open{display:flex}
+  .header .nav a{padding:12px}
+  .header .nav a.active:after,.header .nav a:hover:after{display:none}
+  .header .mobile-toggle{display:block}
+  .header__actions .btn:not(.btn--primary){display:none}
+  .header__actions .btn{padding:10px 13px}
+  .legal-hero h1{font-size:28px}
+  .legal-doc{padding:30px 22px}
+  .footer__grid{grid-template-columns:1fr}
+  .footer__bottom{flex-direction:column;gap:10px;align-items:flex-start}
+  .footer__bottom a{margin:0 16px 0 0}
+}
+</style>
+</head>
+<body data-page="privacy">
+<div class="page">
+
+  <header class="header"><div class="container header__inner">
+    <a class="logo" href="index.html"><img src="assets/home/footer-logo.png" alt="DOCK PASS" style="height:42px;width:auto;display:block"></a>
+    <nav class="nav" aria-label="주요 메뉴">
+      <a href="vod.html">VOD 강좌</a>
+      <a href="intro.html">학습소개</a>
+      <a href="notice.html">공지사항</a>
+      <a href="cert.html">합격인증</a>
+    </nav>
+    <div class="header__actions">
+      <button class="mobile-toggle" type="button" aria-label="메뉴 열기">☰</button>
+      <a class="btn btn--ghost-dark" id="loginTrigger" href="javascript:void(0)">로그인</a>
+      <a class="btn btn--ghost-dark my-info-link" id="myInfoBtn" href="mypage.html" style="display:none;">마이페이지</a>
+      <a class="btn btn--primary" href="vodDetail.html">수강신청</a>
+    </div>
+  </div></header>
+
+  <section class="legal-hero"><div class="container">
+    <div class="crumb">HOME / 개인정보처리방침</div>
+    <h1>개인정보처리방침</h1>
+    <p>독티처(DOCKTEACHER) 서비스의 개인정보 처리에 관한 방침입니다.</p>
+  </div></section>
+
+  <section class="legal-wrap"><div class="container">
+    <article class="legal-doc">
+      <div class="legal-lead">
+        <p>독티처 개인정보처리방침은 다음과 같은 내용을 담고 있습니다.</p>
+        <ul>
+          <li>수집하는 개인정보의 항목 및 수집방법</li>
+          <li>개인정보의 수집 및 이용목적</li>
+          <li>개인정보의 보유 및 이용기간</li>
+        </ul>
+        <p style="margin-top:12px">'독티처(DOCKTEACHER)원격학원'은(이하 '회사'는) 고객님의 개인정보를 중요시하며, '정보통신망 이용촉진 및 정보보호'에 관한 법률을 준수하고 있습니다.</p>
+        <p>회사는 개인정보처리방침을 통하여 고객님께서 제공하시는 개인정보가 어떠한 용도와 방식으로 이용되고 있으며, 개인정보보호를 위해 어떠한 조치가 취해지고 있는지 알려드립니다.</p>
+        <p style="margin-bottom:0">회사는 개인정보처리방침을 개정하는 경우 웹사이트 공지사항(또는 개별공지)을 통하여 공지할 것입니다.</p>
+      </div>
+
+      <h2>■ 수집하는 개인정보 항목</h2>
+      <p>회사는 회원가입, 상담, 서비스 신청 등을 위해 아래와 같은 개인정보를 수집하고 있습니다.</p>
+      <p>ο 수집항목 : 회원아이디, 비밀번호, 이메일, 회원명, 가입경로, 인터넷 검색 키워드, 전화번호, 휴대폰번호, 추천인 코드(추천인명), 광고성 이메일 수신 여부, 광고성 SMS 수신 여부, 서비스 이용기록, 접속 로그, 쿠키, 접속 IP, 결제기록</p>
+      <p>ο 개인정보 수집방법 : 홈페이지(회원가입, 게시판, 교재구입, 과정구입)</p>
+
+      <h2>■ 개인정보의 수집 및 이용목적</h2>
+      <p>회사는 수집한 개인정보를 다음의 목적을 위해 활용합니다.</p>
+      <ul>
+        <li>서비스 제공에 관한 계약 이행 및 서비스 제공에 따른 요금정산 : 콘텐츠 제공, 구매 및 요금 결제</li>
+        <li>회원 관리 : 회원제 서비스 이용에 따른 본인확인, 개인 식별, 불량회원의 부정 이용 방지와 비인가 사용 방지, 가입 의사 확인, 불만처리 등 민원처리, 고지사항 전달</li>
+        <li>마케팅 및 광고에 활용 : 신규 서비스(제품) 개발 및 특화, 이벤트 등 광고성 정보 전달, 접속 빈도 파악 또는 회원의 서비스 이용에 대한 통계</li>
+      </ul>
+
+      <h2>■ 개인정보의 보유 및 이용기간</h2>
+      <p>"독티처(DOCKTEACHER)원격학원"(https://dockteacher.co.kr, 이하 '회사')는 정보주체로부터 개인정보를 수집할 때 동의받은 개인정보 보유·이용기간 또는 법령에 따른 개인정보 보유·이용기간 내에서 개인정보를 처리·보유합니다.</p>
+      <p>원칙적으로 개인정보 수집 및 이용목적이 달성된 후에는 해당 정보를 지체 없이 파기합니다.</p>
+      <p>단, 다음의 정보에 대해서는 아래의 이유로 명시한 기간 동안 보존합니다.</p>
+
+      <h3>1. 회원탈퇴 시 보존 개인정보</h3>
+      <ul>
+        <li>보존항목 : 회원님께서 제공한 회원명, 아이디, 이메일주소, 전화번호</li>
+        <li>보존근거 : 불량 이용자의 재가입 방지, 명예훼손 등 권리침해 분쟁 및 수사협조</li>
+        <li>보존기간 : 회원탈퇴 후 1년 또는 보존 필요성 종료 시까지</li>
+      </ul>
+
+      <h3>2. 상거래 관련 보존 개인정보</h3>
+      <ul>
+        <li>보존항목 : 상거래이력</li>
+        <li>보존근거 : 상법, 전자상거래 등에서의 소비자보호에 관한 법률</li>
+        <li>보존기간 : 계약 또는 청약철회 등에 관한 기록 5년 / 대금결제 및 재화 등의 공급에 관한 기록 5년 / 소비자의 불만 또는 분쟁처리에 관한 기록 3년</li>
+      </ul>
+
+      <h2>■ 개인정보의 파기절차 및 방법</h2>
+      <p>회사는 원칙적으로 개인정보 수집 및 이용목적이 달성된 후에는 해당 정보를 지체없이 파기합니다. 파기절차 및 방법은 다음과 같습니다.</p>
+      <p>ο 파기절차<br>회원님이 회원가입 등을 위해 입력하신 정보는 목적이 달성된 후 별도의 DB로 옮겨져(종이의 경우 별도의 서류함) 내부 방침 및 기타 관련 법령에 의한 정보보호 사유에 따라(보유 및 이용기간 참조) 일정 기간 저장된 후 파기되어집니다. 별도 DB로 옮겨진 개인정보는 법률에 의한 경우가 아니고서는 보유되는 이외의 다른 목적으로 이용되지 않습니다.</p>
+      <p>ο 파기방법 : 전자적 파일형태로 저장된 개인정보는 기록을 재생할 수 없는 기술적 방법을 사용하여 삭제합니다.</p>
+
+      <h2>■ 개인정보 제공</h2>
+      <p>회사는 이용자의 개인정보를 원칙적으로 외부에 제공하지 않습니다. 다만, 아래의 경우에는 예외로 합니다.</p>
+      <ul>
+        <li>이용자들이 사전에 동의한 경우</li>
+        <li>법령의 규정에 의거하거나, 수사 목적으로 법령에 정해진 절차와 방법에 따라 수사기관의 요구가 있는 경우</li>
+      </ul>
+
+      <h2>■ 수집한 개인정보의 위탁</h2>
+      <p>회사는 고객님의 동의없이 고객님의 정보를 외부 업체에 위탁하지 않습니다. 향후 그러한 필요가 생길 경우, 위탁 대상자와 위탁 업무 내용에 대해 고객님에게 통지하고 필요한 경우 사전 동의를 받도록 하겠습니다.</p>
+
+      <h2>■ 이용자의 권리와 그 행사방법</h2>
+      <p>이용자는 언제든지 등록되어 있는 자신의 개인정보를 조회하거나 수정할 수 있으며 가입해지를 요청할 수도 있습니다.</p>
+      <p>개인정보 조회·수정을 위해서는 '개인정보변경'(또는 '회원정보수정' 등)을, 가입해지(동의철회)를 위해서는 '회원탈퇴'를 클릭하여 본인 확인 절차를 거치신 후 직접 열람, 정정 또는 탈퇴가 가능합니다.</p>
+      <p>혹은 개인정보관리책임자에게 서면, 전화 또는 이메일로 연락하시면 지체 없이 조치하겠습니다.</p>
+      <p>귀하가 개인정보의 오류에 대한 정정을 요청하신 경우에는 정정을 완료하기 전까지 당해 개인정보를 이용 또는 제공하지 않습니다. 또한 잘못된 개인정보를 제3자에게 이미 제공한 경우에는 정정 처리결과를 제3자에게 지체없이 통지하여 정정이 이루어지도록 하겠습니다. 회사는 이용자의 요청에 의해 해지 또는 삭제된 개인정보는 "개인정보의 보유 및 이용기간"에 명시된 바에 따라 처리하고 그 외의 용도로 열람 또는 이용할 수 없도록 처리하고 있습니다.</p>
+
+      <h2>■ 개인정보 자동수집 장치의 설치, 운영 및 그 거부에 관한 사항</h2>
+      <p>회사는 귀하의 정보를 수시로 저장하고 찾아내는 '쿠키(cookie)' 등을 운용합니다. 쿠키란 회사의 웹사이트를 운영하는데 이용되는 서버가 귀하의 브라우저에 보내는 아주 작은 텍스트 파일로서 귀하의 컴퓨터 하드디스크에 저장됩니다. 회사는 다음과 같은 목적을 위해 쿠키를 사용합니다.</p>
+      <p>▶ 쿠키 등 사용 목적 : 회원과 비회원의 접속 빈도나 방문 시간 등을 분석, 이용자의 취향과 관심분야를 파악 및 자취 추적, 각종 이벤트 참여 정도 및 방문 회수 파악 등을 통한 타겟 마케팅 및 개인 맞춤 서비스 제공</p>
+      <p>귀하는 쿠키 설치에 대한 선택권을 가지고 있습니다. Google Chrome 및 Microsoft Edge 등 귀하가 사용하시는 웹 브라우저의 설정을 통해 쿠키 저장을 허용하거나 차단할 수 있습니다.</p>
+      <p>단, 귀하께서 쿠키 설치를 거부하였을 경우 서비스 제공에 어려움이 있을 수 있습니다.</p>
+
+      <h2>■ 개인정보에 관한 민원서비스</h2>
+      <p>회사는 고객의 개인정보를 보호하고 개인정보와 관련한 불만을 처리하기 위하여 아래와 같이 관련 부서 및 개인정보관리책임자를 지정하고 있습니다.</p>
+      <p>고객서비스담당 부서 : 독편사편입논술&amp;컨설팅<br>이메일 : youngsba@gmail.com</p>
+      <p>귀하께서는 회사의 서비스를 이용하시며 발생하는 모든 개인정보보호 관련 민원을 개인정보관리책임자 혹은 담당부서로 신고하실 수 있습니다. 회사는 이용자들의 신고사항에 대해 신속하게 충분한 답변을 드릴 것입니다.</p>
+      <p>기타 개인정보침해에 대한 신고나 상담이 필요하신 경우에는 아래 기관에 문의하시기 바랍니다.</p>
+      <ul>
+        <li>개인정보침해신고센터(KISA) : https://privacy.kisa.or.kr (국번없이 118)</li>
+        <li>개인정보분쟁조정위원회 : https://www.kopico.go.kr (1833-6972)</li>
+        <li>경찰청 사이버범죄 신고시스템 : https://ecrm.police.go.kr</li>
+        <li>대검찰청 : https://www.spo.go.kr</li>
+      </ul>
+
+      <div class="legal-footnote">
+        <p>최종 개정일 : 2026년 7월 24일</p>
+        <p>시행일 : 2026년 7월 24일</p>
+      </div>
+    </article>
+  </div></section>
+
+  <footer class="footer"><div class="container footer__grid">
+    <div>
+      <a class="logo" href="index.html"><img src="assets/home/footer-logo.png" alt="DOCK PASS" style="height:39px;width:auto;display:block"></a>
+      <p>독편사 편입논술은 결과로 증명합니다.</p>
+      <div class="social">
+        <a href="#" aria-label="유튜브"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="m10.5 9.5 4.5 2.5-4.5 2.5v-5Z"/></svg></a>
+        <a href="#" aria-label="인스타그램"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4.5"/><circle cx="12" cy="12" r="3.6"/><circle cx="16.8" cy="7.2" r=".5" fill="currentColor" stroke="none"/></svg></a>
+        <a href="#" aria-label="블로그"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6v12"/><path d="M9 12.6c.4-1.1 1.5-1.8 2.8-1.8 1.9 0 3.2 1.4 3.2 3.3S13.7 17.4 11.8 17.4c-1.3 0-2.4-.7-2.8-1.8"/></svg></a>
+        <a href="#" aria-label="더보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 8.5v7M8.5 12h7"/></svg></a>
+      </div>
+    </div>
+    <div><small class="footer-desc">(주)독패스 | 대표이사 김독패<br>사업자등록번호 000-00-00000 | 통신판매업신고 2020-서울강남-00000<br>서울특별시 서대문구 신촌로 221, 2층<br>학원설립·운영등록번호 제2020-0006호 | 사업자등록번호 104-94-47747<br>평일 운영 14:00~22:00 · 상담 운영 15:00~20:00</small></div>
+    <div>
+      <small>상담 문의</small>
+      <div class="phone">02-6404-1018</div><div class="hours">상담 월~금 15:00–20:00</div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <a class="btn btn--primary" href="#" data-kakao-link>카카오톡 상담</a>
+        <a class="btn btn--ghost-dark" href="#">이메일 문의</a>
+      </div>
+    </div>
+  </div>
+  <div class="container footer__bottom">
+    <span class="copyright">© DOCK PASS. All rights reserved.</span>
+    <span><a href="terms.html">이용약관</a><a href="privacy.html">개인정보처리방침</a></span>
+  </div>
+  </footer>
+
+  <a class="kakao-float" href="#" target="_blank" rel="noopener">카카오톡 상담</a>
+
+  <script>document.querySelector('.mobile-toggle')?.addEventListener('click',()=>document.querySelector('.header .nav')?.classList.toggle('open'));</script>
+
+  <div class="auth-modal-overlay" id="loginModalOverlay">
+    <div class="auth-modal-box">
+      <button type="button" class="auth-modal-close" id="loginModalCloseBtn" aria-label="닫기">✕</button>
+      <h3 class="auth-modal-title">로그인</h3>
+      <form id="loginForm">
+        <div class="auth-field">
+          <label for="loginEmail">이메일</label>
+          <input type="email" id="loginEmail" placeholder="이메일을 입력해주세요" autocomplete="username" required>
+        </div>
+        <div class="auth-field">
+          <label for="loginPassword">비밀번호</label>
+          <input type="password" id="loginPassword" placeholder="비밀번호를 입력해주세요" autocomplete="current-password" required>
+        </div>
+        <label class="auth-check-row">
+          <input type="checkbox" id="loginKeepLoggedIn"> 로그인 유지
+        </label>
+        <div class="auth-error-msg" id="loginErrorMsg" style="display:none;"></div>
+        <button type="submit" class="btn-fill auth-submit-btn">로그인</button>
+      </form>
+      <div class="auth-modal-divider"></div>
+      <div class="auth-modal-links">
+        <a href="join.html" id="goSignupLink">회원가입</a>
+        <span class="auth-links-sep">·</span>
+        <a href="#" id="goForgotPwLink">비밀번호 찾기</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script src="site-content.js"></script>
+<script src="auth.js"></script>
+</body>
+</html>

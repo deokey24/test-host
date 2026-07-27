@@ -101,6 +101,7 @@ CREATE TABLE IF NOT EXISTS members (
   username VARCHAR(100) NOT NULL,
   password VARCHAR(255) DEFAULT NULL,
   name VARCHAR(100),
+  birth_date DATE,
   member_group VARCHAR(50),
   phone VARCHAR(50),
   mobile VARCHAR(50),

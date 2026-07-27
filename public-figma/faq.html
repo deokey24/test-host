@@ -82,7 +82,7 @@ body[data-page="faq"]{background:var(--warm-white)}
 .footer{background:var(--navy-950);color:#d7dde8;padding:38px 0 26px}
 .footer__grid{display:grid;grid-template-columns:1fr 1.4fr .8fr;gap:30px}
 .footer small{color:#9ba7b8}
-.footer .phone{font-size:28px;color:#fff;font-weight:900}
+.footer .phone{font-size:28px;color:#fff;font-weight:900}.footer .hours{font-size:12.5px;color:#9ba7b8;margin-top:4px}
 .footer .social{display:flex;gap:8px;margin-top:14px}
 .footer .social a{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.28);display:grid;place-items:center;color:#d7dde8;transition:.2s}
 .footer .social a:hover{background:rgba(255,255,255,.12)}
@@ -273,19 +273,19 @@ body[data-page="faq"]{background:var(--warm-white)}
         <a href="#" aria-label="더보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 8.5v7M8.5 12h7"/></svg></a>
       </div>
     </div>
-    <div><small>(주)독패스 | 대표이사 김독패<br>사업자등록번호 000-00-00000 | 통신판매업신고 2020-서울강남-00000<br>서울특별시 서대문구 신촌로 221, 2층<br>학원설립·운영등록번호 제2020-0006호 | 사업자등록번호 104-94-47747<br>평일 운영 14:00~22:00 · 상담 운영 15:00~20:00</small></div>
+    <div><small class="footer-desc">(주)독패스 | 대표이사 김독패<br>사업자등록번호 000-00-00000 | 통신판매업신고 2020-서울강남-00000<br>서울특별시 서대문구 신촌로 221, 2층<br>학원설립·운영등록번호 제2020-0006호 | 사업자등록번호 104-94-47747<br>평일 운영 14:00~22:00 · 상담 운영 15:00~20:00</small></div>
     <div>
       <small>상담 문의</small>
-      <div class="phone">02-6404-1018</div>
+      <div class="phone">02-6404-1018</div><div class="hours">상담 월~금 15:00–20:00</div>
       <div style="display:flex;gap:8px;margin-top:12px">
-        <a class="btn btn--primary" href="#">카카오톡 상담</a>
+        <a class="btn btn--primary" href="#" data-kakao-link>카카오톡 상담</a>
         <a class="btn btn--ghost-dark" href="#">이메일 문의</a>
       </div>
     </div>
   </div>
   <div class="container footer__bottom">
-    <span>© DOCK PASS. All rights reserved.</span>
-    <span><a href="#">이용약관</a><a href="#">개인정보처리방침</a></span>
+    <span class="copyright">© DOCK PASS. All rights reserved.</span>
+    <span><a href="terms.html">이용약관</a><a href="privacy.html">개인정보처리방침</a></span>
   </div>
   </footer>
 
@@ -332,7 +332,7 @@ body[data-page="faq"]{background:var(--warm-white)}
       </form>
       <div class="auth-modal-divider"></div>
       <div class="auth-modal-links">
-        <a href="#" id="goSignupLink">회원가입</a>
+        <a href="join.html" id="goSignupLink">회원가입</a>
         <span class="auth-links-sep">·</span>
         <a href="#" id="goForgotPwLink">비밀번호 찾기</a>
       </div>

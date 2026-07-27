@@ -112,10 +112,10 @@ function applyCmsSettings(settings) {
       kakao.target = settings.kakaoUrl.startsWith('http') ? '_blank' : '_self';
     });
   }
-  document.querySelectorAll('.footer-contact .phone').forEach(el => { if (settings.phone) el.textContent = settings.phone; });
-  document.querySelectorAll('.footer-contact .hours').forEach(el => { if (settings.hours) el.textContent = settings.hours; });
+  document.querySelectorAll('.phone').forEach(el => { if (settings.phone) el.textContent = settings.phone; });
+  document.querySelectorAll('.hours').forEach(el => { if (settings.hours) el.textContent = settings.hours; });
   if (Array.isArray(settings.footerLines) && settings.footerLines.length) {
-    document.querySelectorAll('.footer-brand p').forEach(el => {
+    document.querySelectorAll('.footer-brand p, .footer-desc').forEach(el => {
       el.innerHTML = settings.footerLines.map(escapeCmsHtml).join('<br>\n');
     });
   }

@@ -305,8 +305,6 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--border); }
 th { color: var(--text-soft); font-weight: 700; font-size: 12px; }
 
-#videoSection table { table-layout: fixed; }
-#videoSection th:nth-child(4), #videoSection td:nth-child(4) { width: 22%; overflow-wrap: break-word; }
 
 .badge { padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
 .badge-done { background: #f3ead9; color: var(--green-dark); }
@@ -332,6 +330,14 @@ th { color: var(--text-soft); font-weight: 700; font-size: 12px; }
 
 .progress { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-top: 10px; display: none; }
 .progress-bar { height: 100%; width: 0%; background: var(--green); transition: width .2s; }
+
+.video-batch-list { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+.video-batch-row .video-batch-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 12.5px; }
+.video-batch-row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.video-batch-row .status { flex: none; color: var(--text-soft); }
+.video-batch-row .status.ok { color: var(--green-dark); }
+.video-batch-row .status.error { color: var(--danger); }
+.video-batch-row .progress { display: block; margin-top: 6px; }
 
 /* ── 영상 업로드 폴더 브라우저 (FTP 스타일 다중 계층) ── */
 .video-breadcrumb { font-size: 13px; color: var(--text-soft); margin-bottom: 12px; }

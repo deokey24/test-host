@@ -711,6 +711,11 @@
             <button class="btn-outline" id="videoFolderAddBtn" type="button">폴더 추가</button>
           </div>
           <div class="status-text" id="videoFolderStatus"></div>
+          <h2 style="margin-top:24px;">이 폴더의 영상 (<span id="videoTotal">0</span>개)</h2>
+          <table>
+            <thead><tr><th>제목</th><th>상태</th><th>등록일</th><th>관리</th></tr></thead>
+            <tbody id="videoList"></tbody>
+          </table>
         </div>
         <div class="card">
           <h2>영상 업로드</h2>
@@ -718,6 +723,7 @@
             <div class="field-row full">
               <label class="field-label">강의 제목</label>
               <input type="text" id="videoTitleInput" placeholder="강의 제목">
+              <div class="field-hint">파일을 여러 개 선택하면 이 제목은 무시되고, 각 파일명(확장자 제외)이 제목으로 사용됩니다.</div>
             </div>
             <div class="field-row full">
               <label class="field-label">업로드 위치</label>
@@ -725,19 +731,14 @@
             </div>
             <div class="field-row full">
               <label class="field-label">영상 파일</label>
-              <input type="file" id="videoFileInput" accept="video/*">
+              <input type="file" id="videoFileInput" accept="video/*" multiple>
+              <div class="field-hint">여러 파일을 한 번에 선택하면 동시에 업로드/압축 대기열 등록됩니다.</div>
             </div>
           </div>
           <button class="btn" id="videoUploadBtn" type="button">업로드</button>
           <div class="progress" id="videoProgress"><div class="progress-bar" id="videoProgressBar"></div></div>
+          <div class="video-batch-list" id="videoBatchList" style="display:none;"></div>
           <div class="status-text" id="videoStatusText"></div>
-        </div>
-        <div class="card">
-          <h2>이 폴더의 영상 (<span id="videoTotal">0</span>개)</h2>
-          <table>
-            <thead><tr><th>제목</th><th>상태</th><th>등록일</th><th>영상 링크</th><th>관리</th></tr></thead>
-            <tbody id="videoList"></tbody>
-          </table>
         </div>
       </section>
 
