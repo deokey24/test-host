@@ -458,6 +458,12 @@ async function hydrateClassDetail() {
 function wireVodCoursePayment(vodCourseId, buttonId = 'cdBuyBtn') {
   const buyBtn = document.getElementById(buttonId);
   if (!buyBtn) return;
+  // 페이지 로드 직후(비동기 fetch로 courseId를 확정하기 전) 버튼이 눌려도
+  // 리스너가 아직 없어 "눌러도 반응 없음"으로 보이는 구간을 없애기 위해
+  // 마크업에서 비활성 표시(aria-disabled+pointer-events:none)해두고 여기서 해제한다.
+  buyBtn.removeAttribute('aria-disabled');
+  buyBtn.style.opacity = '';
+  buyBtn.style.pointerEvents = '';
   buyBtn.addEventListener('click', async (e) => {
     e.preventDefault();
     const trigger = document.getElementById('loginTrigger');
