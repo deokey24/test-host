@@ -1,3 +1,6 @@
+// Cloudflare가 이 파일에 브라우저 캐시 TTL을 길게(수 시간) 붙이므로, 이 파일이나 auth.js를
+// 고치고 배포할 때는 모든 페이지의 <script src="site-content.js?v=...">/auth.js?v=... 쿼리스트링을
+// 함께 올려야 실기기에 반영된다 (안 올리면 사용자 브라우저가 캐시된 이전 버전을 계속 씀).
 function resolveCmsPath(data, path) {
   return path.split('.').reduce((acc, key) => (acc === undefined || acc === null) ? undefined : acc[key], data);
 }
