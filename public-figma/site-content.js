@@ -6,6 +6,27 @@ function escapeCmsHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// ── 최근에 둘러본 VOD 강좌 (localStorage) — vodDetail.html에서 기록, vod.html 사이드바에서 표시 ──
+const RECENT_VOD_COURSES_KEY = 'dockRecentlyViewedVodCourses';
+const RECENT_VOD_COURSES_MAX = 6;
+
+function getRecentVodCourses() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(RECENT_VOD_COURSES_KEY) || '[]');
+    return Array.isArray(raw) ? raw : [];
+  } catch {
+    return [];
+  }
+}
+
+function recordRecentVodCourse(course) {
+  if (!course || !course.id) return;
+  const entry = { id: course.id, title: course.title || '', thumbnail_url: course.thumbnail_url || '' };
+  const rest = getRecentVodCourses().filter(c => String(c.id) !== String(course.id));
+  const next = [entry, ...rest].slice(0, RECENT_VOD_COURSES_MAX);
+  try { localStorage.setItem(RECENT_VOD_COURSES_KEY, JSON.stringify(next)); } catch { /* 저장 공간 부족 등은 무시 */ }
+}
+
 // HLS(.m3u8)와 레거시 mp4를 모두 지원하는 공용 재생 헬퍼.
 // hls.js는 <video>에 직접 attachMedia하므로 HLS일 때는 video.load()를 호출하면 안 된다
 // (붙인 MediaSource 스트림이 끊김).
@@ -431,29 +452,11 @@ async function hydrateClassDetail() {
   const newPriceEl = document.getElementById('cdNewPrice'); if (newPriceEl) newPriceEl.textContent = course.new_price || '';
 
   wireVodCoursePayment(courseId);
-  showPaymentResultNotice();
 }
 
-// ── PayUp 표준결제 (VOD 강좌 구매, classDetail.html 전용) ──
-function showPaymentResultNotice() {
-  const notice = document.getElementById('cdPaymentNotice');
-  if (!notice) return;
-  const result = new URLSearchParams(location.search).get('payment');
-  if (result !== 'success' && result !== 'fail') return;
-  notice.style.display = '';
-  if (result === 'success') {
-    notice.style.background = '#eaf7ee';
-    notice.style.color = '#1a7d3a';
-    notice.textContent = '결제가 완료되었습니다. 마이페이지에서 강좌를 확인해주세요.';
-  } else {
-    notice.style.background = '#fdecec';
-    notice.style.color = '#c62828';
-    notice.textContent = '결제에 실패했습니다. 다시 시도해주세요.';
-  }
-}
-
-function wireVodCoursePayment(vodCourseId) {
-  const buyBtn = document.getElementById('cdBuyBtn');
+// ── PayUp 표준결제 (VOD 강좌 구매) — classDetail.html(#cdBuyBtn)/vodDetail.html(#pcBuyBtn) 공용, 결제 완료/실패 결과는 paymentComplete.html에서 보여준다 ──
+function wireVodCoursePayment(vodCourseId, buttonId = 'cdBuyBtn') {
+  const buyBtn = document.getElementById(buttonId);
   if (!buyBtn) return;
   buyBtn.addEventListener('click', async (e) => {
     e.preventDefault();
@@ -489,8 +492,10 @@ function payupPaymentSubmit(payForm) {
 
 // 결제창을 닫았을 때(결제 취소) 호출되는 콜백 — 함수명 고정(변경 금지).
 function payupPaymentClose() {
-  const buyBtn = document.getElementById('cdBuyBtn');
-  if (buyBtn) buyBtn.style.pointerEvents = '';
+  ['cdBuyBtn', 'pcBuyBtn'].forEach(id => {
+    const buyBtn = document.getElementById(id);
+    if (buyBtn) buyBtn.style.pointerEvents = '';
+  });
 }
 
 // ── 강의 플레이어(lecturePlayer.html) — ?id=강좌ID&lecture=강의번호 ──

@@ -21,32 +21,44 @@ VOD 강좌 구매에 [PayUp(페이업)](https://developers.payup.co.kr) 표준�
    ┌────┴─────────────────────────────┐
    │ PC                                │ 모바일
    ▼                                   ▼
-SDK가 PayupPaymentStandardForm      인증 완료 후 브라우저가
-자동생성 + transactionId 삽입        returnUrl로 이동 (쿼리스트링에
-   │ payupPaymentSubmit(form) 콜백     transactionId/orderNumber/amount)
-   │ → form.action='/api/payments/approve'
-   │ → form.submit() (풀 페이지 이동)      │ fetch POST /api/payments/approve-mobile
-   ▼                                   ▼
-[server] settlePayment() 공용 로직: payup.approvePayment() 호출(accessToken 자동
+SDK가 PayupPaymentStandardForm      카드사 인증 완료 후 브라우저가
+자동생성 + transactionId 삽입        returnUrl로 "직접 POST"로 도착
+   │ payupPaymentSubmit(form) 콜백     (실기기 테스트로 확인됨 — GET 아님)
+   │ → form.action='/api/payments/approve'   │ POST /payupReturn.html
+   │ → form.submit() (풀 페이지 이동)         │ (body 또는 querystring에
+   ▼                                          │  transactionId/orderNumber/amount)
+[server] settlePayment() 공용 로직: payup.approvePayment() 호출(accessToken 자동   ▼
 발급/캐싱) → 성공 시 payments.status='approved' + enrollMemberInVod(member, course,
 'payment') 등록 → 실패 시 status='failed'
    │                                   │
    ▼                                   ▼
-redirect: classDetail.html?id=X    JSON { ok, redirect } →
-&payment=success|fail              클라이언트가 redirect로 이동
+       302 redirect: paymentComplete.html?payment=success|fail&orderNumber=..&courseId=..&itemName=..&amount=..
 ```
+
+성공/실패 결과는 `classDetail.html`로 되돌리는 대신 전용 페이지 `paymentComplete.html`에서 보여준다. 표시에
+필요한 값(주문번호/강좌명/금액)은 페이지가 별도 API를 호출하지 않도록 리다이렉트 쿼리스트링에 그대로 실어
+보낸다(`server.js`의 `paymentCompleteRedirect()`).
+
+모바일 경로는 카드사 인증 페이지(타 도메인)에서 넘어오는 크로스사이트 top-level POST라 세션 쿠키가 전달되지
+않을 수 있다. 그래서 `/payupReturn.html` POST 핸들러는 `req.session`이 아니라 `orderNumber`로 조회한
+`payments.member_id`를 신뢰 기준으로 쓴다(PC 쪽 `/api/payments/approve`는 그대로 세션을 쓴다 — 같은
+출처의 폼 제출이라 문제 없음). `public-figma/payupReturn.html` 정적 페이지(+ `/api/payments/approve-mobile`
+JSON 라우트)는 혹시 GET+쿼리스트링으로 오는 환경이 있을 경우를 대비한 fallback으로 남겨뒀다.
 
 ## 파일 위치
 
 | 역할 | 파일 |
 |---|---|
 | accessToken 발급/캐싱, 결제 승인/취소 API 호출 | `lib/payup.js` |
-| 결제 라우트 3개 (`init`/`approve`/`approve-mobile`), `settlePayment()` 공용 로직, `parseKoreanWonPrice`/`makeOrderNumber` | `server.js` — `enrollMemberInVod` 함수 바로 아래 |
-| 결제 버튼(`#cdBuyBtn`), SDK 스크립트 태그, 결과 배너(`#cdPaymentNotice`) | `public-figma/classDetail.html` |
+| 결제 라우트 3개 (`init`/`approve`/`approve-mobile`), `settlePayment()`/`paymentCompleteRedirect()` 공용 로직, `parseKoreanWonPrice`/`makeOrderNumber` | `server.js` — `enrollMemberInVod` 함수 바로 아래 |
+| 결제 버튼(`#cdBuyBtn`), SDK 스크립트 태그 | `public-figma/classDetail.html` |
+| 결제 결과 페이지 (성공/실패 공용, 쿼리스트링으로 주문정보 표시) | `public-figma/paymentComplete.html` |
 | 버튼 클릭 → `/api/payments/init` → `goPayupPay()`, `payupPaymentSubmit`/`payupPaymentClose` 콜백(SDK가 부르는 함수명 고정, 변경 금지) | `public-figma/site-content.js` — `wireVodCoursePayment`, `payupPaymentSubmit`, `payupPaymentClose` |
-| 모바일 `returnUrl` 착지 페이지 (쿼리스트링 파싱 → approve-mobile 호출 → redirect) | `public-figma/payupReturn.html` |
+| 모바일 `returnUrl` 착지 — **실제로는 카드사 인증 페이지가 이 URL로 직접 POST** (정적 파일이 아니라 서버 라우트가 처리) | `server.js` — `app.post('/payupReturn.html', ...)` |
+| 모바일 착지 페이지(정적 파일, GET 쿼리스트링으로 오는 경우를 대비한 fallback — 실기기 테스트로 확인된 주 경로는 POST) | `public-figma/payupReturn.html` |
 | DB 테이블 정의 | `infra/schema.sql` — `payments` 테이블 |
 | 테스트 결제 취소용 CLI | `scripts/cancel-payment.js` |
+| 관리자 결제 관리 화면(조회/취소/부분취소/수동승인) | `admin/index.html`(`#paymentSection`) + `admin/payments.js` + `server.js`의 `/admin/api/payments*` 라우트 |
 
 ## `payments` 테이블
 
@@ -80,11 +92,19 @@ PAYUP_API_KEY=...
 1. 로컬 서버 실행 (`npm start` — 포트 3000이 다른 프로젝트와 충돌하면 `PORT=3001 npm start`로 실행. 현재 로컬 개발 시 **3001번 포트**를 쓰고 있다).
 2. `/classDetail.html?id=15` — 결제 연동 테스트용으로 만들어둔 100원짜리 더미 강의(`[결제테스트] 삭제예정`). 테스트 끝나면 `DELETE FROM vod_courses WHERE id = 15;`로 정리.
 3. 테스트 계정 `payuptest1@example.com` / `Test1234!` (일반 로그인 폼이 `type="email"` 검증을 하기 때문에, signup API의 아이디 형식 제약(영문자+숫자만)을 우회해 DB에 직접 만든 계정 — signup API로는 이메일 형식 아이디를 만들 수 없음). 테스트 끝나면 `DELETE FROM members WHERE username = 'payuptest1@example.com';`.
-4. "결제하기" 클릭 → 실제 카드로 소액 결제 → `payment=success` 배너 확인.
+4. "결제하기" 클릭 → 실제 카드로 소액 결제 → `paymentComplete.html?payment=success`로 이동해 결과 확인.
 5. 결제 취소(환불): `node --env-file-if-exists=.env scripts/cancel-payment.js <orderNumber> "사유"` — `payments.status='approved'`인 건만 취소 가능, 취소 후 `status='canceled'`로 갱신.
+
+## 관리자 결제 관리 (`admin/index.html` "결제 관리")
+
+- **목록/검색**: `GET /admin/api/payments` — 주문번호/거래번호/회원명/강좌명 검색, 상태 필터. `admin/payments.js`가 렌더링.
+- **전액취소**: `POST /admin/api/payments/:id/cancel` — `payup.cancelPayment()` 호출 성공 시에만 `status='canceled'`로 갱신.
+- **부분취소**: `POST /admin/api/payments/:id/partial-cancel` — `payup.partialCancelPayment()`(`/api/v1/partCancel`) 호출. VOD는 단건 상품이라 부분취소해도 `status`는 `approved`로 유지하고(강좌 접근권 유지) `response_msg`에 취소 이력만 남긴다.
+- **수동승인**: `POST /admin/api/payments/:id/manual-approve` — PayUp에는 거래 조회(inquiry) API가 없어서, 브라우저 라운드트립이 중간에 끊겨 `pending`으로 멈춘 결제를 서버가 스스로 재확인할 방법이 없다. 관리자가 PayUp 가맹점 콘솔(`cp.payup.co.kr`)에서 실제 승인 여부를 확인한 뒤 수동으로 `approved` 처리 + `enrollMemberInVod()` 실행하는 예외 경로. `admin/payments.js`는 생성된 지 30분 넘게 `pending`인 건을 화면에서 빨간색으로 강조해 이 케이스를 발견하기 쉽게 한다(자동 탐지가 아니라 관리자가 눈으로 확인하는 방식 — 이게 현재로선 유일한 수단).
+- 어떤 경로로도 결제 취소가 `member_vod_enrollments`를 자동으로 제거하지는 않는다(`scripts/cancel-payment.js`와 동일한 기존 동작 유지) — 환불 시 수강 접근을 바로 끊을지는 별도 정책 결정이 필요하다.
 
 ## 알려진 가정/한계
 
-- **모바일 `returnUrl` 전달 방식**: 공식 문서에 정확한 전달 방식(쿼리스트링 vs POST 등) 명시가 없어서, 쿼리스트링(`?transactionId=&orderNumber=&amount=`)으로 온다고 가정하고 `payupReturn.html`을 만들었다. 실제 모바일 결제 테스트해보고 다르면 그 파일만 고치면 됨.
-- **결제 취소/부분취소 API**(`/api/v1/cancel`, `/api/v1/partCancel`)는 `lib/payup.js`에 `cancelPayment()`만 구현했고, 서비스용 라우트(관리자 웹 UI에서 취소)는 아직 없음 — 지금은 `scripts/cancel-payment.js` CLI로만 가능.
+- **모바일 `returnUrl` 전달 방식**: 필드명(`transactionId`/`orderNumber`/`amount`)은 PayUp 공식 문서와 일치하지만, 정확히 GET 쿼리스트링인지 POST body인지는 문서에 명시가 없다. 2026-07-28 실기기 테스트에서 POST로 도착하는 것을 확인해서 `server.js`에 `app.post('/payupReturn.html', ...)`를 추가했고, `req.body`와 `req.query`를 모두 확인하도록 방어적으로 짰다.
+- **PayUp에 거래 조회(inquiry) API가 없다**: 공식 문서(`api.html`)에 토큰발행/재발행/결제승인/전액취소/부분취소 5개 엔드포인트만 있고, 상태 조회 API가 없다. 즉 브라우저가 승인 라운드트립을 완주하지 못하면(카드 승인은 났는데 우리 서버가 응답을 못 받는 경우) 자동으로 재확인할 방법이 없고, 관리자 콘솔 확인 + 수동승인이 유일한 복구 수단이다.
 - 구매 진입점이 `classDetail.html` 하나뿐. `vodDetail.html`은 아직 실제 강좌 id에 연동되지 않은 정적 목업이라 결제 버튼을 붙이지 않았다.

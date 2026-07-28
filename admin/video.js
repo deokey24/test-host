@@ -166,6 +166,7 @@ async function loadFolders() {
 async function loadVideos() {
   const qs = currentFolderId ? `?folderId=${encodeURIComponent(currentFolderId)}` : '';
   const videos = await apiFetch(`/admin/api/videos${qs}`);
+  videos.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
   videoCache = videos;
   document.getElementById('videoTotal').textContent = videos.length;
   document.getElementById('videoList').innerHTML = videos.map(v => `

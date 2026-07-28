@@ -1245,15 +1245,29 @@ app.post('/api/payments/init', requireMember, wrapAsync(async (req, res) => {
   });
 }));
 
+// 결제 성공/실패 결과를 보여주는 paymentComplete.html로 가는 링크. 주문 정보를 페이지 자체 API 호출 없이
+// 그려낼 수 있도록 표시에 필요한 값을 쿼리스트링에 그대로 실어 보낸다(courseId는 항상 숫자라 그대로 써도 안전).
+function paymentCompleteRedirect(payment, ok, reason) {
+  const params = new URLSearchParams({
+    payment: ok ? 'success' : 'fail',
+    orderNumber: payment.order_number,
+    courseId: String(payment.vod_course_id),
+    itemName: payment.item_name,
+    amount: String(payment.amount)
+  });
+  if (reason) params.set('reason', reason);
+  return `paymentComplete.html?${params.toString()}`;
+}
+
 async function settlePayment({ orderNumber, transactionId, amount, memberId }) {
   const [[payment]] = await getPool().query('SELECT * FROM payments WHERE order_number = ?', [orderNumber]);
   if (!payment) return { ok: false, redirect: 'vod.html', reason: '주문 정보를 찾을 수 없습니다.' };
   if (payment.member_id !== memberId) return { ok: false, redirect: 'vod.html', reason: '본인 주문이 아닙니다.' };
   if (payment.status === 'approved') {
-    return { ok: true, redirect: `classDetail.html?id=${payment.vod_course_id}&payment=success` };
+    return { ok: true, redirect: paymentCompleteRedirect(payment, true) };
   }
   if (String(payment.amount) !== String(amount)) {
-    return { ok: false, redirect: `classDetail.html?id=${payment.vod_course_id}&payment=fail`, reason: '결제 금액이 일치하지 않습니다.' };
+    return { ok: false, redirect: paymentCompleteRedirect(payment, false, '결제 금액이 일치하지 않습니다.') };
   }
 
   const result = await payup.approvePayment({ transactionId, orderNumber, amount: payment.amount });
@@ -1266,7 +1280,7 @@ async function settlePayment({ orderNumber, transactionId, amount, memberId }) {
       [transactionId, data.responseCode || null, data.responseMsg || null, orderNumber]
     );
     await enrollMemberInVod(memberId, payment.vod_course_id, 'payment');
-    return { ok: true, redirect: `classDetail.html?id=${payment.vod_course_id}&payment=success` };
+    return { ok: true, redirect: paymentCompleteRedirect(payment, true) };
   }
 
   await getPool().query(
@@ -1274,7 +1288,8 @@ async function settlePayment({ orderNumber, transactionId, amount, memberId }) {
      WHERE order_number = ?`,
     [transactionId || null, data.responseCode || result.raw?.messageCode || null, data.responseMsg || result.raw?.message || null, orderNumber]
   );
-  return { ok: false, redirect: `classDetail.html?id=${payment.vod_course_id}&payment=fail`, reason: data.responseMsg || result.raw?.message };
+  const reason = data.responseMsg || result.raw?.message;
+  return { ok: false, redirect: paymentCompleteRedirect(payment, false, reason), reason };
 }
 
 // PC 표준결제창 SDK가 만든 PayupPaymentStandardForm이 그대로 POST하는 승인 요청 URL.
@@ -1292,6 +1307,115 @@ app.post('/api/payments/approve-mobile', requireMember, wrapAsync(async (req, re
   if (!orderNumber || !transactionId || !amount) { res.status(400).json({ ok: false, redirect: 'vod.html' }); return; }
   const result = await settlePayment({ orderNumber, transactionId, amount, memberId: req.session.memberId });
   res.json(result);
+}));
+
+// 실기기 테스트 결과 카드사 인증 완료 후 브라우저가 returnUrl(payupReturn.html)로 "직접 POST"로 도착하는 것으로
+// 확인됨 (GET+쿼리스트링이 아님) — public-figma는 정적 서빙이라 GET만 받으므로 이 라우트가 없으면 Express가
+// "Cannot POST /payupReturn.html"을 반환한다. 카드사 인증 페이지(타 도메인)에서 넘어오는 크로스사이트 top-level
+// POST라 세션 쿠키가 SameSite 정책으로 전달되지 않을 수 있어(payupReturn.html 자체도 이 요청으로는 로드되지
+// 않고 서버가 바로 302 리다이렉트로 응답), req.session이 아니라 init 시점에 이미 기록해둔
+// payments.member_id로 주문 소유자를 확인한다 — 결제 승인 자체는 어차피 PayUp에 실제 transactionId를
+// 대조해야 통과되므로 세션 검증 없이도 위변조 방어는 유지된다.
+app.post('/payupReturn.html', wrapAsync(async (req, res) => {
+  const orderNumber = req.body.orderNumber || req.query.orderNumber;
+  const transactionId = req.body.transactionId || req.query.transactionId;
+  const amount = req.body.amount || req.query.amount;
+  if (!orderNumber || !transactionId || !amount) { res.redirect('/vod.html'); return; }
+
+  const [[payment]] = await getPool().query('SELECT member_id FROM payments WHERE order_number = ?', [orderNumber]);
+  if (!payment) { res.redirect('/vod.html'); return; }
+
+  const result = await settlePayment({ orderNumber, transactionId, amount, memberId: payment.member_id });
+  res.redirect('/' + result.redirect);
+}));
+
+// ── 관리자 결제 관리 (payments 테이블 조회/취소/부분취소/수동승인) ──
+app.get('/admin/api/payments', requireAdminApi, wrapAsync(async (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const pageSize = Math.min(200, Math.max(1, parseInt(req.query.pageSize, 10) || 30));
+  const offset = (page - 1) * pageSize;
+  const status = (req.query.status || '').trim();
+  const search = (req.query.search || '').trim();
+
+  const conditions = [];
+  const params = [];
+  if (status) { conditions.push('p.status = ?'); params.push(status); }
+  if (search) {
+    conditions.push('(p.order_number LIKE ? OR p.transaction_id LIKE ? OR m.name LIKE ? OR m.username LIKE ? OR p.item_name LIKE ?)');
+    params.push(...Array(5).fill(`%${search}%`));
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const [[{ total }]] = await getPool().query(
+    `SELECT COUNT(*) AS total FROM payments p JOIN members m ON m.id = p.member_id ${where}`,
+    params
+  );
+  const [rows] = await getPool().query(
+    `SELECT p.id, p.order_number, p.item_name, p.amount, p.status, p.transaction_id,
+            p.response_code, p.response_msg, p.created_at, p.approved_at, p.canceled_at,
+            m.name AS member_name, m.username AS member_username
+     FROM payments p JOIN members m ON m.id = p.member_id
+     ${where}
+     ORDER BY p.created_at DESC
+     LIMIT ? OFFSET ?`,
+    [...params, pageSize, offset]
+  );
+  res.json({ total, page, pageSize, rows });
+}));
+
+// 전액 취소 — PayUp 취소 API 호출 성공 시에만 DB를 canceled로 갱신한다.
+app.post('/admin/api/payments/:id/cancel', requireAdminApi, wrapAsync(async (req, res) => {
+  const { reason } = req.body;
+  const [[payment]] = await getPool().query('SELECT * FROM payments WHERE id = ?', [req.params.id]);
+  if (!payment) { res.status(404).json({ error: '결제 내역을 찾을 수 없습니다.' }); return; }
+  if (payment.status !== 'approved') { res.status(400).json({ error: 'approved 상태의 결제만 취소할 수 있습니다.' }); return; }
+
+  const result = await payup.cancelPayment({ transactionId: payment.transaction_id, cancelReason: reason || '관리자 취소' });
+  if (!result.ok) { res.status(400).json({ error: result.raw?.message || '결제 취소에 실패했습니다.' }); return; }
+
+  await getPool().query(`UPDATE payments SET status = 'canceled', canceled_at = NOW() WHERE id = ?`, [req.params.id]);
+  res.json({ ok: true });
+}));
+
+// 부분 취소 — VOD 단건 상품이라 강좌 접근권은 유지한 채 일부 금액만 환불할 때 사용(상태는 approved로 유지).
+app.post('/admin/api/payments/:id/partial-cancel', requireAdminApi, wrapAsync(async (req, res) => {
+  const { cancelAmount, reason } = req.body;
+  const amount = parseInt(cancelAmount, 10);
+  if (!amount || amount <= 0) { res.status(400).json({ error: '취소 금액을 확인해주세요.' }); return; }
+
+  const [[payment]] = await getPool().query('SELECT * FROM payments WHERE id = ?', [req.params.id]);
+  if (!payment) { res.status(404).json({ error: '결제 내역을 찾을 수 없습니다.' }); return; }
+  if (payment.status !== 'approved') { res.status(400).json({ error: 'approved 상태의 결제만 부분취소할 수 있습니다.' }); return; }
+
+  const result = await payup.partialCancelPayment({
+    transactionId: payment.transaction_id, cancelAmount: amount, cancelReason: reason || '관리자 부분취소'
+  });
+  if (!result.ok) { res.status(400).json({ error: result.raw?.message || '부분취소에 실패했습니다.' }); return; }
+
+  const data = result.raw?.data || {};
+  await getPool().query(
+    `UPDATE payments SET response_msg = ? WHERE id = ?`,
+    [`부분취소 ${data.cancelAmount || amount}원 (${reason || '관리자 부분취소'})`, req.params.id]
+  );
+  res.json({ ok: true });
+}));
+
+// 수동승인 — PayUp에 거래 조회 API가 없어서(문서에 미제공) 브라우저 라운드트립이 끊겨 pending으로 멈춘 건을
+// 자동으로 재확인할 방법이 없다. 관리자가 PayUp 가맹점 콘솔(cp.payup.co.kr)에서 실제 승인 여부를 눈으로 확인한
+// 뒤 수동으로 승인 처리하는 예외 경로 — transactionId/사유를 response_msg에 남겨 회계 추적이 되게 한다.
+app.post('/admin/api/payments/:id/manual-approve', requireAdminApi, wrapAsync(async (req, res) => {
+  const { transactionId, note } = req.body;
+  const [[payment]] = await getPool().query('SELECT * FROM payments WHERE id = ?', [req.params.id]);
+  if (!payment) { res.status(404).json({ error: '결제 내역을 찾을 수 없습니다.' }); return; }
+  if (payment.status === 'approved') { res.status(400).json({ error: '이미 승인된 결제입니다.' }); return; }
+
+  await getPool().query(
+    `UPDATE payments SET status = 'approved', transaction_id = COALESCE(?, transaction_id),
+     response_msg = ?, approved_at = NOW() WHERE id = ?`,
+    [transactionId || null, `관리자 수동승인${note ? `: ${note}` : ''}`, req.params.id]
+  );
+  await enrollMemberInVod(payment.member_id, payment.vod_course_id, 'payment');
+  res.json({ ok: true });
 }));
 
 app.get('/admin/api/members/:id/vod-enrollments', requireAdminApi, wrapAsync(async (req, res) => {
@@ -1887,7 +2011,7 @@ app.delete('/api/members/devices/:id', requireMember, wrapAsync(async (req, res)
 // ══════════════════════════════════════════════════════════════════
 
 const ALLOWED_UPLOAD_SCOPES = [
-  'home-hero', 'home-online-class', 'home-why', 'vod-course', 'cert-gallery', 'notice'
+  'home-hero', 'home-online-class', 'home-why', 'vod-course', 'cert-gallery', 'notice', 'instructor', 'popup'
 ];
 
 app.post('/admin/api/site/upload/presign', requireAdminApi, wrapAsync(async (req, res) => {
@@ -1941,28 +2065,26 @@ app.put('/admin/api/site/:page/:section', requireAdminApi, wrapAsync(async (req,
 
 // ── vod_courses: VOD 강좌 상품 (vod.html/curriculum.html/홈 미리보기 공용 소스) ──
 const VOD_COURSE_FIELDS = [
-  'tag', 'category_label', 'title', 'description', 'meta_text', 'is_best',
-  'color_variant', 'old_price', 'new_price', 'thumbnail_url', 'sort_order', 'is_active',
-  'completion_criteria', 'total_duration_text', 'difficulty', 'difficulty_visible',
+  'category_label', 'title', 'description', 'tags_text',
+  'old_price', 'new_price', 'thumbnail_url', 'is_active',
+  'total_duration_text', 'difficulty', 'difficulty_visible', 'has_feedback', 'instructor_id',
   'intro_heading', 'intro_paragraph', 'recommended_heading'
 ];
 
 function validateVodCourseBody(body) {
   if (!body.title || !String(body.title).trim()) return 'title은 필수 항목입니다.';
   if (!body.new_price || !String(body.new_price).trim()) return 'new_price는 필수 항목입니다.';
-  if (body.color_variant && !['default', 'green'].includes(body.color_variant)) {
-    return 'color_variant는 default, green 중 하나여야 합니다.';
+  if (body.has_feedback && !['제공', '미제공'].includes(body.has_feedback)) {
+    return 'has_feedback는 제공, 미제공 중 하나여야 합니다.';
   }
   return null;
 }
 
 function vodCourseValues(body) {
   return VOD_COURSE_FIELDS.map(field => {
-    if (field === 'sort_order') return parseInt(body.sort_order, 10) || 0;
-    if (field === 'is_best') return body.is_best ? 1 : 0;
     if (field === 'is_active') return body.is_active === false || body.is_active === 0 || body.is_active === '0' ? 0 : 1;
     if (field === 'difficulty_visible') return body.difficulty_visible === false || body.difficulty_visible === 0 || body.difficulty_visible === '0' ? 0 : 1;
-    if (field === 'color_variant') return body.color_variant || 'default';
+    if (field === 'instructor_id') return body.instructor_id ? parseInt(body.instructor_id, 10) || null : null;
     if (field === 'intro_heading') return body.intro_heading && String(body.intro_heading).trim() ? String(body.intro_heading).trim() : '클래스에서 배울 수 있는 내용이에요';
     if (field === 'recommended_heading') return body.recommended_heading && String(body.recommended_heading).trim() ? String(body.recommended_heading).trim() : '이런 분들께 추천해요';
     const value = body[field];
@@ -1970,47 +2092,110 @@ function vodCourseValues(body) {
   });
 }
 
+// "총 학습시간" 자동 계산 — 워커가 트랜스코딩 완료 시 채우는 lecture_videos.duration_seconds를
+// vod_course_lectures.video_r2_key로 조인해 강좌 단위로 합산한다. 영상이 없거나 아직 처리 중인
+// 강의는 duration_seconds가 NULL이라 자연히 합산에서 빠진다(부분 합계로라도 표시됨).
+async function computeVodCourseDurationSeconds(courseIds) {
+  if (!courseIds.length) return {};
+  const [rows] = await getPool().query(
+    `SELECT l.vod_course_id AS courseId, SUM(v.duration_seconds) AS totalSeconds
+     FROM vod_course_lectures l
+     JOIN lecture_videos v ON v.final_r2_key = l.video_r2_key
+     WHERE l.vod_course_id IN (?) AND v.duration_seconds IS NOT NULL
+     GROUP BY l.vod_course_id`,
+    [courseIds]
+  );
+  const map = {};
+  rows.forEach(r => { map[r.courseId] = r.totalSeconds; });
+  return map;
+}
+
+function formatDurationSeconds(totalSeconds) {
+  if (!totalSeconds) return null;
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.round((totalSeconds % 3600) / 60);
+  if (hours > 0 && minutes > 0) return `${hours}시간 ${minutes}분`;
+  if (hours > 0) return `${hours}시간`;
+  return `${minutes}분`;
+}
+
+async function computeVodCourseLectureCounts(courseIds) {
+  if (!courseIds.length) return {};
+  const [rows] = await getPool().query(
+    `SELECT vod_course_id AS courseId, COUNT(*) AS cnt
+     FROM vod_course_lectures
+     WHERE vod_course_id IN (?)
+     GROUP BY vod_course_id`,
+    [courseIds]
+  );
+  const map = {};
+  rows.forEach(r => { map[r.courseId] = r.cnt; });
+  return map;
+}
+
+async function withComputedTotalDuration(courses) {
+  const courseIds = courses.map(c => c.id);
+  const [durationMap, lectureCountMap] = await Promise.all([
+    computeVodCourseDurationSeconds(courseIds),
+    computeVodCourseLectureCounts(courseIds)
+  ]);
+  return courses.map(c => ({
+    ...c,
+    total_duration_text: formatDurationSeconds(durationMap[c.id]) || c.total_duration_text,
+    lecture_count: lectureCountMap[c.id] || 0
+  }));
+}
+
 app.get('/api/vod-courses', wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
     'SELECT * FROM vod_courses WHERE is_active = 1 ORDER BY sort_order, id'
   );
-  res.json(rows);
+  res.json(await withComputedTotalDuration(rows));
 }));
 
 app.get('/admin/api/vod-courses', requireAdminApi, wrapAsync(async (req, res) => {
   const [rows] = await getPool().query('SELECT * FROM vod_courses ORDER BY sort_order, id');
-  res.json(rows);
+  res.json(await withComputedTotalDuration(rows));
 }));
 
 async function fetchVodCourseIntroParts(courseId) {
-  const [[checklistItems], [tags], [sections]] = await Promise.all([
+  const [[checklistItems], [tags], [sections], [purchaseHighlights]] = await Promise.all([
     getPool().query('SELECT id, content, sort_order FROM vod_course_checklist_items WHERE vod_course_id = ? ORDER BY sort_order, id', [courseId]),
     getPool().query('SELECT id, label, sort_order FROM vod_course_tags WHERE vod_course_id = ? ORDER BY sort_order, id', [courseId]),
-    getPool().query('SELECT id, heading, content, sort_order FROM vod_course_sections WHERE vod_course_id = ? ORDER BY sort_order, id', [courseId])
+    getPool().query('SELECT id, heading, content, sort_order FROM vod_course_sections WHERE vod_course_id = ? ORDER BY sort_order, id', [courseId]),
+    getPool().query('SELECT id, content, sort_order FROM vod_course_purchase_highlights WHERE vod_course_id = ? ORDER BY sort_order, id', [courseId])
   ]);
-  return { checklistItems, tags, sections };
+  return { checklistItems, tags, sections, purchaseHighlights };
 }
 
 app.get('/api/vod-courses/:id', wrapAsync(async (req, res) => {
   const [[course]] = await getPool().query('SELECT * FROM vod_courses WHERE id = ? AND is_active = 1', [req.params.id]);
   if (!course) { res.status(404).json({ error: 'VOD 강좌를 찾을 수 없습니다.' }); return; }
-  const introParts = await fetchVodCourseIntroParts(req.params.id);
-  res.json({ ...course, ...introParts });
+  const [introParts, [courseWithDuration]] = await Promise.all([
+    fetchVodCourseIntroParts(req.params.id),
+    withComputedTotalDuration([course])
+  ]);
+  res.json({ ...courseWithDuration, ...introParts });
 }));
 
 app.get('/admin/api/vod-courses/:id', requireAdminApi, wrapAsync(async (req, res) => {
   const [[course]] = await getPool().query('SELECT * FROM vod_courses WHERE id = ?', [req.params.id]);
   if (!course) { res.status(404).json({ error: 'VOD 강좌를 찾을 수 없습니다.' }); return; }
-  const introParts = await fetchVodCourseIntroParts(req.params.id);
-  res.json({ ...course, ...introParts });
+  const [introParts, [courseWithDuration]] = await Promise.all([
+    fetchVodCourseIntroParts(req.params.id),
+    withComputedTotalDuration([course])
+  ]);
+  res.json({ ...courseWithDuration, ...introParts });
 }));
 
 app.post('/admin/api/vod-courses', requireAdminApi, wrapAsync(async (req, res) => {
   const error = validateVodCourseBody(req.body);
   if (error) { res.status(400).json({ error }); return; }
+  // sort_order 컬럼 기본값(0)에 맡기면 새로 추가할 때마다 전부 0으로 겹쳐서, 항상 현재 최댓값 다음 순번을 붙여 작성순서를 유지한다.
+  const [[{ nextSortOrder }]] = await getPool().query('SELECT COALESCE(MAX(sort_order), 0) + 1 AS nextSortOrder FROM vod_courses');
   const [result] = await getPool().query(
-    `INSERT INTO vod_courses (${VOD_COURSE_FIELDS.join(', ')}) VALUES (${VOD_COURSE_FIELDS.map(() => '?').join(', ')})`,
-    vodCourseValues(req.body)
+    `INSERT INTO vod_courses (${VOD_COURSE_FIELDS.join(', ')}, sort_order) VALUES (${VOD_COURSE_FIELDS.map(() => '?').join(', ')}, ?)`,
+    [...vodCourseValues(req.body), nextSortOrder]
   );
   res.json({ ok: true, id: result.insertId });
 }));
@@ -2044,7 +2229,7 @@ app.get('/api/vod-courses/:id/lectures', wrapAsync(async (req, res) => {
 app.get('/admin/api/vod-courses/:id/lectures', requireAdminApi, wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
     `SELECT l.id, l.lecture_number, l.title, l.video_r2_key, l.sort_order, l.content_markdown,
-            v.id AS video_id, v.title AS video_title
+            v.id AS video_id, v.title AS video_title, v.duration_seconds
      FROM vod_course_lectures l
      LEFT JOIN lecture_videos v ON v.final_r2_key = l.video_r2_key
      WHERE l.vod_course_id = ?
@@ -2200,7 +2385,109 @@ app.delete('/admin/api/vod-courses/:id/lectures/:lectureId/materials/:materialId
   res.json({ ok: true });
 }));
 
+// ── vod_course_questions — VOD 강좌별 Q&A 게시판 (vodDetail.html QnA 탭, FAQ 대체) ──
+function maskQuestionAuthorName(name) {
+  const trimmed = String(name || '').trim();
+  if (!trimmed) return '회원';
+  if (trimmed.length === 1) return trimmed;
+  if (trimmed.length === 2) return trimmed[0] + '○';
+  return trimmed[0] + '○'.repeat(trimmed.length - 2) + trimmed[trimmed.length - 1];
+}
+
+// 비밀글은 작성자 본인(세션 memberId 일치)이 아니면 title/body/answer를 전부 감추고 masked:true만 내려준다.
+// 관리자(강사)는 /admin/api 쪽 별도 라우트로 항상 전체 열람.
+app.get('/api/vod-courses/:id/questions', wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT q.id, q.member_id, q.title, q.body, q.is_secret, q.answer, q.answered_at, q.created_at, m.name AS member_name
+     FROM vod_course_questions q
+     JOIN members m ON m.id = q.member_id
+     WHERE q.vod_course_id = ?
+     ORDER BY q.created_at DESC`,
+    [req.params.id]
+  );
+  const myMemberId = req.session.memberId || null;
+  res.json(rows.map(r => {
+    const isOwner = myMemberId != null && String(myMemberId) === String(r.member_id);
+    const masked = !!r.is_secret && !isOwner;
+    return {
+      id: r.id,
+      isSecret: !!r.is_secret,
+      isOwner,
+      masked,
+      title: masked ? null : r.title,
+      body: masked ? null : r.body,
+      answer: masked ? null : r.answer,
+      answeredAt: masked ? null : r.answered_at,
+      answered: !!r.answered_at,
+      authorName: maskQuestionAuthorName(r.member_name),
+      createdAt: r.created_at
+    };
+  }));
+}));
+
+// 로그인 + 해당 강좌를 실제 수강 중(member_vod_enrollments)인 회원만 질문 작성 가능
+app.post('/api/vod-courses/:id/questions', requireMember, wrapAsync(async (req, res) => {
+  const { title, body, isSecret } = req.body;
+  if (!title || !String(title).trim() || !body || !String(body).trim()) {
+    res.status(400).json({ error: '제목과 내용을 입력해주세요.' });
+    return;
+  }
+  const [[enrollment]] = await getPool().query(
+    'SELECT id FROM member_vod_enrollments WHERE member_id = ? AND vod_course_id = ?',
+    [req.session.memberId, req.params.id]
+  );
+  if (!enrollment) {
+    res.status(403).json({ error: '수강 중인 강좌만 질문을 작성할 수 있습니다.' });
+    return;
+  }
+  const [result] = await getPool().query(
+    'INSERT INTO vod_course_questions (vod_course_id, member_id, title, body, is_secret) VALUES (?, ?, ?, ?, ?)',
+    [req.params.id, req.session.memberId, String(title).trim(), String(body).trim(), isSecret ? 1 : 0]
+  );
+  res.json({ ok: true, id: result.insertId });
+}));
+
+// ── 관리자 Q&A 관리 — 강좌별 목록/답변/삭제, 비밀글도 항상 전체 열람 ──
+app.get('/admin/api/vod-courses/:id/questions', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT q.*, m.name AS member_name
+     FROM vod_course_questions q
+     JOIN members m ON m.id = q.member_id
+     WHERE q.vod_course_id = ?
+     ORDER BY q.created_at DESC`,
+    [req.params.id]
+  );
+  res.json(rows);
+}));
+
+app.put('/admin/api/vod-courses/:id/questions/:qid', requireAdminApi, wrapAsync(async (req, res) => {
+  const { answer } = req.body;
+  if (!answer || !String(answer).trim()) { res.status(400).json({ error: '답변 내용을 입력해주세요.' }); return; }
+  const [result] = await getPool().query(
+    'UPDATE vod_course_questions SET answer = ?, answered_at = NOW() WHERE id = ? AND vod_course_id = ?',
+    [String(answer).trim(), req.params.qid, req.params.id]
+  );
+  if (result.affectedRows === 0) { res.status(404).json({ error: '질문을 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+app.delete('/admin/api/vod-courses/:id/questions/:qid', requireAdminApi, wrapAsync(async (req, res) => {
+  const [result] = await getPool().query(
+    'DELETE FROM vod_course_questions WHERE id = ? AND vod_course_id = ?',
+    [req.params.qid, req.params.id]
+  );
+  if (result.affectedRows === 0) { res.status(404).json({ error: '질문을 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
 // ── vod_categories (notice_categories와 동일 패턴) ──
+app.get('/api/vod-categories', wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    'SELECT id, name, sort_order FROM vod_categories ORDER BY sort_order, id'
+  );
+  res.json(rows);
+}));
+
 app.get('/admin/api/vod-categories', requireAdminApi, wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
     `SELECT c.id, c.name, c.sort_order,
@@ -2335,6 +2622,7 @@ function registerVodCourseSubListRoutes(resourcePath, table, textFields) {
 registerVodCourseSubListRoutes('checklist-items', 'vod_course_checklist_items', ['content']);
 registerVodCourseSubListRoutes('tags', 'vod_course_tags', ['label']);
 registerVodCourseSubListRoutes('sections', 'vod_course_sections', ['heading', 'content']);
+registerVodCourseSubListRoutes('purchase-highlights', 'vod_course_purchase_highlights', ['content']);
 
 // ── cert_gallery_images ──
 app.get('/api/cert-gallery', wrapAsync(async (req, res) => {
@@ -2476,6 +2764,56 @@ app.put('/admin/api/reviews/:id', requireAdminApi, wrapAsync(async (req, res) =>
 app.delete('/admin/api/reviews/:id', requireAdminApi, wrapAsync(async (req, res) => {
   const [result] = await getPool().query('DELETE FROM reviews WHERE id = ?', [req.params.id]);
   if (result.affectedRows === 0) { res.status(404).json({ error: '항목을 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+// ── instructors — 강사 목록 (썸네일/이름/소개, cert_gallery와 동일한 presign→PUT 업로드 패턴) ──
+app.get('/api/instructors', wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    'SELECT id, name, intro, thumbnail_url, sort_order FROM instructors WHERE is_active = 1 ORDER BY sort_order, id'
+  );
+  res.json(rows);
+}));
+
+app.get('/admin/api/instructors', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    'SELECT id, name, intro, thumbnail_url, sort_order, is_active, created_at FROM instructors ORDER BY sort_order, id'
+  );
+  res.json(rows);
+}));
+
+app.post('/admin/api/instructors', requireAdminApi, wrapAsync(async (req, res) => {
+  const { name, intro, thumbnail_url, sort_order } = req.body;
+  if (!name || !String(name).trim()) { res.status(400).json({ error: '강사 이름이 필요합니다.' }); return; }
+  const [result] = await getPool().query(
+    'INSERT INTO instructors (name, intro, thumbnail_url, sort_order) VALUES (?, ?, ?, ?)',
+    [String(name).trim(), intro ? String(intro).trim() : null, thumbnail_url ? String(thumbnail_url).trim() : null, parseInt(sort_order, 10) || 0]
+  );
+  res.json({ ok: true, id: result.insertId });
+}));
+
+app.put('/admin/api/instructors/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const { name, intro, thumbnail_url, sort_order, is_active } = req.body;
+  const fields = [];
+  const values = [];
+  if (name !== undefined) {
+    if (!String(name).trim()) { res.status(400).json({ error: '강사 이름이 필요합니다.' }); return; }
+    fields.push('name = ?'); values.push(String(name).trim());
+  }
+  if (intro !== undefined) { fields.push('intro = ?'); values.push(intro ? String(intro).trim() : null); }
+  if (thumbnail_url !== undefined) { fields.push('thumbnail_url = ?'); values.push(thumbnail_url ? String(thumbnail_url).trim() : null); }
+  if (sort_order !== undefined) { fields.push('sort_order = ?'); values.push(parseInt(sort_order, 10) || 0); }
+  if (is_active !== undefined) { fields.push('is_active = ?'); values.push(is_active ? 1 : 0); }
+  if (fields.length === 0) { res.status(400).json({ error: '변경할 값이 없습니다.' }); return; }
+  values.push(req.params.id);
+  const [result] = await getPool().query(`UPDATE instructors SET ${fields.join(', ')} WHERE id = ?`, values);
+  if (result.affectedRows === 0) { res.status(404).json({ error: '강사를 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+app.delete('/admin/api/instructors/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const [result] = await getPool().query('DELETE FROM instructors WHERE id = ?', [req.params.id]);
+  if (result.affectedRows === 0) { res.status(404).json({ error: '강사를 찾을 수 없습니다.' }); return; }
   res.json({ ok: true });
 }));
 
@@ -2621,6 +2959,85 @@ app.put('/admin/api/notices/:id', requireAdminApi, wrapAsync(async (req, res) =>
 app.delete('/admin/api/notices/:id', requireAdminApi, wrapAsync(async (req, res) => {
   const [result] = await getPool().query('DELETE FROM notices WHERE id = ?', [req.params.id]);
   if (result.affectedRows === 0) { res.status(404).json({ error: '공지를 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+// ── popup_banners (dock-pass 관리자 팝업배너 기능 이식) ──
+const POPUP_POSITIONS = ['top-left', 'top', 'top-right', 'left', 'center', 'right', 'bottom-left', 'bottom', 'bottom-right'];
+
+app.get('/api/popup-banners', wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT id, image_url, link_url, position
+     FROM popup_banners
+     WHERE visible = 1 AND start_date <= CURDATE() AND end_date >= CURDATE()
+     ORDER BY sort_order, id`
+  );
+  res.json(rows);
+}));
+
+app.get('/admin/api/popup-banners', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT id, image_url, link_url, position, DATE_FORMAT(start_date, '%Y-%m-%d') AS start_date,
+            DATE_FORMAT(end_date, '%Y-%m-%d') AS end_date, visible, sort_order
+     FROM popup_banners ORDER BY sort_order, id`
+  );
+  res.json(rows);
+}));
+
+app.post('/admin/api/popup-banners', requireAdminApi, wrapAsync(async (req, res) => {
+  const { image_url, link_url, position, start_date, end_date, visible, sort_order } = req.body;
+  if (!image_url || !String(image_url).trim()) {
+    res.status(400).json({ error: '이미지를 업로드해주세요.' });
+    return;
+  }
+  if (position && !POPUP_POSITIONS.includes(position)) {
+    res.status(400).json({ error: '유효하지 않은 position입니다.' });
+    return;
+  }
+  if (!start_date || !end_date) {
+    res.status(400).json({ error: '노출 시작일/종료일을 입력해주세요.' });
+    return;
+  }
+  if (String(end_date) < String(start_date)) {
+    res.status(400).json({ error: '종료일은 시작일보다 빠를 수 없습니다.' });
+    return;
+  }
+  const [result] = await getPool().query(
+    'INSERT INTO popup_banners (image_url, link_url, position, start_date, end_date, visible, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [String(image_url).trim(), link_url ? String(link_url).trim() : null, position || 'center', start_date, end_date, visible === false ? 0 : 1, parseInt(sort_order, 10) || 0]
+  );
+  res.json({ ok: true, id: result.insertId });
+}));
+
+app.put('/admin/api/popup-banners/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const { image_url, link_url, position, start_date, end_date, visible, sort_order } = req.body;
+  const fields = [];
+  const values = [];
+  if (image_url !== undefined) {
+    if (!String(image_url).trim()) { res.status(400).json({ error: '이미지를 업로드해주세요.' }); return; }
+    fields.push('image_url = ?'); values.push(String(image_url).trim());
+  }
+  if (link_url !== undefined) {
+    fields.push('link_url = ?'); values.push(link_url ? String(link_url).trim() : null);
+  }
+  if (position !== undefined) {
+    if (!POPUP_POSITIONS.includes(position)) { res.status(400).json({ error: '유효하지 않은 position입니다.' }); return; }
+    fields.push('position = ?'); values.push(position);
+  }
+  if (start_date !== undefined) { fields.push('start_date = ?'); values.push(start_date); }
+  if (end_date !== undefined) { fields.push('end_date = ?'); values.push(end_date); }
+  if (visible !== undefined) { fields.push('visible = ?'); values.push(visible ? 1 : 0); }
+  if (sort_order !== undefined) { fields.push('sort_order = ?'); values.push(parseInt(sort_order, 10) || 0); }
+  if (fields.length === 0) { res.status(400).json({ error: '변경할 값이 없습니다.' }); return; }
+  values.push(req.params.id);
+  const [result] = await getPool().query(`UPDATE popup_banners SET ${fields.join(', ')} WHERE id = ?`, values);
+  if (result.affectedRows === 0) { res.status(404).json({ error: '팝업 배너를 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+app.delete('/admin/api/popup-banners/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const [result] = await getPool().query('DELETE FROM popup_banners WHERE id = ?', [req.params.id]);
+  if (result.affectedRows === 0) { res.status(404).json({ error: '팝업 배너를 찾을 수 없습니다.' }); return; }
   res.json({ ok: true });
 }));
 

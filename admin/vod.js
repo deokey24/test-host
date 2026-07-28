@@ -22,6 +22,22 @@ function renderVodCategoryOptions() {
   });
 }
 
+// ── 강사 선택 (instructors 관리 메뉴에 등록된 강사를 VOD 강좌에 연결) ──
+let vodInstructorsCache = [];
+
+async function loadVodInstructorOptions() {
+  const sel = document.getElementById('vfInstructor');
+  try {
+    vodInstructorsCache = await apiFetch('/admin/api/instructors');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">선택 안 함</option>' +
+      vodInstructorsCache.map(i => `<option value="${i.id}">${escapeHtml(i.name)}</option>`).join('');
+    if (current && vodInstructorsCache.some(i => String(i.id) === current)) sel.value = current;
+  } catch {
+    sel.innerHTML = '<option value="">선택 안 함</option>';
+  }
+}
+
 async function loadVodCategories() {
   const rows = await apiFetch('/admin/api/vod-categories');
   vodCategoriesCache = rows;
@@ -105,6 +121,7 @@ let vodLecturesCache = [];
 let vodChecklistCache = [];
 let vodTagsCache = [];
 let vodSectionsCache = [];
+let vodPurchaseHighlightCache = [];
 let vodThumbnailUrl = '';
 
 async function loadVodCourses() {
@@ -190,6 +207,7 @@ function initVodTabs() {
       document.getElementById('vodTabTitle').style.display = tab === 'title' ? '' : 'none';
       document.getElementById('vodTabIntro').style.display = tab === 'intro' ? '' : 'none';
       document.getElementById('vodTabCurriculum').style.display = tab === 'curriculum' ? '' : 'none';
+      document.getElementById('vodTabPurchase').style.display = tab === 'purchase' ? '' : 'none';
       if (tab === 'intro') ensureIntroEditor();
     });
   });
@@ -230,22 +248,19 @@ function renderVodThumbnailPreview() {
 function fillVodForm(course) {
   vodThumbnailUrl = course?.thumbnail_url || '';
   renderVodThumbnailPreview();
-  document.getElementById('vfTag').value = course?.tag || '';
   renderVodCategoryOptions();
   document.getElementById('vfCategoryLabel').value = course?.category_label || '';
+  document.getElementById('vfTags').value = course?.tags_text || '';
+  document.getElementById('vfInstructor').value = course?.instructor_id || '';
   document.getElementById('vfTitle').value = course?.title || '';
   document.getElementById('vfDescription').value = course?.description || '';
-  document.getElementById('vfMetaText').value = course?.meta_text || '';
-  document.getElementById('vfColorVariant').value = course?.color_variant || 'default';
-  document.getElementById('vfCompletionCriteria').value = course?.completion_criteria || '';
   document.getElementById('vfTotalDurationText').value = course?.total_duration_text || '';
   document.getElementById('vfDifficulty').value = course?.difficulty || '';
   document.getElementById('vfDifficultyVisible').checked = course ? !!course.difficulty_visible : true;
+  document.getElementById('vfHasFeedback').value = course?.has_feedback || '';
   document.getElementById('vfHasDiscount').checked = !!course?.old_price;
   document.getElementById('vfOldPrice').value = course?.old_price || '';
   document.getElementById('vfNewPrice').value = course?.new_price || '';
-  document.getElementById('vfSortOrder').value = course?.sort_order ?? 0;
-  document.getElementById('vfIsBest').checked = !!course?.is_best;
   document.getElementById('vfIsActive').checked = course ? !!course.is_active : true;
   toggleDiscountRow('vfHasDiscount', 'vfOldPriceRow', 'vfNewPriceLabel');
 
@@ -275,20 +290,17 @@ function readVodForm() {
   const hasDiscount = document.getElementById('vfHasDiscount').checked;
   return {
     thumbnail_url: vodThumbnailUrl,
-    tag: document.getElementById('vfTag').value.trim(),
     category_label: document.getElementById('vfCategoryLabel').value,
+    tags_text: document.getElementById('vfTags').value.trim(),
     title: document.getElementById('vfTitle').value.trim(),
     description: document.getElementById('vfDescription').value.trim(),
-    meta_text: document.getElementById('vfMetaText').value.trim(),
-    color_variant: document.getElementById('vfColorVariant').value,
-    completion_criteria: document.getElementById('vfCompletionCriteria').value.trim(),
     total_duration_text: document.getElementById('vfTotalDurationText').value.trim(),
     difficulty: document.getElementById('vfDifficulty').value.trim(),
     difficulty_visible: document.getElementById('vfDifficultyVisible').checked,
+    has_feedback: document.getElementById('vfHasFeedback').value,
+    instructor_id: document.getElementById('vfInstructor').value,
     old_price: hasDiscount ? document.getElementById('vfOldPrice').value.trim() : '',
     new_price: document.getElementById('vfNewPrice').value.trim(),
-    sort_order: parseInt(document.getElementById('vfSortOrder').value, 10) || 0,
-    is_best: document.getElementById('vfIsBest').checked,
     is_active: document.getElementById('vfIsActive').checked,
     intro_heading: document.getElementById('vfIntroHeading').value.trim(),
     intro_paragraph: (introEditorInstance ? introEditorInstance.getMarkdown() : introMarkdownCache).trim(),
@@ -309,9 +321,11 @@ async function openEditModal(courseStub) {
   vodChecklistCache = course.checklistItems || [];
   vodTagsCache = course.tags || [];
   vodSectionsCache = course.sections || [];
+  vodPurchaseHighlightCache = course.purchaseHighlights || [];
   renderVodChecklist();
   renderVodTags();
   renderVodSections();
+  renderVodPurchaseHighlights();
   await loadVodLectures();
 }
 
@@ -435,6 +449,69 @@ document.getElementById('vodChecklistList').addEventListener('change', async (e)
     setStatus(document.getElementById('vodChecklistStatus'), '저장되었습니다.', 'ok');
   } catch (err) {
     setStatus(document.getElementById('vodChecklistStatus'), err.message, 'error');
+  }
+});
+
+// ── 커리큘럼 탭: 결제창에 간단한 혜택/구성 안내 (vodDetail.html 결제카드 .pc-list) ──
+function renderVodPurchaseHighlights() {
+  const listEl = document.getElementById('vodPurchaseHighlightList');
+  listEl.innerHTML = vodPurchaseHighlightCache.map(item => `
+    <li class="drag-item" data-id="${item.id}">
+      <span class="drag-handle">☰</span>
+      <div class="drag-item-body">
+        <input type="text" class="vod-purchase-highlight-input" value="${escapeHtml(item.content)}">
+      </div>
+      <button type="button" class="row-btn danger" data-remove-purchase-highlight="${item.id}">삭제</button>
+    </li>
+  `).join('');
+  attachDragReorder(listEl, async (ids) => {
+    await Promise.all(ids.map((id, idx) => apiFetch(`/admin/api/vod-courses/${currentVodId}/purchase-highlights/${id}`, {
+      method: 'PUT', body: JSON.stringify({ sort_order: idx })
+    })));
+    vodPurchaseHighlightCache = ids.map(id => vodPurchaseHighlightCache.find(c => String(c.id) === String(id)));
+  });
+}
+
+document.getElementById('vodPurchaseHighlightAddBtn').addEventListener('click', async () => {
+  const input = document.getElementById('vodPurchaseHighlightNewInput');
+  const content = input.value.trim();
+  if (!content || !currentVodId) return;
+  const status = document.getElementById('vodPurchaseHighlightStatus');
+  try {
+    const result = await apiFetch(`/admin/api/vod-courses/${currentVodId}/purchase-highlights`, {
+      method: 'POST', body: JSON.stringify({ content, sort_order: vodPurchaseHighlightCache.length })
+    });
+    vodPurchaseHighlightCache.push({ id: result.id, content, sort_order: vodPurchaseHighlightCache.length });
+    input.value = '';
+    renderVodPurchaseHighlights();
+    setStatus(status, '추가되었습니다.', 'ok');
+  } catch (err) {
+    setStatus(status, err.message, 'error');
+  }
+});
+
+document.getElementById('vodPurchaseHighlightList').addEventListener('click', async (e) => {
+  const id = e.target.dataset.removePurchaseHighlight;
+  if (!id) return;
+  try {
+    await apiFetch(`/admin/api/vod-courses/${currentVodId}/purchase-highlights/${id}`, { method: 'DELETE' });
+    vodPurchaseHighlightCache = vodPurchaseHighlightCache.filter(c => String(c.id) !== id);
+    renderVodPurchaseHighlights();
+  } catch (err) {
+    setStatus(document.getElementById('vodPurchaseHighlightStatus'), err.message, 'error');
+  }
+});
+
+document.getElementById('vodPurchaseHighlightList').addEventListener('change', async (e) => {
+  if (!e.target.classList.contains('vod-purchase-highlight-input')) return;
+  const id = e.target.closest('.drag-item').dataset.id;
+  try {
+    await apiFetch(`/admin/api/vod-courses/${currentVodId}/purchase-highlights/${id}`, {
+      method: 'PUT', body: JSON.stringify({ content: e.target.value.trim() })
+    });
+    setStatus(document.getElementById('vodPurchaseHighlightStatus'), '저장되었습니다.', 'ok');
+  } catch (err) {
+    setStatus(document.getElementById('vodPurchaseHighlightStatus'), err.message, 'error');
   }
 });
 
@@ -572,9 +649,20 @@ function lectureMaterialsFor(lectureId) {
   return vodMaterialsCache.filter(m => String(m.vod_course_lecture_id) === String(lectureId));
 }
 
+function formatLectureDuration(seconds) {
+  if (!seconds) return '';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  const mm = String(m).padStart(h > 0 ? 2 : 1, '0');
+  const ss = String(s).padStart(2, '0');
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${mm}:${ss}`;
+}
+
 function lectureRowHtml(l) {
   const materials = lectureMaterialsFor(l.id);
   const hasContent = !!(l.content_markdown && l.content_markdown.trim());
+  const durationText = formatLectureDuration(l.duration_seconds);
   return `
     <tr>
       <td>${l.lecture_number}</td>
@@ -584,6 +672,7 @@ function lectureRowHtml(l) {
           <input type="text" class="ss-input" autocomplete="off">
           <div class="ss-dropdown"></div>
         </div>
+        ${durationText ? `<span class="status-text" style="margin-top:4px;">재생시간 ${durationText}</span>` : ''}
       </td>
       <td>
         <div class="material-chip-list" data-material-list="${l.id}">
@@ -674,14 +763,20 @@ async function loadVodLectures() {
   vodLecturesCache = lectures;
   vodMaterialsCache = materials;
   const doneVideos = videos.filter(v => v.status === 'done' && v.final_r2_key);
-  const videoOptions = doneVideos.map(v => {
-    const path = videoFolderPath(v.folder_id, folders);
-    return { id: v.id, label: path ? `${v.title}  [${path}]` : v.title };
-  });
+  const videoOptions = doneVideos
+    .map(v => ({ id: v.id, label: v.title, group: videoFolderPath(v.folder_id, folders) || '루트' }))
+    .sort((a, b) => a.group.localeCompare(b.group, 'ko') || a.label.localeCompare(b.label, 'ko'));
 
+  const videoGroups = new Map();
+  videoOptions.forEach(o => {
+    if (!videoGroups.has(o.group)) videoGroups.set(o.group, []);
+    videoGroups.get(o.group).push(o);
+  });
   const addSelect = document.getElementById('vodLectureVideoSelect');
   addSelect.innerHTML = '<option value="">강의 영상 선택</option>' +
-    videoOptions.map(o => `<option value="${o.id}">${escapeHtml(o.label)}</option>`).join('');
+    [...videoGroups.entries()].map(([group, opts]) =>
+      `<optgroup label="${escapeHtml(group)}">${opts.map(o => `<option value="${o.id}">${escapeHtml(o.label)}</option>`).join('')}</optgroup>`
+    ).join('');
 
   document.getElementById('vodLectureNumberInput').value = lectures.length
     ? String(Math.max(...lectures.map(l => l.lecture_number)) + 1)
@@ -839,5 +934,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initVodCategories();
   initVodTabs();
   loadVodCategories();
+  loadVodInstructorOptions();
   loadVodCourses();
 });

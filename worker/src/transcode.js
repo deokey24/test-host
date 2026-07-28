@@ -65,4 +65,14 @@ function transcode(inputPath, outputDir) {
   });
 }
 
-module.exports = { transcode };
+// master.m3u8는 단일 화질(ABR 없음)이라 미디어 플레이리스트 자체이며, 세그먼트별
+// #EXTINF:<초>, 값을 그대로 합산하면 별도 ffprobe 없이 정확한 총 재생시간을 구할 수 있다.
+function sumHlsDurationSeconds(m3u8Text) {
+  let total = 0;
+  const re = /#EXTINF:([\d.]+)/g;
+  let match;
+  while ((match = re.exec(m3u8Text))) total += parseFloat(match[1]);
+  return Math.round(total);
+}
+
+module.exports = { transcode, sumHlsDurationSeconds };

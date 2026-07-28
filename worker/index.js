@@ -12,7 +12,7 @@ const {
   VISIBILITY_TIMEOUT_SECONDS
 } = require('./lib/sqs');
 const { terminateSelfViaAsg } = require('./lib/asg');
-const { transcode } = require('./src/transcode');
+const { transcode, sumHlsDurationSeconds } = require('./src/transcode');
 
 const CONCURRENCY = Number(process.env.WORKER_CONCURRENCY || 5);
 const TMP_DIR = process.env.WORKER_TMP_DIR || '/mnt/worker-tmp';
@@ -69,11 +69,17 @@ async function processJob(message) {
     await fsp.mkdir(hlsDir, { recursive: true });
     await downloadToFile(rawKey, rawPath);
     const encryptionKey = await transcode(rawPath, hlsDir);
+    const durationSeconds = await fsp.readFile(path.join(hlsDir, 'master.m3u8'), 'utf8')
+      .then(sumHlsDurationSeconds)
+      .catch((err) => {
+        console.error(`[video ${videoId}] 재생시간 계산 실패(무시하고 계속):`, err);
+        return null;
+      });
     await uploadDirectory(hlsPrefix, hlsDir);
 
     await getPool().query(
-      'UPDATE lecture_videos SET status = ?, final_r2_key = ?, hls_key_base64 = ? WHERE id = ?',
-      ['done', finalKey, encryptionKey.toString('base64'), videoId]
+      'UPDATE lecture_videos SET status = ?, final_r2_key = ?, hls_key_base64 = ?, duration_seconds = ? WHERE id = ?',
+      ['done', finalKey, encryptionKey.toString('base64'), durationSeconds, videoId]
     );
     console.log(`[video ${videoId}] 완료: ${finalKey}`);
   } catch (err) {

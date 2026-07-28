@@ -147,8 +147,21 @@ function initSearchableSelect(containerEl, options, { value, placeholder, emptyL
   function renderOptions(filterText) {
     const q = (filterText || '').trim().toLowerCase();
     const filtered = q ? options.filter(o => o.label.toLowerCase().includes(q)) : options;
-    dropdown.innerHTML = `<div class="ss-option ss-option-muted" data-id="">${escapeHtml(emptyLabel || '(연결 안 함)')}</div>` +
-      (filtered.length ? filtered.map(o => `<div class="ss-option" data-id="${escapeHtml(String(o.id))}">${escapeHtml(o.label)}</div>`).join('') : '<div class="ss-option-empty">검색 결과가 없습니다.</div>');
+    let optionsHtml;
+    if (!filtered.length) {
+      optionsHtml = '<div class="ss-option-empty">검색 결과가 없습니다.</div>';
+    } else if (filtered.some(o => o.group)) {
+      // options는 group 기준으로 미리 정렬되어 있다고 가정 — 그룹이 바뀔 때만 헤더를 그린다.
+      let lastGroup;
+      optionsHtml = filtered.map(o => {
+        const header = o.group !== lastGroup ? `<div class="ss-group">${escapeHtml(o.group)}</div>` : '';
+        lastGroup = o.group;
+        return header + `<div class="ss-option" data-id="${escapeHtml(String(o.id))}">${escapeHtml(o.label)}</div>`;
+      }).join('');
+    } else {
+      optionsHtml = filtered.map(o => `<div class="ss-option" data-id="${escapeHtml(String(o.id))}">${escapeHtml(o.label)}</div>`).join('');
+    }
+    dropdown.innerHTML = `<div class="ss-option ss-option-muted" data-id="">${escapeHtml(emptyLabel || '(연결 안 함)')}</div>` + optionsHtml;
     dropdown.classList.add('open');
   }
 

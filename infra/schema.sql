@@ -337,6 +337,22 @@ CREATE TABLE IF NOT EXISTS notices (
 -- 기존에 이미 테이블이 생성된 환경(운영 DB)에서는 CREATE TABLE IF NOT EXISTS가 무시되므로 직접 반영.
 ALTER TABLE notices MODIFY COLUMN category VARCHAR(50) DEFAULT NULL;
 
+-- 팝업 배너 (dock-pass 관리자의 팝업배너 기능 이식 — 홈 진입 시 노출되는 공지/이벤트 이미지)
+-- visible + 날짜 범위(start_date~end_date) 둘 다 만족해야 노출, sort_order로 여러 개 동시 노출 시 순서 결정.
+CREATE TABLE IF NOT EXISTS popup_banners (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  image_url VARCHAR(500) NOT NULL,
+  link_url VARCHAR(500),
+  position ENUM('top-left', 'top', 'top-right', 'left', 'center', 'right', 'bottom-left', 'bottom', 'bottom-right')
+    NOT NULL DEFAULT 'center',
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  visible TINYINT(1) NOT NULL DEFAULT 1,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_popup_banners_visible_dates (visible, start_date, end_date)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- vod_courses/curriculum.html이 CMS 하이드레이션 전환 후 빈 화면으로 뜨지 않도록 기존 하드코딩 6개 강좌를 시드
 INSERT INTO vod_courses
   (tag, category_label, title, description, meta_text, is_best, color_variant, old_price, new_price, sort_order)
@@ -623,6 +639,17 @@ ALTER TABLE vod_courses
   ADD COLUMN IF NOT EXISTS intro_paragraph TEXT DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS recommended_heading VARCHAR(300) DEFAULT '이런 분들께 추천해요';
 
+-- 타이틀영역 개편 (2026-07) — tag/meta_text/color_variant/completion_criteria/sort_order/is_best는
+-- 관리자 화면에서 제거(컬럼 자체는 남겨둠, 항상 기본값 유지). tags_text/has_feedback 신규 추가.
+ALTER TABLE vod_courses
+  ADD COLUMN IF NOT EXISTS tags_text VARCHAR(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS has_feedback ENUM('제공', '미제공') DEFAULT NULL;
+
+-- 강사 선택 연동 (instructors 기능 완성 후 연결, 2026-07)
+ALTER TABLE vod_courses
+  ADD COLUMN IF NOT EXISTS instructor_id BIGINT DEFAULT NULL,
+  ADD CONSTRAINT fk_vod_courses_instructor FOREIGN KEY (instructor_id) REFERENCES instructors(id) ON DELETE SET NULL;
+
 -- ── VOD 강의 수정 페이지 개편 (2026-07) — 커리큘럼 스텝별 자료 첨부 ──
 -- class_chapter_attachments와 동일한 presign→PUT→confirm 업로드 패턴. VOD는 챕터가 아닌
 -- vod_course_lectures 행이 이미 존재하므로 chapter_key 대신 lecture id로 바로 묶는다.
@@ -710,3 +737,48 @@ SELECT * FROM (
     10
 ) AS seed
 WHERE NOT EXISTS (SELECT 1 FROM reviews);
+
+-- ── 강사 (관리자 → 강사 목록) ──
+-- intro는 줄바꿈으로 구분된 소개 항목들 — 관리자 카드/사이트 카드에서 한 줄씩 "· 항목" 형태로 표시.
+-- thumbnail_url은 /uploads/site/instructor/... (R2 site/instructor/ 프리픽스, ALLOWED_UPLOAD_SCOPES의 'instructor' scope)
+CREATE TABLE IF NOT EXISTS instructors (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  intro LONGTEXT,
+  thumbnail_url VARCHAR(500) DEFAULT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- ── VOD 강좌별 Q&A 게시판 (vodDetail.html QnA 탭, FAQ 탭 대체) ──
+-- 비밀글(is_secret)은 애플리케이션 레이어에서 작성자 본인 + 관리자(강사)만 열람 가능하도록 마스킹한다.
+-- 답변은 관리자가 admin Q&A 관리 화면에서 answer/answered_at을 채워넣는 방식 (별도 답변 테이블 없이 1:1).
+-- 강좌별 "총 학습시간" 자동 계산용 — 워커가 HLS 트랜스코딩 완료 시 master.m3u8의
+-- #EXTINF 합계로 채운다 (server.js가 vod_course_lectures.video_r2_key로 조인해 강좌 단위로 합산).
+ALTER TABLE lecture_videos
+  ADD COLUMN IF NOT EXISTS duration_seconds INT DEFAULT NULL;
+
+CREATE TABLE IF NOT EXISTS vod_course_questions (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  vod_course_id BIGINT NOT NULL,
+  member_id BIGINT NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  body TEXT NOT NULL,
+  is_secret TINYINT(1) NOT NULL DEFAULT 0,
+  answer TEXT DEFAULT NULL,
+  answered_at DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_vcq_course FOREIGN KEY (vod_course_id) REFERENCES vod_courses(id) ON DELETE CASCADE,
+  CONSTRAINT fk_vcq_member FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- vodDetail.html 결제카드(.pc-list)에 노출되는 간단한 혜택/구성 안내 항목 — vod_course_checklist_items와 동일한 구조.
+CREATE TABLE IF NOT EXISTS vod_course_purchase_highlights (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  vod_course_id BIGINT NOT NULL,
+  content VARCHAR(500) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_vcph_course FOREIGN KEY (vod_course_id) REFERENCES vod_courses(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

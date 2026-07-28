@@ -24,8 +24,8 @@ function closeLoginModal() {
 function applyLoggedInUI(name) {
   const trigger = document.getElementById('loginTrigger');
   if (trigger) {
-    trigger.textContent = `${name}님`;
     trigger.dataset.loggedIn = 'true';
+    trigger.style.display = 'none';
   }
   const myInfoBtn = document.getElementById('myInfoBtn');
   if (myInfoBtn) myInfoBtn.style.display = '';
@@ -36,6 +36,8 @@ function applyLoggedOutUI() {
   if (trigger) {
     trigger.textContent = '로그인';
     delete trigger.dataset.loggedIn;
+    trigger.classList.add('btn', 'btn--ghost-dark');
+    trigger.style.cssText = '';
   }
   const myInfoBtn = document.getElementById('myInfoBtn');
   if (myInfoBtn) myInfoBtn.style.display = 'none';

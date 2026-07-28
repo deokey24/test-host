@@ -21,11 +21,15 @@
       <button class="side-link" data-target="certSection">합격 인증</button>
       <button class="side-link" data-target="faqSection">FAQ</button>
       <button class="side-link" data-target="reviewsSection">수강후기</button>
+      <button class="side-link" data-target="instructorSection">강사 목록</button>
       <button class="side-link" data-target="noticeSection">공지사항</button>
+      <button class="side-link" data-target="popupSection">팝업배너</button>
+      <button class="side-link" data-target="qnaSection">Q&amp;A 관리</button>
       <button class="side-link" data-target="settingsSection">사이트 설정</button>
       <div class="sidebar-divider"></div>
       <button class="side-link" data-target="videoSection">영상 업로드</button>
       <button class="side-link" data-target="memberSection">회원목록</button>
+      <button class="side-link" data-target="paymentSection">결제 관리</button>
     </nav>
   </aside>
 
@@ -271,17 +275,24 @@
             <button type="button" class="active" data-vod-tab="title">타이틀영역</button>
             <button type="button" data-vod-tab="intro">클래스소개</button>
             <button type="button" data-vod-tab="curriculum">커리큘럼</button>
+            <button type="button" data-vod-tab="purchase">결제창 텍스트</button>
           </div>
 
           <div id="vodTabTitle" class="admin-tab-panel">
             <div class="field-grid">
               <div class="field-row">
-                <label class="field-label">영문 라벨 (예: READING THEORY)</label>
-                <input type="text" id="vfTag">
-              </div>
-              <div class="field-row">
                 <label class="field-label">카테고리</label>
                 <select id="vfCategoryLabel"><option value="">없음</option></select>
+              </div>
+              <div class="field-row">
+                <label class="field-label">태그</label>
+                <input type="text" id="vfTags" placeholder="예: 연고대 논술 대비, 독학 최적화">
+                <p class="field-hint">쉼표(,)로 구분해서 여러 개 입력할 수 있습니다.</p>
+              </div>
+              <div class="field-row">
+                <label class="field-label">강사 선택</label>
+                <select id="vfInstructor"><option value="">선택 안 함</option></select>
+                <p class="field-hint">"강사 목록" 관리 메뉴에 등록된 강사 중에서 선택합니다.</p>
               </div>
               <div class="field-row full">
                 <label class="field-label">썸네일</label>
@@ -306,30 +317,24 @@
                 <textarea id="vfDescription" rows="2"></textarea>
               </div>
               <div class="field-row">
-                <label class="field-label">메타 정보 (예: 12강 · 수강 무제한)</label>
-                <input type="text" id="vfMetaText">
-              </div>
-              <div class="field-row">
-                <label class="field-label">색상 변형</label>
-                <select id="vfColorVariant">
-                  <option value="default">기본</option>
-                  <option value="green">그린</option>
-                </select>
-              </div>
-              <div class="field-row">
-                <label class="field-label">수료 기준</label>
-                <input type="text" id="vfCompletionCriteria" placeholder="예: 진도율 80% 이상">
-              </div>
-              <div class="field-row">
                 <label class="field-label">총 학습시간</label>
-                <input type="text" id="vfTotalDurationText" placeholder="예: 4시간 27분">
+                <input type="text" id="vfTotalDurationText" readonly placeholder="영상 등록 후 자동으로 계산됩니다">
+                <p class="field-hint">커리큘럼에 등록된 영상 길이를 합산해 자동으로 표시됩니다. (직접 수정 불가)</p>
               </div>
               <div class="field-row">
                 <label class="field-label">난이도</label>
-                <input type="text" id="vfDifficulty" placeholder="예: 심화 ★★★☆">
+                <input type="text" id="vfDifficulty" placeholder="하, 중상, 상">
               </div>
               <div class="field-row" style="align-self:end;">
                 <label class="check-row"><input type="checkbox" id="vfDifficultyVisible" checked> 난이도 노출</label>
+              </div>
+              <div class="field-row">
+                <label class="field-label">첨삭 여부</label>
+                <select id="vfHasFeedback">
+                  <option value="">선택 안 함</option>
+                  <option value="제공">첨삭 제공</option>
+                  <option value="미제공">첨삭 미제공</option>
+                </select>
               </div>
               <div class="field-row" style="align-self:end;">
                 <label class="check-row"><input type="checkbox" id="vfHasDiscount"> 할인 적용</label>
@@ -341,13 +346,6 @@
               <div class="field-row">
                 <label class="field-label" id="vfNewPriceLabel">가격 *</label>
                 <input type="text" id="vfNewPrice" placeholder="예: 210,000원 / 가격 문의">
-              </div>
-              <div class="field-row">
-                <label class="field-label">노출 순서</label>
-                <input type="number" id="vfSortOrder" value="0">
-              </div>
-              <div class="field-row" style="align-self:end;">
-                <label class="check-row"><input type="checkbox" id="vfIsBest"> BEST 뱃지</label>
               </div>
             </div>
             <label class="check-row" style="margin:6px 0 14px;"><input type="checkbox" id="vfIsActive" checked> 사이트에 노출</label>
@@ -420,6 +418,17 @@
               <thead><tr><th style="width:70px;">번호</th><th>제목</th><th style="width:220px;">영상 연결</th><th style="width:260px;">자료 첨부</th><th></th></tr></thead>
               <tbody id="vodLectureList"></tbody>
             </table>
+          </div>
+
+          <div id="vodTabPurchase" class="admin-tab-panel" style="display:none;">
+            <label class="field-label">결제창에 간단한 혜택/구성 안내</label>
+            <p class="field-hint" style="margin:4px 0 10px;">VOD 강좌 상세페이지 결제카드에 표시되는 항목입니다.</p>
+            <ul class="drag-list" id="vodPurchaseHighlightList" style="margin:8px 0;"></ul>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="vodPurchaseHighlightNewInput" placeholder="예: OT 포함 전 13강 제공" style="flex:1;">
+              <button class="btn-outline" id="vodPurchaseHighlightAddBtn" type="button">추가</button>
+            </div>
+            <div class="status-text" id="vodPurchaseHighlightStatus"></div>
           </div>
         </div>
       </section>
@@ -559,6 +568,41 @@
         </div>
       </section>
 
+      <section id="instructorSection" class="admin-section">
+        <div class="card">
+          <h2>강사 추가</h2>
+          <p class="field-hint" style="margin-bottom:14px;">이미지 영역을 클릭해 사진을 올리고 이름·소개를 입력한 뒤 추가하세요. 소개는 한 줄에 한 항목씩 입력하면 카드에 "· 항목" 형태로 표시됩니다.</p>
+          <div class="instr-stage">
+            <div class="instr-card is-form">
+              <label class="instr-thumb" for="instructor-new-file" title="이미지 선택">
+                <img class="instr-thumb-img" id="instructor-new-preview" alt="">
+                <span class="instr-thumb-empty" id="instructor-new-empty">이미지<br>선택</span>
+              </label>
+              <input type="file" id="instructor-new-file" accept="image/*" hidden>
+              <div class="instr-body">
+                <input type="text" class="instr-name-input" id="instructor-new-name" placeholder="강사 이름">
+                <textarea class="instr-intro-input" id="instructor-new-intro" rows="2" placeholder="강사 소개"></textarea>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:14px;">
+            <button class="btn" id="instructor-add" type="button">+ 강사 추가</button>
+            <button class="row-btn" id="instructor-reset" type="button">입력 초기화</button>
+          </div>
+          <div class="status-text" id="instructor-add-status"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h2>강사 목록 (<span id="instructorTotal">0</span>명)</h2>
+          </div>
+          <div class="instr-stage">
+            <div class="instr-grid" id="instructor-list"></div>
+          </div>
+          <div class="status-text" id="instructor-list-status"></div>
+        </div>
+      </section>
+
       <div class="modal-overlay" id="reviewModalOverlay">
         <div class="modal-box">
           <div class="modal-head">
@@ -650,6 +694,111 @@
           <div class="status-text" id="notice-status"></div>
         </div>
       </section>
+
+      <section id="popupSection" class="admin-section">
+        <div class="card" id="popupWriteCard">
+          <div class="card-head-row">
+            <h2 id="popupFormTitle">새 팝업 배너 추가</h2>
+          </div>
+          <div class="field-grid">
+            <div class="field-row full">
+              <label class="field-label">이미지 *</label>
+              <div style="display:flex; align-items:center; gap:14px;">
+                <label class="popup-thumb" for="popup-file" title="이미지 선택">
+                  <img class="popup-thumb-img" id="popup-preview" src="" alt="">
+                  <span class="popup-thumb-empty" id="popup-preview-empty">이미지<br>선택</span>
+                </label>
+                <input type="file" id="popup-file" accept="image/*" hidden>
+                <p class="field-hint" style="margin:0;">PC 기준 최대 600×600px(정사각형) 권장. 화면 크기에 따라 축소 표시됩니다.</p>
+              </div>
+            </div>
+            <div class="field-row full">
+              <label class="field-label">링크 URL</label>
+              <input type="text" id="popup-link" placeholder="https://...">
+            </div>
+            <div class="field-row full">
+              <label class="field-label">노출 위치</label>
+              <div class="popup-position-grid" id="popup-position-grid">
+                <button type="button" class="popup-position-btn" data-position="top-left">좌상단</button>
+                <button type="button" class="popup-position-btn" data-position="top">상단</button>
+                <button type="button" class="popup-position-btn" data-position="top-right">우상단</button>
+                <button type="button" class="popup-position-btn" data-position="left">좌측</button>
+                <button type="button" class="popup-position-btn selected" data-position="center">중앙</button>
+                <button type="button" class="popup-position-btn" data-position="right">우측</button>
+                <button type="button" class="popup-position-btn" data-position="bottom-left">좌하단</button>
+                <button type="button" class="popup-position-btn" data-position="bottom">하단</button>
+                <button type="button" class="popup-position-btn" data-position="bottom-right">우하단</button>
+              </div>
+            </div>
+            <div class="field-row">
+              <label class="field-label">노출 시작일 *</label>
+              <input type="date" id="popup-start-date">
+            </div>
+            <div class="field-row">
+              <label class="field-label">노출 종료일 *</label>
+              <input type="date" id="popup-end-date">
+            </div>
+            <div class="field-row">
+              <label class="check-row" style="align-self:flex-end; padding-bottom:9px;"><input type="checkbox" id="popup-visible" checked> 노출</label>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:14px;">
+            <button class="btn" id="popupSaveBtn" type="button">추가</button>
+            <button class="btn-outline" id="popupCancelBtn" type="button" style="display:none;">취소</button>
+          </div>
+          <div class="status-text" id="popupFormStatus"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h2>팝업 배너 (<span id="popupTotal">0</span>개)</h2>
+          </div>
+          <p class="field-hint" style="margin-bottom:10px;">노출 기간과 노출 여부를 모두 만족하는 배너만 홈 화면에 표시됩니다. 순서는 드래그로 바꿀 수 있습니다.</p>
+          <ul class="drag-list" id="popup-list"></ul>
+          <div class="status-text" id="popup-list-status"></div>
+        </div>
+      </section>
+
+      <section id="qnaSection" class="admin-section">
+        <div class="card">
+          <h2>강좌 선택</h2>
+          <p class="field-hint">강좌를 선택하면 해당 강좌의 질문 목록을 볼 수 있습니다. 비밀글도 관리자에게는 모두 공개됩니다.</p>
+          <div class="field-row">
+            <label class="field-label">VOD 강좌</label>
+            <select id="qnaCourseSelect"><option value="">강좌를 선택하세요</option></select>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h2>질문 목록 (<span id="qnaTotal">0</span>개)</h2>
+          </div>
+          <table>
+            <thead><tr><th>제목</th><th>작성자</th><th>답변상태</th><th>작성일</th><th>관리</th></tr></thead>
+            <tbody id="qna-list"></tbody>
+          </table>
+          <div class="status-text" id="qna-status"></div>
+        </div>
+      </section>
+
+      <div class="modal-overlay" id="qnaModalOverlay">
+        <div class="modal-box" style="width:520px;">
+          <div class="modal-head">
+            <h2>질문 상세 / 답변</h2>
+            <button class="row-btn" id="qnaModalCloseBtn" type="button">닫기</button>
+          </div>
+          <div id="qnaDetailBox" class="qna-detail-box"></div>
+          <div class="field-row full">
+            <label class="field-label">답변</label>
+            <textarea id="qnaAnswerInput" rows="5"></textarea>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn" id="qnaSaveAnswerBtn" type="button">답변 저장</button>
+            <button class="row-btn danger" id="qnaDeleteBtn" type="button">질문 삭제</button>
+          </div>
+          <div class="status-text" id="qnaModalStatus"></div>
+        </div>
+      </div>
 
       <section id="settingsSection" class="admin-section">
         <div class="card">
@@ -762,6 +911,62 @@
         </div>
       </section>
 
+      <section id="paymentSection" class="admin-section">
+        <div class="card">
+          <div class="card-head-row">
+            <h2>결제 내역 (<span id="paymentTotal">0</span>건)</h2>
+          </div>
+          <div class="field-row" style="display:flex; gap:8px; flex-wrap:wrap;">
+            <input type="text" id="paymentSearch" placeholder="주문번호, 거래번호, 회원명, 강좌명으로 검색" style="flex:1; min-width:220px;">
+            <select id="paymentStatusFilter">
+              <option value="">전체 상태</option>
+              <option value="pending">대기중</option>
+              <option value="approved">승인완료</option>
+              <option value="failed">실패</option>
+              <option value="canceled">취소됨</option>
+            </select>
+            <button class="btn-outline" id="paymentSearchBtn" type="button">검색</button>
+          </div>
+          <table>
+            <thead>
+              <tr><th>주문번호</th><th>회원</th><th>강좌</th><th>금액</th><th>상태</th><th>거래번호</th><th>생성일시</th><th>관리</th></tr>
+            </thead>
+            <tbody id="paymentList"></tbody>
+          </table>
+          <div style="display:flex; align-items:center; gap:10px; margin-top:14px; font-size:13px; color:var(--text-soft);">
+            <button class="row-btn" id="paymentPrevBtn" type="button">이전</button>
+            <span id="paymentPageInfo"></span>
+            <button class="row-btn" id="paymentNextBtn" type="button">다음</button>
+          </div>
+          <div class="status-text" id="paymentStatus"></div>
+        </div>
+      </section>
+
+      <div class="modal-overlay" id="paymentActionModalOverlay">
+        <div class="modal-box">
+          <div class="modal-head">
+            <h2 id="paymentActionModalTitle">결제 처리</h2>
+            <button class="row-btn" id="paymentActionModalCloseBtn" type="button">닫기</button>
+          </div>
+          <div class="field-grid">
+            <div class="field-row full" id="paymentActionAmountRow" style="display:none;">
+              <label class="field-label">부분취소 금액 (원)</label>
+              <input type="number" id="paymentActionAmount" min="1">
+            </div>
+            <div class="field-row full" id="paymentActionTxnRow" style="display:none;">
+              <label class="field-label">거래번호 <span class="field-hint">(PayUp 가맹점 콘솔에서 확인 후 입력, 모르면 비워도 됨)</span></label>
+              <input type="text" id="paymentActionTxn">
+            </div>
+            <div class="field-row full">
+              <label class="field-label" id="paymentActionReasonLabel">사유</label>
+              <input type="text" id="paymentActionReason">
+            </div>
+          </div>
+          <button class="btn" id="paymentActionSubmitBtn" type="button" style="margin-top:10px;">확인</button>
+          <div class="status-text" id="paymentActionStatus"></div>
+        </div>
+      </div>
+
       <div class="modal-overlay" id="enrollModalOverlay">
         <div class="modal-box">
           <div class="modal-head">
@@ -801,9 +1006,13 @@
 <script src="/admin/cert.js"></script>
 <script src="/admin/faq.js"></script>
 <script src="/admin/reviews.js"></script>
+<script src="/admin/instructors.js"></script>
 <script src="/admin/notice.js"></script>
+<script src="/admin/popup.js"></script>
+<script src="/admin/qna.js"></script>
 <script src="/admin/settings.js"></script>
 <script src="/admin/video.js"></script>
 <script src="/admin/members.js"></script>
+<script src="/admin/payments.js"></script>
 </body>
 </html>
