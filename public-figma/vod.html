@@ -34,28 +34,30 @@
 .filterbar{display:flex;gap:10px;margin:16px 0 22px;flex-wrap:wrap;align-items:center}.control{height:46px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 14px;color:#667085}.search-box{position:relative;flex:1 1 240px;min-width:200px}.search-box input{width:100%;padding-right:40px}.search-box svg{position:absolute;right:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted);pointer-events:none}.reset-btn{display:inline-flex;align-items:center;gap:6px;height:46px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:#fff;color:#667085;cursor:pointer;font-size:14px}.reset-btn svg{width:15px;height:15px}.filterbar .spacer{flex:1}
 .catalog-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px}.course-list{display:grid;gap:12px;align-content:start}
 .course-row{display:grid;grid-template-columns:230px 1fr 178px;gap:20px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:var(--shadow-sm)}
-.course-row__thumb{position:relative;aspect-ratio:16/9;border-radius:10px;padding:12px;background:linear-gradient(135deg,var(--navy-900),var(--navy-700));color:#fff;display:flex;align-items:center;align-self:center;overflow:hidden}
-.thumb-row{display:flex;gap:12px;align-items:center;justify-content:space-between;width:100%}
-.thumb-text{min-width:0;padding-top:18px}
-.thumb-ico{flex:none;color:var(--beige-400);opacity:.92;display:flex;align-items:center}
-.thumb-ico svg{width:64px;height:64px}
-.thumb-ico img{width:64px;height:64px;object-fit:contain}
-.badge{display:inline-flex;position:absolute;top:12px;left:12px;padding:5px 9px;border-radius:999px;background:var(--beige-400);color:#15213a;font-size:9.3px;font-weight:900}
-.course-row__thumb h3{margin:0;font-size:15px;line-height:1.3}
-.course-row__info{min-width:0;padding:6px 0}.kicker{color:var(--beige-700);font-size:11px;font-weight:900;letter-spacing:.1em}.course-row__info h3{margin:3px 0 7px;font-size:21px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.course-row__info .desc{margin:0;color:#56606f;font-size:13.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis}
+.course-row__thumb{position:relative;aspect-ratio:16/9;border-radius:10px;background:linear-gradient(135deg,var(--navy-900),var(--navy-700));display:flex;align-items:center;justify-content:center;align-self:center;overflow:hidden}
+.thumb-ico{color:var(--beige-400);opacity:.92;display:flex;align-items:center;justify-content:center}
+.thumb-ico svg{width:88px;height:88px}
+.thumb-ico img{width:88px;height:88px;object-fit:contain}
+.thumb-photo{width:100%;height:100%;object-fit:cover}
+.course-row__info{min-width:0;padding:6px 0}.course-row__info h3{margin:3px 0 7px;font-size:21px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.course-row__info .desc{margin:0;color:#56606f;font-size:13.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis}
 .meta-row{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin-top:10px}.meta-row span{display:inline-flex;align-items:center;gap:5px}.meta-row svg{width:14px;height:14px;flex:none}
-.cur-strip{display:flex;gap:10px;align-items:center;border-top:1px solid var(--line);margin-top:12px;padding-top:10px;font-size:12px;color:var(--muted)}.cur-strip b{color:var(--navy-800);flex:none}.cur-strip .items{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.cur-strip a{flex:none;font-weight:800;color:var(--text)}
-.course-row__actions{text-align:right;display:flex;flex-direction:column;gap:8px;justify-content:center}.old{color:#9aa4b2;text-decoration:line-through;font-size:13px}.price{font-size:25px;font-weight:900;line-height:1.1}.sale{color:var(--beige-700);font-weight:900;font-size:12.5px}
+.course-row__actions{text-align:right;display:flex;flex-direction:column;gap:8px;justify-content:center}.price-sub{display:flex;gap:6px;align-items:baseline;justify-content:flex-end}.old{color:#9aa4b2;text-decoration:line-through;font-size:11.7px}.price{font-size:22.5px;font-weight:900;line-height:1.1}.sale{color:var(--beige-700);font-weight:900;font-size:11.25px}.price-sub--empty{visibility:hidden}
+.course-row__actions .btn{padding:11.7px 18px;font-size:14.4px}
 .pagination{display:flex;gap:6px;justify-content:center;margin-top:26px}.pagination button{min-width:36px;height:36px;border:1px solid var(--line);border-radius:10px;background:#fff;color:#4c5665;font-weight:700;cursor:pointer}.pagination button.active{background:var(--navy-800);border-color:var(--navy-800);color:#fff}.pagination button:disabled{opacity:.45;cursor:default}
 .sidebar{display:grid;gap:14px;align-content:start}.panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:var(--shadow-sm)}.panel h3{margin-top:0}.panel.dark{background:var(--navy-900);color:#fff;border-color:rgba(227,205,175,.3)}.panel.dark h2{margin:0 0 10px;font-size:22px}.panel.dark p{color:#c6d0de;font-size:13.5px;margin:0 0 16px}.panel.dark .btn{width:100%}.panel.dark .btn+.btn{margin-top:8px}
-.cmp-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}.cmp-head h3{margin:0;font-size:17px}.cmp-head a{font-size:12px;color:var(--muted)}
-.cmp-item{display:flex;gap:9px;align-items:center;padding:9px 0;font-size:13.5px}.cmp-item:last-of-type{margin-bottom:12px}.cmp-item input{accent-color:var(--navy-800);width:16px;height:16px;flex:none}
-.roadmap{display:flex;align-items:stretch;gap:0}.rm-card{flex:1;background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:14px}.rm-ico{flex:0 0 30%;color:var(--navy-800);display:flex;align-items:center;justify-content:center}.rm-ico svg{display:block;width:100%;height:auto;max-width:56px}.rm-body{flex:1 1 70%;min-width:0}.rm-card small{display:block;color:var(--beige-700);font-weight:900;letter-spacing:.08em;font-size:11px}.rm-text{margin:3px 0 10px}.rm-card h3{margin:0 0 5px;font-size:17px}.rm-card p{margin:0;color:var(--muted);font-size:12.5px}.rm-pill{display:inline-flex;padding:4px 10px;border:1px solid var(--line);border-radius:999px;font-size:11.5px;font-weight:700;color:#4c5665}.rm-arrow{align-self:center;color:#9aa4b2;font-size:20px;font-weight:900;padding:0 8px;flex:none}
-.rm-cta{flex:none;width:210px;border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;margin-left:14px}.rm-cta .map{color:var(--beige-700)}.rm-cta .map svg{width:44px;height:44px}
+.recent-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}.recent-head h3{margin:0;font-size:17px}.recent-head button{font-size:12px;color:var(--muted);background:none;border:0;cursor:pointer;font-family:inherit;padding:0}
+.recent-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.recent-list a{display:flex;gap:10px;align-items:center;padding:8px 6px;margin:0 -6px;border-radius:10px;text-decoration:none;color:inherit}
+.recent-list a:hover{background:var(--ivory)}
+.recent-thumb{width:56px;aspect-ratio:16/9;border-radius:8px;flex:none;overflow:hidden;background:linear-gradient(135deg,var(--navy-900),var(--navy-700));display:flex;align-items:center;justify-content:center}
+.recent-thumb img.thumb-photo{width:100%;height:100%;object-fit:cover}
+.recent-thumb img.thumb-ico-img{width:20px;height:20px;object-fit:contain}
+.recent-title{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.recent-empty{color:var(--muted);font-size:13px;padding:4px 0 2px}
 .footer{background:var(--navy-950);color:#d7dde8;padding:38px 0 26px}.footer__grid{display:grid;grid-template-columns:1fr 1.4fr .8fr;gap:30px}.footer small{color:#9ba7b8}.phone{font-size:28px;color:#fff;font-weight:900}.hours{font-size:12.5px;color:#9ba7b8;margin-top:4px}.social{display:flex;gap:8px;margin-top:14px}.social a{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.28);display:grid;place-items:center;color:#d7dde8;transition:.2s}.social a:hover{background:rgba(255,255,255,.12)}.social svg{width:15px;height:15px}.footer__bottom{display:flex;justify-content:space-between;align-items:center;margin-top:28px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:#9ba7b8}.footer__bottom a{margin-left:16px;color:#c3ccd9}
-@media(max-width:1100px){.nav{gap:20px}.catalog-layout{grid-template-columns:1fr}.sidebar{grid-template-columns:repeat(2,1fr)}.sidebar .panel.dark{grid-column:1/-1}.course-row{grid-template-columns:180px 1fr 150px}.roadmap{flex-wrap:wrap;gap:12px}.rm-arrow{display:none}.rm-card{flex:1 1 40%}.footer__grid{grid-template-columns:1fr 1fr}}
-@media(max-width:760px){.container{width:min(100% - 24px,var(--max))}.header__inner{height:64px}.nav{display:none;position:absolute;left:12px;right:12px;top:70px;background:var(--navy-900);padding:16px;border-radius:12px;flex-direction:column;gap:0}.nav.open{display:flex}.nav a{padding:12px}.nav a.active:after,.nav a:hover:after{display:none}.mobile-toggle{display:block}.header__actions .btn:not(.btn--primary){display:none}.header__actions .btn{padding:10px 13px}.catalog-hero__inner{display:block}.catalog-hero h1{font-size:38px}.stats{gap:16px}.filterbar .control{flex:1 1 calc(50% - 10px)}.course-row{grid-template-columns:1fr}.course-row__actions{text-align:left;align-items:flex-start}.sidebar{grid-template-columns:1fr}.rm-card{flex:1 1 100%}.section{padding:26px 0 42px}.section__head{align-items:flex-start;flex-direction:column}.footer__grid{grid-template-columns:1fr}.footer__bottom{flex-direction:column;gap:10px;align-items:flex-start}.footer__bottom a{margin:0 16px 0 0}.cur-strip{display:none}}
-</style></head><body><a class="skip" href="#main">본문 바로가기</a><header class="header"><div class="container header__inner"><a class="logo" href="index.html"><img src="assets/home/footer-logo.png" alt="DOCK PASS" style="height:42px;width:auto;display:block"></a><nav class="nav" aria-label="주요 메뉴"><a href="vod.html" class="active">VOD 강좌</a><a href="intro.html">학습소개</a><a href="notice.html">공지사항</a><a href="cert.html">합격인증</a></nav><div class="header__actions"><button class="mobile-toggle" aria-label="메뉴 열기">☰</button><a class="btn btn--ghost-dark" id="loginTrigger" href="javascript:void(0)">로그인</a><a class="btn btn--ghost-dark my-info-link" id="myInfoBtn" href="mypage.html" style="display:none;">마이페이지</a><a class="btn btn--primary" href="vodDetail.html">수강신청</a></div></div></header><main id="main">
+@media(max-width:1100px){.nav{gap:20px}.catalog-layout{grid-template-columns:1fr}.sidebar{grid-template-columns:repeat(2,1fr)}.sidebar .panel.dark{grid-column:1/-1}.course-row{grid-template-columns:180px 1fr 150px}.footer__grid{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){.container{width:min(100% - 24px,var(--max))}.header__inner{height:64px}.nav{display:none;position:absolute;left:12px;right:12px;top:70px;background:var(--navy-900);padding:16px;border-radius:12px;flex-direction:column;gap:0}.nav.open{display:flex}.nav a{padding:12px}.nav a.active:after,.nav a:hover:after{display:none}.mobile-toggle{display:block}.header__actions .btn{padding:10px 13px}.catalog-hero__inner{display:block}.catalog-hero h1{font-size:38px}.stats{gap:16px}.filterbar .control{flex:1 1 calc(50% - 10px)}.course-row{grid-template-columns:1fr}.course-row__actions{text-align:left;align-items:flex-start}.sidebar{grid-template-columns:1fr}.section{padding:26px 0 42px}.section__head{align-items:flex-start;flex-direction:column}.footer__grid{grid-template-columns:1fr}.footer__bottom{flex-direction:column;gap:10px;align-items:flex-start}.footer__bottom a{margin:0 16px 0 0}}
+</style></head><body><a class="skip" href="#main">본문 바로가기</a><header class="header"><div class="container header__inner"><a class="logo" href="index.html"><img src="assets/home/footer-logo.png" alt="DOCK PASS" style="height:42px;width:auto;display:block"></a><nav class="nav" aria-label="주요 메뉴"><a href="vod.html" class="active">VOD 강좌</a><a href="intro.html">학습소개</a><a href="notice.html">공지사항</a><a href="cert.html">합격인증</a></nav><div class="header__actions"><button class="mobile-toggle" aria-label="메뉴 열기">☰</button><a class="btn btn--ghost-dark" id="loginTrigger" href="javascript:void(0)">로그인</a><a class="btn btn--ghost-dark my-info-link" id="myInfoBtn" href="mypage.html" style="display:none;">마이페이지</a></div></div></header><main id="main">
 
 <section class="catalog-hero"><div class="container catalog-hero__inner"><div><span class="crumb">HOME &nbsp;/&nbsp; VOD 강좌</span><h1>VOD 강좌</h1><p class="lead">독학으로 이론부터 실전까지, 합격에 필요한 모든 강좌를 제공합니다.</p><div class="stats">
 <div class="stat"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4l2 2h8a1.5 1.5 0 0 1 1.5 1.5V17a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 17V7.5Z"/><path d="m11.5 11.5 3 1.9-3 1.9v-3.8Z"/></svg></span><div><small>전체 강좌</small><strong>87개</strong></div></div>
@@ -64,40 +66,15 @@
 </div></div></div></section>
 
 <section class="section"><div class="container">
-<div class="chips" data-chip-group><button class="chip active" data-chip>전체 강좌</button><button class="chip" data-chip>연고대 편입논술</button><button class="chip" data-chip>독해학개론</button><button class="chip" data-chip>프리미엄반</button><button class="chip" data-chip>자료해석 특강</button><button class="chip" data-chip>연세대 특별반</button><button class="chip" data-chip>기출/문제풀이</button><button class="chip" data-chip>더보기 ▾</button></div>
-<div class="filterbar"><span class="search-box"><input class="control" placeholder="강좌명, 키워드 검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m15.8 15.8 4 4"/></svg></span></div>
+<div class="chips" data-chip-group id="categoryChips"><button class="chip active" data-chip data-filter="">전체 강좌</button></div>
 
-<div class="catalog-layout"><div><div class="course-list">
-
-<article class="course-row"><div class="course-row__thumb"><div class="thumb-row"><div class="thumb-text"><span class="badge">BEST</span><h3>연고대 편입논술 완성<br>(전 13강)</h3></div><span class="thumb-ico"><img src="assets/icons/icon-graduation-cap.png" alt=""></span></div></div><div class="course-row__info"><span class="kicker">ESSAY THEORY</span><h3>연고대 편입논술 완성 (전 13강)</h3><p class="desc">연세대·고려대 편입논술을 처음 준비하는 수험생을 위한 OT부터, 독해의 핵심 원리, 요약형·비교형·평가형 3대 논술 유형, 실전 기출 분석까지 1년 커리큘럼입니다.</p><div class="meta-row"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5" width="16" height="14" rx="1.6"/><path d="M4 9.5h16"/></svg>총 13강</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>12시간 12분</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19.5c1.1-3.2 3.5-4.7 6.5-4.7s5.4 1.5 6.5 4.7"/></svg>초급~중급</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5.5" width="16" height="14" rx="1.6"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>수강 기간 180일</span></div><div class="cur-strip"><b>커리큘럼 미리보기</b><span class="items">01 OT · 02 핵심 원리 · 03 핵심 원리2 …</span><a href="curriculum.html">전체 보기 +</a></div></div><div class="course-row__actions"><span class="old">260,000원</span><div class="price">210,000원</div><span class="sale">16% 할인</span><a class="btn btn--outline" href="vodDetail.html">자세히 보기</a><a class="btn btn--primary" href="vodDetail.html">수강신청</a></div></article>
-
-<article class="course-row"><div class="course-row__thumb"><div class="thumb-row"><div class="thumb-text"><span class="badge">NEW</span><h3>독해학개론</h3></div><span class="thumb-ico"><img src="assets/icons/icon-notebook-pen.png" alt=""></span></div></div><div class="course-row__info"><span class="kicker">READING THEORY</span><h3>독해학개론</h3><p class="desc">연고대 논술 3대 독해 스킬 — 지문 구조와 기능·이론 및 독해를 실전 기초로 완성합니다.</p><div class="meta-row"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5" width="16" height="14" rx="1.6"/><path d="M4 9.5h16"/></svg>총 7강</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>6시간 20분</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19.5c1.1-3.2 3.5-4.7 6.5-4.7s5.4 1.5 6.5 4.7"/></svg>초급</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5.5" width="16" height="14" rx="1.6"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>수강 기간 120일</span></div><div class="cur-strip"><b>커리큘럼 미리보기</b><span class="items">01 지문 핵심 독해1 · 02 실전 독해 테스트와 기초 …</span><a href="curriculum.html">전체 보기 +</a></div></div><div class="course-row__actions"><span class="old">260,000원</span><div class="price">210,000원</div><span class="sale">16% 할인</span><a class="btn btn--outline" href="javascript:void(0)" data-coming-soon>자세히 보기</a><a class="btn btn--primary" href="javascript:void(0)" data-coming-soon>수강신청</a></div></article>
-
-<article class="course-row"><div class="course-row__thumb"><div class="thumb-row"><div class="thumb-text"><span class="badge">프리미엄</span><h3>연고대 편입논술<br>프리미엄반</h3></div><span class="thumb-ico"><img src="assets/icons/icon-ribbon-medal.png" alt=""></span></div></div><div class="course-row__info"><span class="kicker">PREMIUM CLASS</span><h3>연고대 편입논술 프리미엄반</h3><p class="desc">라이브+VOD 1:1 첨삭 + 실시간 모의고사까지, 1년간 전 과정을 밀착 관리합니다.</p><div class="meta-row"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5" width="16" height="14" rx="1.6"/><path d="M4 9.5h16"/></svg>총 62강</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>52시간 40분</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19.5c1.1-3.2 3.5-4.7 6.5-4.7s5.4 1.5 6.5 4.7"/></svg>기초~고급</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5.5" width="16" height="14" rx="1.6"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>수강 기간 365일</span></div><div class="cur-strip"><b>커리큘럼 미리보기</b><span class="items">01 OT · 02 맞춤 셋업 진단 · 03 문학약론 독해 …</span><a href="curriculum.html">전체 보기 +</a></div></div><div class="course-row__actions"><span class="old">6,000,000원</span><div class="price">4,000,000원</div><span class="sale">33% 할인</span><a class="btn btn--outline" href="javascript:void(0)" data-coming-soon>자세히 보기</a><a class="btn btn--primary" href="javascript:void(0)" data-coming-soon>수강신청</a></div></article>
-
-<article class="course-row"><div class="course-row__thumb"><div class="thumb-row"><div class="thumb-text"><span class="badge">ESSAY</span><h3>연세대 특별반</h3></div><span class="thumb-ico"><img src="assets/icons/icon-percent.png" alt=""></span></div></div><div class="course-row__info"><span class="kicker">SPECIAL LECTURE</span><h3>연세대 특별반</h3><p class="desc">연세대 논술 최종 유형에 최적화된 심화 이론 + 실전 문제풀이 특강.</p><div class="meta-row"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5" width="16" height="14" rx="1.6"/><path d="M4 9.5h16"/></svg>총 10강</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>8시간 10분</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19.5c1.1-3.2 3.5-4.7 6.5-4.7s5.4 1.5 6.5 4.7"/></svg>중급~고급</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5.5" width="16" height="14" rx="1.6"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>수강 기간 150일</span></div><div class="cur-strip"><b>커리큘럼 미리보기</b><span class="items">01 연세대 출제 핵심 분석 · 02 심화 이론 확장 …</span><a href="curriculum.html">전체 보기 +</a></div></div><div class="course-row__actions"><div class="price">180,000원</div><a class="btn btn--outline" href="javascript:void(0)" data-coming-soon>자세히 보기</a><a class="btn btn--primary" href="javascript:void(0)" data-coming-soon>수강신청</a></div></article>
-
-<article class="course-row"><div class="course-row__thumb"><div class="thumb-row"><div class="thumb-text"><span class="badge">DATA</span><h3>자료해석 특강</h3></div><span class="thumb-ico"><img src="assets/icons/icon-bar-chart.png" alt=""></span></div></div><div class="course-row__info"><span class="kicker">DATA ANALYSIS</span><h3>자료해석 특강</h3><p class="desc">표·그래프·도표 문제 등 실전에서 자주 나오는 자료해석 유형을 빠르게 정복합니다.</p><div class="meta-row"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5" width="16" height="14" rx="1.6"/><path d="M4 9.5h16"/></svg>총 5강</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>3시간 40분</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19.5c1.1-3.2 3.5-4.7 6.5-4.7s5.4 1.5 6.5 4.7"/></svg>초급~중급</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5.5" width="16" height="14" rx="1.6"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>수강 기간 90일</span></div><div class="cur-strip"><b>커리큘럼 미리보기</b><span class="items">01 자료해석 기본 원리 · 02 빈출 유형 분석 …</span><a href="curriculum.html">전체 보기 +</a></div></div><div class="course-row__actions"><div class="price">120,000원</div><a class="btn btn--outline" href="javascript:void(0)" data-coming-soon>자세히 보기</a><a class="btn btn--primary" href="javascript:void(0)" data-coming-soon>수강신청</a></div></article>
-
-<article class="course-row"><div class="course-row__thumb"><div class="thumb-row"><div class="thumb-text"><span class="badge">PRACTICE</span><h3>기출/문제풀이 패키지</h3></div><span class="thumb-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="4" width="12" height="15.5" rx="1.6"/><path d="M8 8h6M8 11h4"/><path d="m14.2 18.6 5-5 1.6 1.6-5 5-2.2.6.6-2.2Z"/></svg></span></div></div><div class="course-row__info"><span class="kicker">PRACTICE</span><h3>기출/문제풀이 패키지</h3><p class="desc">최근 10개년 기출 문제 풀이 + 해설 강의로 실전 감각을 완성하세요.</p><div class="meta-row"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5" width="16" height="14" rx="1.6"/><path d="M4 9.5h16"/></svg>총 20강</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>15시간 30분</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19.5c1.1-3.2 3.5-4.7 6.5-4.7s5.4 1.5 6.5 4.7"/></svg>중급~고급</span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5.5" width="16" height="14" rx="1.6"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>수강 기간 180일</span></div><div class="cur-strip"><b>커리큘럼 미리보기</b><span class="items">01 2024 기출 풀이 · 02 2023 기출 풀이 …</span><a href="curriculum.html">전체 보기 +</a></div></div><div class="course-row__actions"><div class="price">150,000원</div><a class="btn btn--outline" href="javascript:void(0)" data-coming-soon>자세히 보기</a><a class="btn btn--primary" href="javascript:void(0)" data-coming-soon>수강신청</a></div></article>
-
-</div><div class="pagination"><button type="button" disabled>‹</button><button type="button" class="active">1</button><button type="button">2</button><button type="button">3</button><button type="button">4</button><button type="button">5</button><button type="button" disabled>…</button><button type="button">15</button><button type="button">›</button></div></div>
+<div class="catalog-layout"><div><div class="filterbar"><span class="search-box"><input class="control" id="courseSearchInput" placeholder="강좌명, 키워드 검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m15.8 15.8 4 4"/></svg></span></div><div class="course-list" id="courseList"><p style="padding:40px 0;text-align:center;color:var(--muted)">강좌 목록을 불러오는 중입니다…</p></div><div class="pagination" id="coursePagination"></div></div>
 
 <aside class="sidebar">
-<section class="panel dark"><h2>어떤 강좌를<br>들어야 할지 모르겠다면?</h2><p>목표 대학과 현재 실력에 맞는<br>최적의 학습 플랜을 추천해 드립니다.</p><a class="btn btn--primary" href="#">무료 학습 상담 받기 →</a><a class="btn btn--ghost-dark" href="#">1:1 카카오 상담</a></section>
-<section class="panel"><div class="cmp-head"><h3>비교한 강좌 (3)</h3><a href="#">전체 삭제</a></div><label class="cmp-item"><input type="checkbox" checked>연고대 편입논술 완성 (전 13강)</label><label class="cmp-item"><input type="checkbox" checked>독해학개론</label><label class="cmp-item"><input type="checkbox" checked>자료해석 특강</label><button class="btn btn--navy" style="width:100%">비교하기</button></section>
+<section class="panel dark"><h2>어떤 강좌를<br>들어야 할지 모르겠다면?</h2><p>목표 대학과 현재 실력에 맞는<br>최적의 학습 플랜을 추천해 드립니다.</p><a class="btn btn--primary" href="intro.html">학습소개 살펴보기 →</a><a class="btn btn--ghost-dark" href="#" target="_blank" rel="noopener" data-kakao-link>카카오톡 상담</a></section>
+<section class="panel"><div class="recent-head"><h3>둘러본 강좌</h3><button type="button" id="recentClearBtn" style="display:none;">전체 삭제</button></div><ul class="recent-list" id="recentList"><li class="recent-empty">최근에 둘러본 강좌가 없습니다.</li></ul></section>
 </aside></div>
 </div></section>
-
-<section class="section section--soft"><div class="container"><div class="section__head"><h2>처음 시작하는 분께 추천하는 로드맵</h2><a href="#" class="link-accent">로드맵 전체 보기 →</a></div><div class="roadmap">
-<article class="rm-card"><span class="rm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="1.6"/><path d="M8.5 8h7M8.5 11.5h5"/><path d="m8.5 15.5 1.5 1.5 3-3"/></svg></span><div class="rm-body"><small>STEP 01</small><div class="rm-text"><h3>기초 다지기</h3><p>독해 기본기와 논리 구조 이해</p></div><span class="rm-pill">추천 강좌 2개</span></div></article>
-<span class="rm-arrow">›</span>
-<article class="rm-card"><span class="rm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4.5h6v2.5H9z"/><rect x="5" y="5.5" width="14" height="15" rx="1.6"/><path d="M8.5 11h7M8.5 14.5h7M8.5 18h4"/></svg></span><div class="rm-body"><small>STEP 02</small><div class="rm-text"><h3>유형 학습</h3><p>유형별 핵심 이론 학습</p></div><span class="rm-pill">추천 강좌 3개</span></div></article>
-<span class="rm-arrow">›</span>
-<article class="rm-card"><span class="rm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.2"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></span><div class="rm-body"><small>STEP 03</small><div class="rm-text"><h3>실전 연습</h3><p>기출 문제로 실전 감각 향상</p></div><span class="rm-pill">추천 강좌 2개</span></div></article>
-<span class="rm-arrow">›</span>
-<article class="rm-card"><span class="rm-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/><path d="m8.5 10.5 1.5 1.5 3-3"/></svg></span><div class="rm-body"><small>STEP 04</small><div class="rm-text"><h3>첨삭 &amp; 마무리</h3><p>약점 보완 및 최종 점검</p></div><span class="rm-pill">추천 강좌 2개</span></div></article>
-</div></div></section>
 
 </main><footer class="footer"><div class="container"><div class="footer__grid"><div><a class="logo" href="index.html"><img src="assets/home/footer-logo.png" alt="DOCK PASS" style="height:39px;width:auto;display:block"></a><p>독편사 편입논술은 결과로 증명합니다.</p><div class="social">
 <a href="#" aria-label="유튜브"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="m10.5 9.5 4.5 2.5-4.5 2.5v-5Z"/></svg></a>
@@ -107,8 +84,149 @@
 </div></div><div><small class="footer-desc">(주)독패스 | 대표이사 김독패<br>사업자등록번호 000-00-00000 | 통신판매업신고 2020-서울강남-00000<br>서울특별시 서대문구 신촌로 221, 2층<br>학원설립·운영등록번호 제2020-0006호 | 사업자등록번호 104-94-47747<br>평일 운영 14:00~22:00 · 상담 운영 15:00~20:00</small></div><div><small>상담 문의</small><div class="phone">02-6404-1018</div><div class="hours">상담 월~금 15:00–20:00</div><div style="display:flex;gap:8px;margin-top:12px"><a class="btn btn--primary" href="#" data-kakao-link>카카오톡 상담</a><a class="btn btn--ghost-dark" href="#">이메일 문의</a></div></div></div><div class="footer__bottom"><span class="copyright">© DOCK PASS. All rights reserved.</span><span><a href="terms.html">이용약관</a><a href="privacy.html">개인정보처리방침</a></span></div></div></footer><script>
 const $=(s,c=document)=>c.querySelector(s);const $$=(s,c=document)=>[...c.querySelectorAll(s)];
 $('.mobile-toggle')?.addEventListener('click',()=>$('.nav')?.classList.toggle('open'));
-$$('[data-chip]').forEach(btn=>btn.addEventListener('click',()=>{const g=btn.closest('[data-chip-group]');$$('[data-chip]',g).forEach(x=>x.classList.remove('active'));btn.classList.add('active')}));
-$$('[data-coming-soon]').forEach(btn=>btn.addEventListener('click',()=>alert('준비 중인 강좌입니다. 오픈 시 안내드리겠습니다.')));
+document.addEventListener('click',e=>{if(e.target.closest('[data-coming-soon]'))alert('준비 중인 강좌입니다. 오픈 시 안내드리겠습니다.')});
+
+// ── 강좌 목록/카테고리/페이지네이션: /api/vod-courses, /api/vod-categories 실 데이터 연동 ──
+const COURSE_PAGE_SIZE=5;
+let allCourses=[];
+let activeCategoryFilter='';
+let searchQuery='';
+let currentCoursePage=1;
+
+function getFilteredCourses(){
+  return allCourses.filter(c=>{
+    if(activeCategoryFilter&&c.category_label!==activeCategoryFilter)return false;
+    if(searchQuery&&!`${c.title||''} ${c.description||''}`.toLowerCase().includes(searchQuery))return false;
+    return true;
+  });
+}
+
+function escapeCourseHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function parseWonAmount(s){const m=String(s||'').replace(/,/g,'').match(/(\d+)/);return m?parseInt(m[1],10):null;}
+
+function courseThumbHtml(c){
+  if(c.thumbnail_url)return `<img class="thumb-photo" src="${escapeCourseHtml(c.thumbnail_url)}" alt="${escapeCourseHtml(c.title)}">`;
+  return `<span class="thumb-ico"><img src="assets/icons/icon-notebook-pen.png" alt=""></span>`;
+}
+function courseMetaHtml(c){
+  const items=[];
+  if(c.lecture_count)items.push(`<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5" width="16" height="14" rx="1.6"/><path d="M4 9.5h16"/></svg>총 ${c.lecture_count}강</span>`);
+  if(c.total_duration_text)items.push(`<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>${escapeCourseHtml(c.total_duration_text)}</span>`);
+  if(c.difficulty_visible&&c.difficulty)items.push(`<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19.5c1.1-3.2 3.5-4.7 6.5-4.7s5.4 1.5 6.5 4.7"/></svg>${escapeCourseHtml(c.difficulty)}</span>`);
+  return items.join('');
+}
+function coursePriceHtml(c){
+  const oldWon=parseWonAmount(c.old_price),newWon=parseWonAmount(c.new_price);
+  const hasDiscount=!!(c.old_price&&oldWon&&newWon&&oldWon>newWon);
+  const sub=hasDiscount
+    ?`<div class="price-sub"><span class="sale">${Math.round((1-newWon/oldWon)*100)}% 할인</span><span class="old">${escapeCourseHtml(c.old_price)}</span></div>`
+    :`<div class="price-sub price-sub--empty"><span class="sale">&nbsp;</span><span class="old">&nbsp;</span></div>`;
+  return `${sub}<div class="price">${escapeCourseHtml(c.new_price||'가격 문의')}</div>`;
+}
+function courseActionsHtml(c){
+  return `<a class="btn btn--outline" href="vodDetail.html?id=${c.id}">자세히 보기</a><a class="btn btn--primary" href="vodDetail.html?id=${c.id}">수강신청</a>`;
+}
+function courseRowHtml(c){
+  return `<article class="course-row" data-course-id="${c.id}"><div class="course-row__thumb">${courseThumbHtml(c)}</div><div class="course-row__info"><h3>${escapeCourseHtml(c.title)}</h3><p class="desc">${escapeCourseHtml(c.description||'')}</p><div class="meta-row">${courseMetaHtml(c)}</div></div><div class="course-row__actions">${coursePriceHtml(c)}${courseActionsHtml(c)}</div></article>`;
+}
+
+function renderCoursePage(){
+  const listEl=$('#courseList'),pagEl=$('#coursePagination');
+  if(!listEl)return;
+  const filtered=getFilteredCourses();
+  if(!filtered.length){
+    listEl.innerHTML=`<p style="padding:40px 0;text-align:center;color:var(--muted)">${allCourses.length?'조건에 맞는 강좌가 없습니다.':'등록된 강좌가 없습니다.'}</p>`;
+    if(pagEl)pagEl.innerHTML='';
+    return;
+  }
+  const totalPages=Math.max(1,Math.ceil(filtered.length/COURSE_PAGE_SIZE));
+  if(currentCoursePage>totalPages)currentCoursePage=totalPages;
+  const start=(currentCoursePage-1)*COURSE_PAGE_SIZE;
+  listEl.innerHTML=filtered.slice(start,start+COURSE_PAGE_SIZE).map(courseRowHtml).join('');
+
+  if(pagEl){
+    let html=`<button type="button" data-page="${currentCoursePage-1}"${currentCoursePage===1?' disabled':''}>‹</button>`;
+    for(let p=1;p<=totalPages;p++)html+=`<button type="button" class="${p===currentCoursePage?'active':''}" data-page="${p}">${p}</button>`;
+    html+=`<button type="button" data-page="${currentCoursePage+1}"${currentCoursePage===totalPages?' disabled':''}>›</button>`;
+    pagEl.innerHTML=html;
+  }
+}
+
+$('#courseList')?.addEventListener('click',e=>{
+  const link=e.target.closest('a[href^="vodDetail.html"]');
+  if(!link)return;
+  const rowEl=link.closest('.course-row');
+  const course=rowEl?allCourses.find(c=>String(c.id)===rowEl.dataset.courseId):null;
+  if(course&&typeof recordRecentVodCourse==='function')recordRecentVodCourse(course);
+});
+
+$('#coursePagination')?.addEventListener('click',e=>{
+  const btn=e.target.closest('button[data-page]');
+  if(!btn||btn.disabled)return;
+  currentCoursePage=parseInt(btn.dataset.page,10)||1;
+  renderCoursePage();
+  $('#courseList')?.scrollIntoView({behavior:'smooth',block:'start'});
+});
+
+$('#categoryChips')?.addEventListener('click',e=>{
+  const btn=e.target.closest('[data-chip]');
+  if(!btn)return;
+  $$('[data-chip]',e.currentTarget).forEach(x=>x.classList.remove('active'));
+  btn.classList.add('active');
+  activeCategoryFilter=btn.dataset.filter||'';
+  currentCoursePage=1;
+  renderCoursePage();
+});
+
+let searchDebounce;
+$('#courseSearchInput')?.addEventListener('input',e=>{
+  clearTimeout(searchDebounce);
+  searchDebounce=setTimeout(()=>{
+    searchQuery=e.target.value.trim().toLowerCase();
+    currentCoursePage=1;
+    renderCoursePage();
+  },200);
+});
+
+(async function initCourseCatalog(){
+  const [coursesRes,categoriesRes]=await Promise.allSettled([
+    fetch('/api/vod-courses').then(r=>r.ok?r.json():[]),
+    fetch('/api/vod-categories').then(r=>r.ok?r.json():[])
+  ]);
+  allCourses=coursesRes.status==='fulfilled'?coursesRes.value:[];
+  const categories=categoriesRes.status==='fulfilled'?categoriesRes.value:[];
+
+  const chipsEl=$('#categoryChips');
+  if(chipsEl){
+    const usedLabels=new Set(allCourses.map(c=>c.category_label).filter(Boolean));
+    const activeCategories=categories.filter(cat=>usedLabels.has(cat.name));
+    chipsEl.insertAdjacentHTML('beforeend',activeCategories.map(cat=>
+      `<button class="chip" data-chip data-filter="${escapeCourseHtml(cat.name)}">${escapeCourseHtml(cat.name)}</button>`
+    ).join(''));
+  }
+
+  renderCoursePage();
+})();
+
+// ── 둘러본 강좌 (localStorage, site-content.js의 getRecentVodCourses 사용) ──
+function recentItemHtml(c){
+  const thumb=c.thumbnail_url
+    ?`<img class="thumb-photo" src="${escapeCourseHtml(c.thumbnail_url)}" alt="">`
+    :`<img class="thumb-ico-img" src="assets/icons/icon-notebook-pen.png" alt="">`;
+  return `<li><a href="vodDetail.html?id=${c.id}"><span class="recent-thumb">${thumb}</span><span class="recent-title">${escapeCourseHtml(c.title)}</span></a></li>`;
+}
+function renderRecentCourses(){
+  const listEl=$('#recentList'),clearBtn=$('#recentClearBtn');
+  if(!listEl)return;
+  const items=typeof getRecentVodCourses==='function'?getRecentVodCourses():[];
+  listEl.innerHTML=items.length?items.map(recentItemHtml).join(''):'<li class="recent-empty">최근에 둘러본 강좌가 없습니다.</li>';
+  if(clearBtn)clearBtn.style.display=items.length?'':'none';
+}
+$('#recentClearBtn')?.addEventListener('click',()=>{
+  localStorage.removeItem(RECENT_VOD_COURSES_KEY);
+  renderRecentCourses();
+});
+document.addEventListener('DOMContentLoaded',renderRecentCourses);
 </script>
 
 <div class="auth-modal-overlay" id="loginModalOverlay">

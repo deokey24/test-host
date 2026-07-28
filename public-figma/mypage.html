@@ -31,7 +31,6 @@
   .header .nav a{padding:12px}
   .header .nav a.active:after,.header .nav a:hover:after{display:none}
   .header .mobile-toggle{display:block}
-  .header__actions .btn:not(.btn--primary){display:none}
   .header__actions .btn{padding:10px 13px}
 }
 </style>
@@ -51,7 +50,6 @@
       <button class="mobile-toggle" type="button" aria-label="메뉴 열기">☰</button>
       <a class="btn btn--ghost-dark" id="loginTrigger" href="javascript:void(0)">로그인</a>
       <a class="btn btn--ghost-dark my-info-link" id="myInfoBtn" href="mypage.html" style="display:none;">마이페이지</a>
-      <a class="btn btn--primary" href="vodDetail.html">수강신청</a>
     </div>
   </div></header>
 
@@ -93,6 +91,9 @@
     <section class="vod-body">
       <!-- 내 강좌 -->
       <div id="mpMyCourses">
+        <div class="mp-dockplayer-row">
+          <a class="btn-fill" href="https://cdn.dockteacher.co.kr/dock-player/DockPlayer%20Setup%200.1.1.exe">DockPlayer 설치</a>
+        </div>
         <div class="vod-page-grid" id="mpCourseGrid">
           <template>
             <div class="vod-course-card">
@@ -212,7 +213,7 @@
           node.querySelector('.desc').textContent = course.description || '';
           node.querySelector('.meta').textContent = course.meta_text || '';
           node.querySelector('.mp-course-status').textContent = course.status === '완료' ? '수강 완료' : '수강중';
-          node.querySelector('.mp-enroll-btn').href = `lecturePlayer.html?id=${course.id}`;
+          node.querySelector('.mp-enroll-btn').href = 'dockplayer://';
           grid.appendChild(node);
         });
       } catch { /* 목록 비워둠 */ }

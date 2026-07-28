@@ -34,7 +34,8 @@
 body[data-page="home"],
 body[data-page="cert"],
 body[data-page="faq"],
-body[data-page="curriculum"] {
+body[data-page="curriculum"],
+body[data-page="mypage"] {
   --green: var(--beige-700);
   --green-light: var(--beige-400);
   --dark: var(--navy-900);
@@ -2180,6 +2181,21 @@ body.lp2-page { background: var(--grey-bg); }
   opacity: 0.5;
   font-size: 14px;
   line-height: 22px;
+}
+
+.mp-dockplayer-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.mp-dockplayer-row .btn-fill {
+  display: inline-block;
+  padding: 12px 22px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
 }
 
 /* ── FAQ page ── */
