@@ -95,7 +95,7 @@ CSS 변수가 두 곳에 선언되어 있어 주의 필요:
 
 - 폰트: SUIT (CDN), Noto Serif KR, Nanum Brush Script (Google Fonts)
 - 영상/이미지 CDN: `img.wecandoeat.com`
-- OG 이미지: `https://img.wecandoeat.com/uploads/logo_resize.png`
+- OG 이미지: `https://dockteacher.co.kr/assets/og/dockpass-og-dark.png` (`public-figma/assets/og/dockpass-og-dark.png`)
 - HLS 재생: hls.js (jsDelivr CDN, `index.html`에서 `script.js`보다 먼저 로드)
 
 ## Git
