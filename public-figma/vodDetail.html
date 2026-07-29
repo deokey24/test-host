@@ -35,6 +35,7 @@
 .tagchips{display:flex;gap:8px;flex-wrap:wrap}.tagchip{border:1px solid rgba(255,255,255,.3);color:#dbe3ee;border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:700}
 .hero-side{display:flex;flex-direction:column;justify-content:center;height:100%}
 .hstats{display:grid;grid-template-columns:1fr 1fr;gap:16px 22px;padding-top:20px}.hstat{display:flex;gap:11px;align-items:center}.hstat-ico{color:var(--beige-400);display:flex;align-items:center}.hstat-ico svg{width:22px;height:22px}.hstat small{display:block;color:#aeb9c9;font-size:12px;white-space:nowrap}.hstat b{font-size:16px;white-space:nowrap}
+.prof-strip{display:flex;align-items:center;flex-wrap:wrap;gap:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:16px 18px;margin-top:24px}.prof-avatar{width:78px;aspect-ratio:3/4;border-radius:12px;background:linear-gradient(#dde4ec,#9eabbc);flex:none;overflow:hidden;display:block}.prof-avatar img{width:100%;height:100%;object-fit:cover;object-position:50% 15%;transform:scale(1.55);transform-origin:50% 15%;display:block}.prof-strip b{display:block}.prof-strip small{color:#aeb9c9;font-size:12.5px;line-height:1.6}
 .detail-body{display:grid;grid-template-columns:1fr 340px;gap:32px;align-items:start}.detail-body-main{min-width:0}
 .purchase-card{border:1px solid var(--line);border-radius:18px;padding:24px;background:#fff;box-shadow:var(--shadow-sm);position:sticky;top:146px;margin-top:66px}
 .purchase-card h4{margin:0 0 12px;font-size:17px;color:var(--navy-900)}.old{color:var(--muted);text-decoration:line-through;font-size:13px}.price-row{display:flex;align-items:center;gap:10px;margin:2px 0 14px}.purchase-card .price{font-size:33px;font-weight:900;color:var(--navy-900)}.sale-pill{background:var(--beige-100);border:1px solid var(--beige-500);color:var(--beige-700);font-size:11.5px;font-weight:900;border-radius:999px;padding:4px 9px}
@@ -98,9 +99,10 @@
 </div>
 <div class="hero-side">
 <div class="hstats">
-<div class="hstat"><span class="hstat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7.5" width="13" height="11" rx="1.6"/><path d="M7 4.5h13v11"/><path d="m9 11 3.5 2L9 15v-4Z"/></svg></span><div><small>강의 수</small><b id="heroStatLectures">13강</b></div></div><div class="hstat"><span class="hstat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5.5" width="16" height="14" rx="1.6"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg></span><div><small>수강 기간</small><b>12개월</b></div></div>
-<div class="hstat"><span class="hstat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="3.5" width="12" height="17" rx="1.6"/><path d="M7.5 8h6M7.5 11.5h4"/><path d="m13.8 18.5 5.5-5.5 1.7 1.7-5.5 5.5-2.3.6.6-2.3Z"/></svg></span><div><small>첨삭 여부</small><b id="heroStatFeedback">첨삭 제공</b></div></div>
+<div class="hstat"><span class="hstat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7.5" width="13" height="11" rx="1.6"/><path d="M7 4.5h13v11"/><path d="m9 11 3.5 2L9 15v-4Z"/></svg></span><div><small>강의 수</small><b id="heroStatLectures">13강</b></div></div><div class="hstat"><span class="hstat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg></span><div><small>수강 시간</small><b id="heroStatDuration">-</b></div></div>
+<div class="hstat" id="heroStatFeedbackRow"><span class="hstat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="3.5" width="12" height="17" rx="1.6"/><path d="M7.5 8h6M7.5 11.5h4"/><path d="m13.8 18.5 5.5-5.5 1.7 1.7-5.5 5.5-2.3.6.6-2.3Z"/></svg></span><div><small>첨삭 여부</small><b id="heroStatFeedback">첨삭 제공</b></div></div>
 </div>
+<div class="prof-strip" id="heroProfStrip" style="display:none;"><span class="prof-avatar"><img id="heroProfAvatar" src="" alt="대표 강사"></span><div><b id="heroProfName"></b><small id="heroProfIntro"></small></div></div>
 </div>
 </div></section>
 
@@ -199,12 +201,14 @@ async function loadHero(){
       const lectures=await fetch(`/api/vod-courses/${course.id}/lectures`).then(r=>r.ok?r.json():Promise.reject());
       lectureCount=lectures.length;
     }catch{}
-    const heroBreadcrumb=$('#heroBreadcrumb'),heroTitle=$('#heroTitle'),heroLectureCountSmall=$('#heroLectureCountSmall'),heroLead=$('#heroLead'),heroTags=$('#heroTags');
+    const heroBreadcrumb=$('#heroBreadcrumb'),heroTitle=$('#heroTitle'),heroLectureCountSmall=$('#heroLectureCountSmall'),heroLead=$('#heroLead'),heroTags=$('#heroTags'),heroStatLectures=$('#heroStatLectures'),heroStatDuration=$('#heroStatDuration');
     if(heroBreadcrumb)heroBreadcrumb.textContent=baseTitle;
     if(heroTitle&&heroLectureCountSmall){
       heroTitle.childNodes[0].textContent=baseTitle+' ';
       heroLectureCountSmall.textContent=lectureCount!=null?`(전 ${lectureCount}강)`:'';
     }
+    if(heroStatLectures)heroStatLectures.textContent=lectureCount!=null?`${lectureCount}강`:'-';
+    if(heroStatDuration)heroStatDuration.textContent=course.total_duration_text||'-';
     if(heroLead&&course.description)heroLead.textContent=course.description;
     const pcTitle=$('#pcTitle'),pcOldPrice=$('#pcOldPrice'),pcPrice=$('#pcPrice'),pcSalePill=$('#pcSalePill');
     if(pcTitle)pcTitle.textContent=baseTitle;
@@ -230,6 +234,23 @@ async function loadHero(){
       }else{
         feedbackRow.style.display='none';
       }
+    }
+    if(course.instructor_id){
+      try{
+        const instructors=await fetch('/api/instructors').then(r=>r.ok?r.json():Promise.reject());
+        const instructor=instructors.find(i=>String(i.id)===String(course.instructor_id));
+        if(instructor){
+          const profStrip=$('#heroProfStrip'),nameEl=$('#heroProfName'),introEl=$('#heroProfIntro'),avatarEl=$('#heroProfAvatar');
+          const name=instructor.name||'';
+          if(nameEl)nameEl.textContent=name;
+          if(avatarEl&&instructor.thumbnail_url){avatarEl.src=instructor.thumbnail_url;avatarEl.alt=name;}
+          if(introEl){
+            const lines=(instructor.intro||'').split('\n').map(l=>l.trim()).filter(Boolean);
+            if(lines.length)introEl.innerHTML=lines.map(l=>'· '+escapeLecHtml(l)).join('<br>');
+          }
+          if(profStrip)profStrip.style.display='';
+        }
+      }catch{}
     }
   }catch{}
 }
