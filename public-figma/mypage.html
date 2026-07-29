@@ -33,6 +33,13 @@
   .header .mobile-toggle{display:block}
   .header__actions .btn{padding:10px 13px}
 }
+.req{color:#d64545;margin-left:2px;font-weight:800}
+.mp-addr-row{display:flex;gap:8px}
+.mp-addr-row input{flex:1;min-width:0}
+.mp-addr-search-btn{flex:none;border:1px solid var(--border);background:var(--white);color:var(--black);font-size:13px;font-weight:700;border-radius:10px;padding:0 16px;cursor:pointer;white-space:nowrap}
+.mp-addr-search-btn:hover{border-color:var(--beige-700);color:var(--beige-700)}
+#mpAddressForm .auth-field input[readonly]{background:var(--beige-50);cursor:pointer}
+#mpAddressForm .auth-field:not(:first-child){margin-top:12px}
 </style>
 </head>
 <body data-page="mypage">
@@ -129,7 +136,32 @@
               <div class="cd-panel-row"><span class="key">이름</span><span class="val" id="mpInfoName">-</span></div>
               <div class="cd-panel-row"><span class="key">이메일</span><span class="val" id="mpInfoEmail">-</span></div>
               <div class="cd-panel-row"><span class="key">휴대폰</span><span class="val" id="mpInfoMobile">-</span></div>
+              <div class="cd-panel-row"><span class="key">주소</span><span class="val" id="mpInfoAddress">-</span></div>
             </div>
+          </div>
+
+          <div class="vod-info-card" style="margin-top:16px;">
+            <div class="label">주소 수정</div>
+            <form id="mpAddressForm" style="margin-top:16px;">
+              <div class="auth-field">
+                <label for="mpPostalCode">우편번호<span class="req">*</span></label>
+                <div class="mp-addr-row">
+                  <input type="text" id="mpPostalCode" maxlength="5" inputmode="numeric" required readonly>
+                  <button type="button" class="mp-addr-search-btn" id="mpPostalSearchBtn">주소 검색</button>
+                </div>
+              </div>
+              <div class="auth-field">
+                <label for="mpRoadAddress">도로명주소<span class="req">*</span></label>
+                <input type="text" id="mpRoadAddress" required readonly>
+              </div>
+              <div class="auth-field">
+                <label for="mpDetailAddress">상세주소<span class="req">*</span></label>
+                <input type="text" id="mpDetailAddress" required>
+              </div>
+              <div class="auth-error-msg" id="mpAddressErrorMsg" style="display:none;"></div>
+              <div class="auth-error-msg" id="mpAddressSuccessMsg" style="display:none; color:var(--green);"></div>
+              <button type="submit" class="btn-fill auth-submit-btn" id="mpAddressSubmitBtn">주소 저장</button>
+            </form>
           </div>
         </div>
 
@@ -228,7 +260,62 @@
         document.getElementById('mpInfoName').textContent = data.name || '-';
         document.getElementById('mpInfoEmail').textContent = data.email || '-';
         document.getElementById('mpInfoMobile').textContent = data.mobile || data.phone || '-';
+        document.getElementById('mpInfoAddress').textContent = data.road_address
+          ? `[${data.postal_code || ''}] ${data.road_address} ${data.detail_address || ''}`.trim()
+          : '-';
+        document.getElementById('mpPostalCode').value = data.postal_code || '';
+        document.getElementById('mpRoadAddress').value = data.road_address || '';
+        document.getElementById('mpDetailAddress').value = data.detail_address || '';
       } catch { /* 표시값은 기본 '-' 유지 */ }
+    }
+
+    function searchMpAddress() {
+      openDaumPostcode(({ postalCode, roadAddress }) => {
+        document.getElementById('mpPostalCode').value = postalCode;
+        document.getElementById('mpRoadAddress').value = roadAddress;
+        document.getElementById('mpDetailAddress').focus();
+      });
+    }
+
+    async function submitMyAddress(e) {
+      e.preventDefault();
+      const postalCode = document.getElementById('mpPostalCode').value.trim();
+      const roadAddress = document.getElementById('mpRoadAddress').value.trim();
+      const detailAddress = document.getElementById('mpDetailAddress').value.trim();
+      const errEl = document.getElementById('mpAddressErrorMsg');
+      const okEl = document.getElementById('mpAddressSuccessMsg');
+      errEl.style.display = 'none';
+      okEl.style.display = 'none';
+
+      if (!postalCode || !roadAddress || !detailAddress) {
+        errEl.textContent = '주소를 입력해주세요.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      const submitBtn = document.getElementById('mpAddressSubmitBtn');
+      submitBtn.disabled = true;
+      try {
+        const res = await fetch('/api/members/address', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ postalCode, roadAddress, detailAddress })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          errEl.textContent = data.error || '주소 저장에 실패했습니다.';
+          errEl.style.display = 'block';
+          return;
+        }
+        document.getElementById('mpInfoAddress').textContent = `[${postalCode}] ${roadAddress} ${detailAddress}`;
+        okEl.textContent = '주소가 저장되었습니다.';
+        okEl.style.display = 'block';
+      } catch {
+        errEl.textContent = '서버와 통신 중 오류가 발생했습니다.';
+        errEl.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+      }
     }
 
     async function loadMyDevices() {
@@ -327,6 +414,11 @@
 
     document.getElementById('mpPasswordForm').addEventListener('submit', submitChangePassword);
 
+    document.getElementById('mpPostalSearchBtn').addEventListener('click', searchMpAddress);
+    document.getElementById('mpPostalCode').addEventListener('click', searchMpAddress);
+    document.getElementById('mpRoadAddress').addEventListener('click', searchMpAddress);
+    document.getElementById('mpAddressForm').addEventListener('submit', submitMyAddress);
+
     document.getElementById('mpLogoutBtn').addEventListener('click', async () => {
       await doLogout();
       window.location.href = 'index.html';
@@ -375,7 +467,8 @@
 
 </div>
 <script>document.querySelector('.mobile-toggle')?.addEventListener('click',()=>document.querySelector('.header .nav')?.classList.toggle('open'));</script>
-<script src="site-content.js?v=20260728"></script>
+<script src="site-content.js?v=20260729"></script>
 <script src="auth.js?v=20260728"></script>
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 </body>
 </html>

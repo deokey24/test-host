@@ -122,6 +122,12 @@ ALTER TABLE members
   ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255) DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS reset_token_expires DATETIME DEFAULT NULL;
 
+-- 주소 (2026-07-29 회원가입 주소 항목 + 다음 우편번호 서비스 연동 추가)
+ALTER TABLE members
+  ADD COLUMN IF NOT EXISTS postal_code VARCHAR(10) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS road_address VARCHAR(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS detail_address VARCHAR(255) DEFAULT NULL;
+
 -- 마이페이지 기기 관리 (OTT 방식, 회원당 최대 3개 기기 등록 — server.js에서 강제)
 -- token_id: 네이티브 앱(일렉트론/RN) 로그인으로 만들어진 기기는 api_tokens.id를 연결해
 -- 마이페이지에서 기기 삭제 시 해당 토큰도 같이 폐기한다. 웹 브라우저 로그인은 NULL.
@@ -750,6 +756,25 @@ CREATE TABLE IF NOT EXISTS instructors (
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- ── 학습소개 탭 (intro.html 좌측 탭 목록 + 탭별 상세 이미지) ──
+-- 기존에는 편입논술/경찰대 로드맵 2개 탭이 하드코딩되어 있었으나(site_sections page=intro
+-- section_key=content), 관리자가 탭을 자유롭게 추가/수정/삭제/순서변경할 수 있도록 전용 테이블로 분리.
+-- image_url은 /uploads/site/intro/... (ALLOWED_UPLOAD_SCOPES의 'intro' scope 재사용)
+CREATE TABLE IF NOT EXISTS intro_tabs (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  label VARCHAR(100) NOT NULL,
+  image_url VARCHAR(500) DEFAULT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+INSERT INTO intro_tabs (label, image_url, sort_order)
+SELECT * FROM (
+  SELECT '편입논술' AS label, 'assets/intro/intro-detail.png' AS image_url, 0 AS sort_order UNION ALL
+  SELECT '경찰대 로드맵', 'assets/intro/police-detail.png', 1
+) AS seed
+WHERE NOT EXISTS (SELECT 1 FROM intro_tabs);
 
 -- ── VOD 강좌별 Q&A 게시판 (vodDetail.html QnA 탭, FAQ 탭 대체) ──
 -- 비밀글(is_secret)은 애플리케이션 레이어에서 작성자 본인 + 관리자(강사)만 열람 가능하도록 마스킹한다.

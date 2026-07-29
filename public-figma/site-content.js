@@ -9,6 +9,24 @@ function escapeCmsHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// ── 다음(카카오) 우편번호 서비스 팝업 — join.html/mypage.html 공용 ──
+// 무료 서비스, API 키 불필요. 스크립트는 각 페이지에서
+// <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>로 미리 로드해둔다.
+function openDaumPostcode(onComplete) {
+  if (typeof daum === 'undefined' || !daum.Postcode) {
+    alert('주소 검색 서비스를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+    return;
+  }
+  new daum.Postcode({
+    oncomplete(data) {
+      onComplete({
+        postalCode: data.zonecode,
+        roadAddress: data.roadAddress || data.jibunAddress
+      });
+    }
+  }).open();
+}
+
 // ── 최근에 둘러본 VOD 강좌 (localStorage) — vodDetail.html에서 기록, vod.html 사이드바에서 표시 ──
 const RECENT_VOD_COURSES_KEY = 'dockRecentlyViewedVodCourses';
 const RECENT_VOD_COURSES_MAX = 6;
@@ -720,7 +738,7 @@ async function fetchFaqItems() {
   }
 }
 
-async function hydrateFaqList() {
+async function hydrateFaqList(limit) {
   const wrap = document.querySelector('[data-cms-faq-list]');
   if (!wrap) return;
   const rows = await fetchFaqItems();
@@ -728,7 +746,7 @@ async function hydrateFaqList() {
   const template = wrap.querySelector('template');
   if (!template) return;
   [...wrap.children].filter(c => c.tagName !== 'TEMPLATE').forEach(c => c.remove());
-  rows.forEach((item, i) => {
+  (limit ? rows.slice(0, limit) : rows).forEach((item, i) => {
     const node = template.content.firstElementChild.cloneNode(true);
     if (i === 0) node.classList.add('open');
     node.querySelector('.q-text').textContent = item.question || '';
@@ -819,7 +837,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (page === 'vod') hydrateVodGrid();
   if (page === 'curriculum') hydrateVodCurriculum();
-  if (page === 'home') { hydrateHomeVodPreview(); hydrateHomeGalleryPreview(); }
+  if (page === 'home') { hydrateHomeVodPreview(); hydrateHomeGalleryPreview(); hydrateFaqList(3); }
   if (page === 'cert') hydrateCertGallery();
   if (page === 'faq') { hydrateFaqList(); hydrateNoticeList(); }
   if (page === 'notice') { hydrateFaqList(); hydrateNoticeList(); }

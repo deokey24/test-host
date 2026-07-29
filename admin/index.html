@@ -18,6 +18,7 @@
     <nav class="sidebar-nav">
       <button class="side-link active" data-target="homeSection">메인 페이지</button>
       <button class="side-link" data-target="vodSection">VOD 강좌</button>
+      <button class="side-link" data-target="introSection">학습소개</button>
       <button class="side-link" data-target="certSection">합격 인증</button>
       <button class="side-link" data-target="faqSection">FAQ</button>
       <button class="side-link" data-target="reviewsSection">수강후기</button>
@@ -432,6 +433,54 @@
           </div>
         </div>
       </section>
+
+      <section id="introSection" class="admin-section">
+        <div class="card">
+          <h2>타이틀</h2>
+          <div class="field-row">
+            <label class="field-label">제목</label>
+            <input type="text" id="intro-hero-title" placeholder="예: 학습소개">
+          </div>
+          <div class="field-row">
+            <label class="field-label">내용</label>
+            <textarea id="intro-hero-body" rows="2"></textarea>
+          </div>
+          <button class="btn" id="intro-hero-save" type="button">저장</button>
+          <div class="status-text" id="intro-hero-status"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h2>탭 관리</h2>
+            <button class="btn" id="intro-tab-add" type="button">+ 탭 추가</button>
+          </div>
+          <p class="field-hint" style="margin-top:6px;">탭 이름을 클릭해 수정하고, 썸네일을 클릭해 상세 이미지를 바꿀 수 있습니다. 드래그로 순서를 바꿀 수 있습니다.</p>
+          <ul class="drag-list" id="intro-tab-list" style="margin-top:10px;"></ul>
+          <div class="status-text" id="intro-tab-status"></div>
+        </div>
+      </section>
+
+      <div class="modal-overlay" id="introTabModalOverlay">
+        <div class="modal-box">
+          <div class="modal-head">
+            <h2>탭 추가</h2>
+            <button class="row-btn" id="introTabModalCloseBtn" type="button">닫기</button>
+          </div>
+          <div class="field-grid">
+            <div class="field-row full">
+              <label class="field-label">탭 이름 *</label>
+              <input type="text" id="itName" placeholder="예: 편입논술">
+            </div>
+            <div class="field-row full">
+              <label class="field-label">상세 이미지</label>
+              <div class="file-row"><input type="file" id="itFile" accept="image/*"></div>
+              <img id="itPreview" src="" alt="" style="max-width:220px;margin-top:8px;border-radius:8px;display:none;">
+            </div>
+          </div>
+          <button class="btn" id="introTabModalSaveBtn" type="button">추가</button>
+          <div class="status-text" id="introTabModalStatus"></div>
+        </div>
+      </div>
 
       <section id="certSection" class="admin-section">
         <div class="card">
@@ -1003,6 +1052,7 @@
 <script src="/admin/cms.js"></script>
 <script src="/admin/home.js"></script>
 <script src="/admin/vod.js"></script>
+<script src="/admin/intro.js"></script>
 <script src="/admin/cert.js"></script>
 <script src="/admin/faq.js"></script>
 <script src="/admin/reviews.js"></script>

@@ -1103,6 +1103,7 @@ app.get('/admin/api/members', requireAdminApi, async (req, res) => {
 app.get('/admin/api/members/:id', requireAdminApi, wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
     `SELECT id, username, name, birth_date, member_group, phone, mobile, email,
+            postal_code, road_address, detail_address,
             signup_channel, search_keyword, referrer_code,
             email_marketing_consent, sms_marketing_consent,
             joined_at, general_notes, consultation_notes,
@@ -1545,11 +1546,12 @@ app.post('/api/members/check-username', async (req, res) => {
 app.post('/api/members/signup', async (req, res) => {
   const {
     username, password, email, name, birthDate, phone, mobile,
+    postalCode, roadAddress, detailAddress,
     signupChannel, searchKeyword, referrerCode, emailConsent, smsConsent,
     deviceId, keepLoggedIn
   } = req.body;
 
-  if (!username || !password || !email || !name) {
+  if (!username || !password || !email || !name || !postalCode || !roadAddress || !detailAddress) {
     res.status(400).json({ error: '필수 항목을 모두 입력해주세요.' });
     return;
   }
@@ -1568,10 +1570,11 @@ app.post('/api/members/signup', async (req, res) => {
   try {
     const [result] = await getPool().query(
       `INSERT INTO members
-        (username, password, name, birth_date, member_group, phone, mobile, email, signup_channel, search_keyword, referrer_code, email_marketing_consent, sms_marketing_consent, joined_at)
-       VALUES (?, ?, ?, ?, '1001', ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        (username, password, name, birth_date, member_group, phone, mobile, email, postal_code, road_address, detail_address, signup_channel, search_keyword, referrer_code, email_marketing_consent, sms_marketing_consent, joined_at)
+       VALUES (?, ?, ?, ?, '1001', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         username, passwordHash, name, birthDate || null, phone || null, mobile || null, email,
+        postalCode, roadAddress, detailAddress,
         channelStr, searchKeyword || null, referrerCode || null,
         emailConsent === '1' ? '허용' : '거부',
         smsConsent === '1' ? '허용' : '거부'
@@ -1804,7 +1807,7 @@ app.get('/api/v1/lectures/:id/playback', requireApiToken, wrapAsync(async (req, 
 
 app.get('/api/members/my-info', requireMember, wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
-    'SELECT username, name, email, phone, mobile FROM members WHERE id = ?',
+    'SELECT username, name, email, phone, mobile, postal_code, road_address, detail_address FROM members WHERE id = ?',
     [req.session.memberId]
   );
   if (!rows[0]) {
@@ -1812,6 +1815,19 @@ app.get('/api/members/my-info', requireMember, wrapAsync(async (req, res) => {
     return;
   }
   res.json(rows[0]);
+}));
+
+app.put('/api/members/address', requireMember, wrapAsync(async (req, res) => {
+  const { postalCode, roadAddress, detailAddress } = req.body;
+  if (!postalCode || !roadAddress || !detailAddress) {
+    res.status(400).json({ error: '주소를 모두 입력해주세요.' });
+    return;
+  }
+  await getPool().query(
+    'UPDATE members SET postal_code = ?, road_address = ?, detail_address = ? WHERE id = ?',
+    [postalCode, roadAddress, detailAddress, req.session.memberId]
+  );
+  res.json({ ok: true });
 }));
 
 app.post('/api/members/change-password', requireMember, wrapAsync(async (req, res) => {
@@ -2011,7 +2027,7 @@ app.delete('/api/members/devices/:id', requireMember, wrapAsync(async (req, res)
 // ══════════════════════════════════════════════════════════════════
 
 const ALLOWED_UPLOAD_SCOPES = [
-  'home-hero', 'home-online-class', 'home-why', 'vod-course', 'cert-gallery', 'notice', 'instructor', 'popup'
+  'home-hero', 'home-online-class', 'home-why', 'vod-course', 'cert-gallery', 'notice', 'instructor', 'popup', 'intro'
 ];
 
 app.post('/admin/api/site/upload/presign', requireAdminApi, wrapAsync(async (req, res) => {
@@ -2814,6 +2830,50 @@ app.put('/admin/api/instructors/:id', requireAdminApi, wrapAsync(async (req, res
 app.delete('/admin/api/instructors/:id', requireAdminApi, wrapAsync(async (req, res) => {
   const [result] = await getPool().query('DELETE FROM instructors WHERE id = ?', [req.params.id]);
   if (result.affectedRows === 0) { res.status(404).json({ error: '강사를 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+// ── intro_tabs — 학습소개 탭 목록 (관리자가 자유롭게 추가/수정/삭제/순서변경) ──
+app.get('/api/intro-tabs', wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query('SELECT id, label, image_url, sort_order FROM intro_tabs ORDER BY sort_order, id');
+  res.json(rows);
+}));
+
+app.get('/admin/api/intro-tabs', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query('SELECT * FROM intro_tabs ORDER BY sort_order, id');
+  res.json(rows);
+}));
+
+app.post('/admin/api/intro-tabs', requireAdminApi, wrapAsync(async (req, res) => {
+  const { label, image_url, sort_order } = req.body;
+  if (!label || !String(label).trim()) { res.status(400).json({ error: '탭 이름이 필요합니다.' }); return; }
+  const [result] = await getPool().query(
+    'INSERT INTO intro_tabs (label, image_url, sort_order) VALUES (?, ?, ?)',
+    [String(label).trim(), image_url ? String(image_url).trim() : null, parseInt(sort_order, 10) || 0]
+  );
+  res.json({ ok: true, id: result.insertId });
+}));
+
+app.put('/admin/api/intro-tabs/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const { label, image_url, sort_order } = req.body;
+  const fields = [];
+  const values = [];
+  if (label !== undefined) {
+    if (!String(label).trim()) { res.status(400).json({ error: '탭 이름이 필요합니다.' }); return; }
+    fields.push('label = ?'); values.push(String(label).trim());
+  }
+  if (image_url !== undefined) { fields.push('image_url = ?'); values.push(image_url ? String(image_url).trim() : null); }
+  if (sort_order !== undefined) { fields.push('sort_order = ?'); values.push(parseInt(sort_order, 10) || 0); }
+  if (fields.length === 0) { res.status(400).json({ error: '변경할 값이 없습니다.' }); return; }
+  values.push(req.params.id);
+  const [result] = await getPool().query(`UPDATE intro_tabs SET ${fields.join(', ')} WHERE id = ?`, values);
+  if (result.affectedRows === 0) { res.status(404).json({ error: '탭을 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+app.delete('/admin/api/intro-tabs/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const [result] = await getPool().query('DELETE FROM intro_tabs WHERE id = ?', [req.params.id]);
+  if (result.affectedRows === 0) { res.status(404).json({ error: '탭을 찾을 수 없습니다.' }); return; }
   res.json({ ok: true });
 }));
 
