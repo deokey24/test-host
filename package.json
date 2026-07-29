@@ -17,7 +17,8 @@
     "bcryptjs": "^3.0.3",
     "express": "^4.19.2",
     "express-session": "^1.18.0",
-    "mysql2": "^3.22.5"
+    "mysql2": "^3.22.5",
+    "puppeteer": "^24.43.1"
   },
   "devDependencies": {
     "playwright": "^1.62.0"

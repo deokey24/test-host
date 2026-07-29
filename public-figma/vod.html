@@ -112,7 +112,6 @@ function courseMetaHtml(c){
   const items=[];
   if(c.lecture_count)items.push(`<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5" width="16" height="14" rx="1.6"/><path d="M4 9.5h16"/></svg>총 ${c.lecture_count}강</span>`);
   if(c.total_duration_text)items.push(`<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>${escapeCourseHtml(c.total_duration_text)}</span>`);
-  if(c.difficulty_visible&&c.difficulty)items.push(`<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19.5c1.1-3.2 3.5-4.7 6.5-4.7s5.4 1.5 6.5 4.7"/></svg>${escapeCourseHtml(c.difficulty)}</span>`);
   return items.join('');
 }
 function coursePriceHtml(c){

@@ -99,9 +99,7 @@
 </div>
 <div class="hero-side">
 <div class="hstats">
-<div class="hstat"><span class="hstat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7.5" width="13" height="11" rx="1.6"/><path d="M7 4.5h13v11"/><path d="m9 11 3.5 2L9 15v-4Z"/></svg></span><div><small>강의 수</small><b id="heroStatLectures">13강</b></div></div>
-<div class="hstat" id="heroStatDifficultyRow"><span class="hstat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 20h16"/><path d="M7.5 20v-6M12 20V9.5M16.5 20V5"/></svg></span><div><small>난이도</small><b id="heroStatDifficulty">중상</b></div></div>
-<div class="hstat"><span class="hstat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5.5" width="16" height="14" rx="1.6"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg></span><div><small>수강 기간</small><b>12개월</b></div></div>
+<div class="hstat"><span class="hstat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7.5" width="13" height="11" rx="1.6"/><path d="M7 4.5h13v11"/><path d="m9 11 3.5 2L9 15v-4Z"/></svg></span><div><small>강의 수</small><b id="heroStatLectures">13강</b></div></div><div class="hstat"><span class="hstat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5.5" width="16" height="14" rx="1.6"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg></span><div><small>수강 기간</small><b>12개월</b></div></div>
 <div class="hstat"><span class="hstat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="3.5" width="12" height="17" rx="1.6"/><path d="M7.5 8h6M7.5 11.5h4"/><path d="m13.8 18.5 5.5-5.5 1.7 1.7-5.5 5.5-2.3.6.6-2.3Z"/></svg></span><div><small>첨삭 여부</small><b id="heroStatFeedback">첨삭 제공</b></div></div>
 </div>
 <div class="prof-strip" id="heroProfStrip"><span class="prof-avatar"><img id="heroProfAvatar" src="https://sajinkwan.com/wp-content/uploads/2018/11/%EA%B0%95%EB%8F%8C%EC%9D%B4_%EC%A6%9D%EB%AA%85.jpg" alt="대표 강사"></span><div><b id="heroProfName">대표 강사 서도윤</b><small id="heroProfIntro">· 연세대·고려대 논술 다수 합격자 배출<br>· 논리적 사고와 구조화의 강한 첨삭 및 피드백</small></div></div>
@@ -225,15 +223,6 @@ async function loadHero(){
     if(heroTags){
       const tags=(course.tags_text||'').split(',').map(t=>t.trim()).filter(Boolean);
       if(tags.length)heroTags.innerHTML=tags.map(t=>`<span class="tagchip">${escapeLecHtml(t)}</span>`).join('');
-    }
-    const diffRow=$('#heroStatDifficultyRow'),diffEl=$('#heroStatDifficulty');
-    if(diffRow){
-      if(course.difficulty_visible&&course.difficulty){
-        diffRow.style.display='';
-        if(diffEl)diffEl.textContent=course.difficulty;
-      }else{
-        diffRow.style.display='none';
-      }
     }
     const feedbackRow=$('#heroStatFeedbackRow'),feedbackEl=$('#heroStatFeedback');
     if(feedbackRow){
