@@ -111,7 +111,9 @@ function courseThumbHtml(c){
 function courseMetaHtml(c){
   const items=[];
   if(c.lecture_count)items.push(`<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5" width="16" height="14" rx="1.6"/><path d="M4 9.5h16"/></svg>총 ${c.lecture_count}강</span>`);
-  if(c.total_duration_text)items.push(`<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>${escapeCourseHtml(c.total_duration_text)}</span>`);
+  // 시계 아이콘 칸은 총 재생시간이 아니라 수강기간(access_days)을 보여준다 — 상세 히어로의 "수강 기간"과 같은 값.
+  const periodText=c.access_days>0?`수강기간 ${c.access_days}일`:'수강기간 무제한';
+  items.push(`<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>${escapeCourseHtml(periodText)}</span>`);
   return items.join('');
 }
 function coursePriceHtml(c){
