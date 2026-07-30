@@ -134,13 +134,17 @@ async function loadVodEnrollments() {
   const rows = await apiFetch(`/admin/api/members/${enrollMemberId}/vod-enrollments`);
   document.getElementById('enrollVodList').innerHTML = rows.length ? rows.map(r => `
     <tr>
-      <td>${escapeHtml(r.name)}</td>
+      <td>${escapeHtml(r.name)}${r.is_ended ? ' <span class="badge badge-off">강좌 종료</span>' : r.is_expired ? ' <span class="badge badge-off">기간 만료</span>' : ''}</td>
       <td>${escapeHtml(r.status || '진행중')}</td>
+      <td>
+        <input type="date" data-vod-expires-id="${r.id}" value="${r.expires_at ? String(r.expires_at).slice(0, 10) : ''}" style="margin-bottom:0;">
+        <div class="field-hint">비우면 무제한</div>
+      </td>
       <td><input type="text" data-vod-note-id="${r.id}" value="${escapeHtml(r.progress_note || '')}" placeholder="관리자 메모" style="width:100%; min-width:220px;"></td>
       <td>${r.source === 'payment' ? '결제' : '관리자'}</td>
       <td><button class="row-btn danger" data-vod-remove-id="${r.id}" type="button">삭제</button></td>
     </tr>
-  `).join('') : '<tr><td colspan="5" class="field-hint">등록된 VOD 강좌가 없습니다.</td></tr>';
+  `).join('') : '<tr><td colspan="6" class="field-hint">등록된 VOD 강좌가 없습니다.</td></tr>';
 }
 
 document.getElementById('enrollVodAddBtn').addEventListener('click', async () => {
@@ -159,14 +163,30 @@ document.getElementById('enrollVodAddBtn').addEventListener('click', async () =>
   }
 });
 
-// 상태는 읽기 전용(텍스트) — 관리자메모만 수정 가능
+// 상태는 읽기 전용(텍스트) — 관리자메모와 수강 만료일만 수정 가능
 document.getElementById('enrollVodList').addEventListener('change', async (e) => {
   const noteId = e.target.dataset.vodNoteId;
-  if (!noteId) return;
-  await apiFetch(`/admin/api/members/${enrollMemberId}/vod-enrollments/${noteId}`, {
-    method: 'PUT',
-    body: JSON.stringify({ progressNote: e.target.value })
-  });
+  const expiresId = e.target.dataset.vodExpiresId;
+  if (noteId) {
+    await apiFetch(`/admin/api/members/${enrollMemberId}/vod-enrollments/${noteId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ progressNote: e.target.value })
+    });
+    return;
+  }
+  if (expiresId) {
+    const status = document.getElementById('enrollVodStatus');
+    try {
+      await apiFetch(`/admin/api/members/${enrollMemberId}/vod-enrollments/${expiresId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ expiresAt: e.target.value })
+      });
+      setStatus(status, '수강 만료일을 변경했습니다.', 'ok');
+      await loadVodEnrollments();
+    } catch (err) {
+      setStatus(status, err.message, 'error');
+    }
+  }
 });
 
 document.getElementById('enrollVodList').addEventListener('click', async (e) => {

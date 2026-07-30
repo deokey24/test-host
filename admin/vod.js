@@ -133,7 +133,9 @@ async function loadVodCourses() {
       <td>${escapeHtml(c.title)}</td>
       <td>${escapeHtml(c.category_label || '')}</td>
       <td>${escapeHtml(c.new_price)}</td>
-      <td><span class="badge ${c.is_active ? 'badge-on' : 'badge-off'}">${c.is_active ? '노출' : '숨김'}</span></td>
+      <td>${c.is_ended
+        ? `<span class="badge badge-off">종료됨</span>`
+        : `<span class="badge ${c.is_active ? 'badge-on' : 'badge-off'}">${c.is_active ? '노출' : '숨김'}</span>`}</td>
       <td>
         <button class="row-btn" data-edit-vod="${c.id}">수정</button>
         <button class="row-btn danger" data-delete-vod="${c.id}">삭제</button>
@@ -258,6 +260,9 @@ function fillVodForm(course) {
   document.getElementById('vfDifficulty').value = course?.difficulty || '';
   document.getElementById('vfDifficultyVisible').checked = course ? !!course.difficulty_visible : true;
   document.getElementById('vfHasFeedback').value = course?.has_feedback || '';
+  document.getElementById('vfAccessDays').value = course?.access_days || '';
+  // ends_at은 DATE 컬럼이지만 JSON 직렬화 과정에서 ISO 문자열로 오므로 앞 10자리만 잘라 <input type="date">에 넣는다.
+  document.getElementById('vfEndsAt').value = course?.ends_at ? String(course.ends_at).slice(0, 10) : '';
   document.getElementById('vfHasDiscount').checked = !!course?.old_price;
   document.getElementById('vfOldPrice').value = course?.old_price || '';
   document.getElementById('vfNewPrice').value = course?.new_price || '';
@@ -298,6 +303,8 @@ function readVodForm() {
     difficulty: document.getElementById('vfDifficulty').value.trim(),
     difficulty_visible: document.getElementById('vfDifficultyVisible').checked,
     has_feedback: document.getElementById('vfHasFeedback').value,
+    access_days: document.getElementById('vfAccessDays').value.trim(),
+    ends_at: document.getElementById('vfEndsAt').value,
     instructor_id: document.getElementById('vfInstructor').value,
     old_price: hasDiscount ? document.getElementById('vfOldPrice').value.trim() : '',
     new_price: document.getElementById('vfNewPrice').value.trim(),

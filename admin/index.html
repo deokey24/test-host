@@ -330,6 +330,16 @@
                 <label class="check-row"><input type="checkbox" id="vfDifficultyVisible" checked> 난이도 노출</label>
               </div>
               <div class="field-row">
+                <label class="field-label">수강 기간(일)</label>
+                <input type="number" id="vfAccessDays" min="1" placeholder="비워두면 무제한">
+                <p class="field-hint">구매일로부터 이 일수가 지나면 자동으로 수강이 종료됩니다. 기간을 나중에 바꿔도 이미 구매한 회원에게는 소급 적용되지 않습니다.</p>
+              </div>
+              <div class="field-row">
+                <label class="field-label">강좌 종료일</label>
+                <input type="date" id="vfEndsAt">
+                <p class="field-hint">이 날짜가 지나면 수강 기간이 남아 있어도 모든 수강생의 시청이 중단되고, 강좌가 사이트에서 숨겨집니다. (종료일 당일까지는 시청 가능)</p>
+              </div>
+              <div class="field-row">
                 <label class="field-label">첨삭 여부</label>
                 <select id="vfHasFeedback">
                   <option value="">선택 안 함</option>
@@ -1027,7 +1037,7 @@
             <button class="btn" id="enrollVodAddBtn" type="button">추가</button>
           </div>
           <table>
-            <thead><tr><th>강좌명</th><th>상태</th><th style="width:40%;">관리자메모</th><th>등록경로</th><th></th></tr></thead>
+            <thead><tr><th>강좌명</th><th>상태</th><th>수강 만료일</th><th style="width:32%;">관리자메모</th><th>등록경로</th><th></th></tr></thead>
             <tbody id="enrollVodList"></tbody>
           </table>
           <div class="status-text" id="enrollVodStatus"></div>

@@ -472,11 +472,96 @@ async function hydrateClassDetail() {
   if (oldPriceEl) { if (course.old_price) oldPriceEl.textContent = course.old_price; else oldPriceEl.remove(); }
   const newPriceEl = document.getElementById('cdNewPrice'); if (newPriceEl) newPriceEl.textContent = course.new_price || '';
 
-  wireVodCoursePayment(courseId);
+  wireVodCoursePayment(courseId, 'cdBuyBtn', course);
+}
+
+// ── VOD 수강기간(access_days) / 강좌 종료일(ends_at) 공용 계산 ──
+// 서버가 내려주는 두 값으로 "지금 구매하면 언제까지 볼 수 있는지"를 프론트에서 한 번만 계산해
+// 구매카드·경고문구·확인모달이 같은 숫자를 쓰게 한다.
+function parseVodDateOnly(value) {
+  if (!value) return null;
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return null;
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
+// 표기 형식: 2026. 08. 18 (일 뒤에는 마침표를 찍지 않는다)
+function formatVodDate(date) {
+  if (!date) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return `${date.getFullYear()}. ${pad(date.getMonth() + 1)}. ${pad(date.getDate())}`;
+}
+
+// 종료일 "당일까지" 시청 가능하므로 남은 일수에 오늘을 포함해서 센다 (종료일이 오늘이면 1일).
+function vodDaysRemaining(date) {
+  if (!date) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.floor((date - today) / 86400000) + 1;
+}
+
+// { accessDays, endsAt, untilDate, effectiveDays, cutByEnd, isEnded }
+// cutByEnd: 강좌 종료일이 수강기간보다 먼저 와서 수강기간을 다 못 쓰는 경우 → 구매 전 고지 대상.
+function computeVodAccessWindow(course) {
+  const accessDays = course && course.access_days > 0 ? Number(course.access_days) : null;
+  const endsAt = parseVodDateOnly(course && course.ends_at);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isEnded = !!(endsAt && endsAt < today);
+
+  let periodEnd = null;
+  if (accessDays) {
+    periodEnd = new Date(today);
+    periodEnd.setDate(periodEnd.getDate() + accessDays - 1);
+  }
+  const cutByEnd = !!(endsAt && !isEnded && (!periodEnd || endsAt < periodEnd));
+  const untilDate = cutByEnd ? endsAt : periodEnd;
+  return { accessDays, endsAt, untilDate, effectiveDays: vodDaysRemaining(untilDate), cutByEnd, isEnded };
+}
+
+// 수강기간을 다 쓰기 전에 강좌가 종료되는 경우, 결제창을 띄우기 전에 확인을 받는다.
+// (전자상거래 거래조건 고지 측면에서도 "몰랐다"는 분쟁을 줄이는 목적)
+function confirmVodPurchasePeriod(course) {
+  const window_ = computeVodAccessWindow(course);
+  if (!window_.cutByEnd) return Promise.resolve(true);
+
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'auth-modal-overlay open';
+    overlay.innerHTML = `
+      <div class="auth-modal-box" role="dialog" aria-modal="true" aria-labelledby="vodPeriodConfirmTitle" style="width:440px;">
+        <h2 id="vodPeriodConfirmTitle" style="margin:0 0 14px;font-size:19px;">수강 기간을 확인해주세요</h2>
+        <div style="background:#fdf5e9;border:1px solid var(--beige-500);border-radius:12px;padding:16px 18px;font-size:13.5px;line-height:1.7;color:var(--navy-900);">
+          이 강좌는 <b>${formatVodDate(window_.endsAt)}</b>에 종료됩니다.<br>
+          ${window_.accessDays ? `수강 기간 <b>${window_.accessDays}일</b>과 관계없이 종료일 이후에는 시청할 수 없습니다.<br>` : ''}
+          지금 결제하시면 실제 시청 가능 기간은 <b>${window_.effectiveDays}일</b>입니다.
+        </div>
+        <label style="display:flex;gap:8px;align-items:flex-start;margin:16px 0 18px;font-size:13px;line-height:1.6;cursor:pointer;">
+          <input type="checkbox" id="vodPeriodConfirmCheck" style="margin-top:3px;flex:none;">
+          <span>위 내용을 확인했으며, 이에 동의하고 결제를 진행합니다.</span>
+        </label>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="btn btn--outline" id="vodPeriodConfirmCancel" style="flex:1;">취소</button>
+          <button type="button" class="btn btn--primary" id="vodPeriodConfirmOk" style="flex:1;opacity:.5;pointer-events:none;">결제 진행</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const okBtn = overlay.querySelector('#vodPeriodConfirmOk');
+    const close = result => { overlay.remove(); resolve(result); };
+    overlay.querySelector('#vodPeriodConfirmCheck').addEventListener('change', e => {
+      okBtn.style.opacity = e.target.checked ? '' : '.5';
+      okBtn.style.pointerEvents = e.target.checked ? '' : 'none';
+    });
+    okBtn.addEventListener('click', () => close(true));
+    overlay.querySelector('#vodPeriodConfirmCancel').addEventListener('click', () => close(false));
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(false); });
+  });
 }
 
 // ── PayUp 표준결제 (VOD 강좌 구매) — classDetail.html(#cdBuyBtn)/vodDetail.html(#pcBuyBtn) 공용, 결제 완료/실패 결과는 paymentComplete.html에서 보여준다 ──
-function wireVodCoursePayment(vodCourseId, buttonId = 'cdBuyBtn') {
+// course를 넘기면 결제창 직전에 수강기간/종료일 확인 모달을 띄운다 (필요한 경우에만).
+function wireVodCoursePayment(vodCourseId, buttonId = 'cdBuyBtn', course = null) {
   const buyBtn = document.getElementById(buttonId);
   if (!buyBtn) return;
   // 페이지 로드 직후(비동기 fetch로 courseId를 확정하기 전) 버튼이 눌려도
@@ -490,6 +575,7 @@ function wireVodCoursePayment(vodCourseId, buttonId = 'cdBuyBtn') {
     const trigger = document.getElementById('loginTrigger');
     if (trigger && trigger.dataset.loggedIn !== 'true') { openLoginModal(); return; }
     if (typeof goPayupPay !== 'function') { alert('결제 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.'); return; }
+    if (course && !(await confirmVodPurchasePeriod(course))) return;
     buyBtn.style.pointerEvents = 'none';
     try {
       const res = await fetch('/api/payments/init', {
@@ -538,6 +624,18 @@ async function hydrateLecturePlayer() {
 
   const res = await fetch(`/api/members/my-vod-lectures/${courseId}`).catch(() => null);
   if (!res || !res.ok) {
+    // 미등록이면 조용히 홈으로 보내지만, 기간 만료/강좌 종료는 왜 못 보는지 알려줘야 재구매로 이어진다.
+    const reason = res ? await res.json().then(d => d.reason).catch(() => null) : null;
+    if (reason === 'expired') {
+      alert('수강 기간이 만료되었습니다. 다시 수강하시려면 재구매가 필요합니다.');
+      window.location.href = `vodDetail.html?id=${courseId}`;
+      return;
+    }
+    if (reason === 'course_ended') {
+      alert('종료된 강좌입니다. 더 이상 시청할 수 없습니다.');
+      window.location.href = 'mypage.html';
+      return;
+    }
     window.location.href = 'index.html';
     return;
   }

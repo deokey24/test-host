@@ -463,12 +463,9 @@ app.get('/api/stream/vod-lecture/:lectureId/master.m3u8', requireMemberOrApiToke
     res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
     return;
   }
-  const [enrollRows] = await getPool().query(
-    'SELECT id FROM member_vod_enrollments WHERE member_id = ? AND vod_course_id = ?',
-    [req.memberId, lecture.vod_course_id]
-  );
-  if (!enrollRows[0]) {
-    res.status(403).json({ error: '수강 중인 강좌가 아닙니다.' });
+  const access = await checkVodAccess(req.memberId, lecture.vod_course_id);
+  if (!access.ok) {
+    res.status(access.status).json({ error: access.error, reason: access.reason });
     return;
   }
   const manifest = await renderSignedManifest(lecture.video_r2_key, signKeyUrl(`/api/stream/vod-lecture/${req.params.lectureId}/key`));
@@ -1188,15 +1185,58 @@ app.delete('/admin/api/members/:id/enrollments/:enrollmentId', requireAdminApi, 
 }));
 
 // VOD 강좌 수강 등록 — enrollMemberInClass와 동일한 패턴, vod_courses 전용.
+// vod_courses.access_days가 설정돼 있으면 등록 시점 기준 만료일(expires_at)을 계산해 행에 박아둔다.
+// 스냅샷으로 저장하는 이유: 나중에 관리자가 강좌의 수강기간을 줄여도 기존 구매자에게 소급 적용되지 않고,
+// 개별 회원 연장(고객 응대)도 이 행 하나만 고치면 되기 때문.
 async function enrollMemberInVod(memberId, vodCourseId, source = 'admin', extra = {}) {
   const status = extra.status === '완료' ? '완료' : '진행중';
   const progressNote = extra.progressNote || null;
+  const [[course]] = await getPool().query('SELECT access_days FROM vod_courses WHERE id = ?', [vodCourseId]);
+  const accessDays = course && course.access_days > 0 ? course.access_days : null;
+
+  // 신규 등록은 오늘부터 access_days.
+  // 이미 행이 있을 때는 등록 경로에 따라 다르게 처리한다:
+  //  - 재구매(payment): 남은 기간에 이어서 연장. 만료됐으면 오늘부터 다시 시작.
+  //    단 기존 행이 무제한(expires_at IS NULL)이면 그대로 무제한 — 과거 구매자를 소급해서 제한하지 않는다.
+  //  - 관리자 재등록(admin): 의도적인 조작이므로 오늘부터 다시 계산한다.
+  const insertExpires = accessDays ? 'DATE_ADD(NOW(), INTERVAL ? DAY)' : 'NULL';
+  const updateExpires = accessDays
+    ? (source === 'payment'
+        ? 'IF(expires_at IS NULL, NULL, DATE_ADD(GREATEST(NOW(), expires_at), INTERVAL ? DAY))'
+        : 'DATE_ADD(NOW(), INTERVAL ? DAY)')
+    : 'NULL';
+  const params = [memberId, vodCourseId, status, progressNote, source];
+  if (accessDays) params.push(accessDays, accessDays);
+
   await getPool().query(
-    `INSERT INTO member_vod_enrollments (member_id, vod_course_id, status, progress_note, source)
-     VALUES (?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE status = VALUES(status), progress_note = VALUES(progress_note)`,
-    [memberId, vodCourseId, status, progressNote, source]
+    `INSERT INTO member_vod_enrollments (member_id, vod_course_id, status, progress_note, source, expires_at)
+     VALUES (?, ?, ?, ?, ?, ${insertExpires})
+     ON DUPLICATE KEY UPDATE status = VALUES(status), progress_note = VALUES(progress_note),
+       expires_at = ${updateExpires}`,
+    params
   );
+}
+
+// ── VOD 수강 접근 판정 (단일 진실공급원) ──
+// 수강권한 = 등록 존재 + 개인 수강기간(expires_at) 유효 + 강좌 종료일(ends_at) 미도래.
+// 스트림 매니페스트 / 강의 목록 / 재생 URL / Q&A 작성 게이트가 전부 이 함수만 쓰도록 통일한다
+// (체크가 흩어져 있으면 한 군데를 빠뜨렸을 때 그대로 우회 경로가 된다).
+// ends_at은 DATE라 "종료일 당일 자정까지"는 시청 가능하도록 >= CURDATE()로 비교한다.
+async function checkVodAccess(memberId, vodCourseId) {
+  const [[row]] = await getPool().query(
+    `SELECT e.expires_at, c.ends_at,
+            (e.expires_at IS NOT NULL AND e.expires_at <= NOW()) AS is_expired,
+            (c.ends_at IS NOT NULL AND c.ends_at < CURDATE()) AS is_ended
+     FROM member_vod_enrollments e
+     JOIN vod_courses c ON c.id = e.vod_course_id
+     WHERE e.member_id = ? AND e.vod_course_id = ?`,
+    [memberId, vodCourseId]
+  );
+  if (!row) return { ok: false, status: 403, reason: 'not_enrolled', error: '수강 중인 강좌가 아닙니다.' };
+  // 종료(재구매 불가)가 만료(재구매 가능)보다 강한 사유라 먼저 판정한다.
+  if (row.is_ended) return { ok: false, status: 403, reason: 'course_ended', error: '종료된 강좌입니다.' };
+  if (row.is_expired) return { ok: false, status: 403, reason: 'expired', error: '수강 기간이 만료되었습니다.' };
+  return { ok: true, expiresAt: row.expires_at, endsAt: row.ends_at };
 }
 
 // ── PayUp 표준결제 (VOD 강좌 구매) ──
@@ -1219,9 +1259,12 @@ app.post('/api/payments/init', requireMember, wrapAsync(async (req, res) => {
   if (!vodCourseId) { res.status(400).json({ error: 'vodCourseId가 필요합니다.' }); return; }
 
   const [[course]] = await getPool().query(
-    'SELECT id, title, new_price FROM vod_courses WHERE id = ? AND is_active = 1', [vodCourseId]
+    `SELECT id, title, new_price, (ends_at IS NOT NULL AND ends_at < CURDATE()) AS is_ended
+     FROM vod_courses WHERE id = ? AND is_active = 1`, [vodCourseId]
   );
   if (!course) { res.status(404).json({ error: 'VOD 강좌를 찾을 수 없습니다.' }); return; }
+  // 종료된 강좌는 결제해도 바로 시청 불가라 결제창 발급 자체를 막는다 (프론트에서 버튼을 막는 것과 이중 방어).
+  if (course.is_ended) { res.status(409).json({ error: '종료된 강좌는 구매할 수 없습니다.' }); return; }
 
   const amount = parseKoreanWonPrice(course.new_price);
   if (!amount) { res.status(400).json({ error: '이 강좌는 가격이 설정되어 있지 않습니다.' }); return; }
@@ -1421,14 +1464,17 @@ app.post('/admin/api/payments/:id/manual-approve', requireAdminApi, wrapAsync(as
 
 app.get('/admin/api/members/:id/vod-enrollments', requireAdminApi, wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
-    `SELECT e.id, e.vod_course_id, e.status, e.progress_note, e.source, e.enrolled_at, c.title AS name
+    `SELECT e.id, e.vod_course_id, e.status, e.progress_note, e.source, e.enrolled_at, e.expires_at,
+            c.title AS name, c.ends_at,
+            (e.expires_at IS NOT NULL AND e.expires_at <= NOW()) AS is_expired,
+            (c.ends_at IS NOT NULL AND c.ends_at < CURDATE()) AS is_ended
      FROM member_vod_enrollments e
      JOIN vod_courses c ON c.id = e.vod_course_id
      WHERE e.member_id = ?
      ORDER BY e.enrolled_at DESC`,
     [req.params.id]
   );
-  res.json(rows);
+  res.json(rows.map(r => ({ ...r, ends_at: toDateOnly(r.ends_at) })));
 }));
 
 app.post('/admin/api/members/:id/vod-enrollments', requireAdminApi, wrapAsync(async (req, res) => {
@@ -1442,11 +1488,21 @@ app.post('/admin/api/members/:id/vod-enrollments', requireAdminApi, wrapAsync(as
 }));
 
 app.put('/admin/api/members/:id/vod-enrollments/:enrollmentId', requireAdminApi, wrapAsync(async (req, res) => {
-  const { status, progressNote } = req.body;
+  const { status, progressNote, expiresAt } = req.body;
   const fields = [];
   const values = [];
   if (status !== undefined) { fields.push('status = ?'); values.push(status === '완료' ? '완료' : '진행중'); }
   if (progressNote !== undefined) { fields.push('progress_note = ?'); values.push(progressNote || null); }
+  // 수강기간 연장/해제 (고객 응대용). 빈 값으로 저장하면 무제한.
+  if (expiresAt !== undefined) {
+    const date = String(expiresAt || '').trim();
+    if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      res.status(400).json({ error: '수강 만료일은 YYYY-MM-DD 형식이어야 합니다.' });
+      return;
+    }
+    fields.push('expires_at = ?');
+    values.push(date ? `${date} 23:59:59` : null);
+  }
   if (fields.length === 0) {
     res.status(400).json({ error: '변경할 값이 없습니다.' });
     return;
@@ -1751,19 +1807,21 @@ app.get('/api/v1/me', requireApiToken, wrapAsync(async (req, res) => {
 
 app.get('/api/v1/courses', requireApiToken, wrapAsync(async (req, res) => {
   const rows = await getMemberVodCourses(req.memberId);
-  res.json(rows.map(c => ({
+  // 네이티브 앱에는 재생 가능한 강좌만 내려준다 (만료 건 재구매는 웹에서만 가능).
+  res.json(rows.filter(c => c.access_state === 'active').map(c => ({
     id: c.id,
     title: c.title,
     thumbnailUrl: c.thumbnail_url,
     status: c.status,
-    progressNote: c.progress_note
+    progressNote: c.progress_note,
+    expiresAt: c.expires_at
   })));
 }));
 
 app.get('/api/v1/courses/:id/lectures', requireApiToken, wrapAsync(async (req, res) => {
   const result = await getVodCourseLectures(req.memberId, req.params.id);
   if (result.error) {
-    res.status(result.status).json({ error: result.error });
+    res.status(result.status).json({ error: result.error, reason: result.reason });
     return;
   }
   res.json({
@@ -1789,12 +1847,9 @@ app.get('/api/v1/lectures/:id/playback', requireApiToken, wrapAsync(async (req, 
     res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
     return;
   }
-  const [enrollRows] = await getPool().query(
-    'SELECT id FROM member_vod_enrollments WHERE member_id = ? AND vod_course_id = ?',
-    [req.memberId, lecture.vod_course_id]
-  );
-  if (!enrollRows[0]) {
-    res.status(403).json({ error: '수강 중인 강좌가 아닙니다.' });
+  const access = await checkVodAccess(req.memberId, lecture.vod_course_id);
+  if (!access.ok) {
+    res.status(access.status).json({ error: access.error, reason: access.reason });
     return;
   }
 
@@ -1917,18 +1972,28 @@ app.get('/api/members/my-lectures/:classId', requireMember, wrapAsync(async (req
 }));
 
 // 회원이 수강 중인 VOD 강좌 목록 — 웹(/api/members/my-vod-courses)과 신규 /api/v1/courses가 공유.
+// access_state: 'active'(수강 가능) | 'expired'(수강기간 만료 — 재구매하면 다시 볼 수 있음).
+// 강좌 자체가 종료된 건은 재구매 경로도 없으므로 목록에서 아예 제외한다.
 async function getMemberVodCourses(memberId) {
   const [rows] = await getPool().query(
     `SELECT c.id, c.tag, c.category_label, c.title, c.description, c.meta_text,
             c.is_best, c.color_variant, c.old_price, c.new_price, c.thumbnail_url,
-            e.status, e.progress_note
+            e.status, e.progress_note, e.expires_at, c.ends_at,
+            (e.expires_at IS NOT NULL AND e.expires_at <= NOW()) AS is_expired,
+            (c.ends_at IS NOT NULL AND c.ends_at < CURDATE()) AS is_ended
      FROM member_vod_enrollments e
      JOIN vod_courses c ON c.id = e.vod_course_id
      WHERE e.member_id = ?
      ORDER BY e.enrolled_at DESC`,
     [memberId]
   );
-  return rows;
+  return rows
+    .filter(r => !r.is_ended)
+    .map(({ is_expired, is_ended, ...r }) => ({
+      ...r,
+      ends_at: toDateOnly(r.ends_at),
+      access_state: is_expired ? 'expired' : 'active'
+    }));
 }
 
 // 실제로 그 회원이 수강 중인 강좌일 때만 강의 목록(원본 video_r2_key 포함)을 반환한다.
@@ -1936,11 +2001,8 @@ async function getMemberVodCourses(memberId) {
 // 반환: { error, status } 실패 시, 또는 { course, lectures } 성공 시 — lectures[i]는
 // { id, lecture_number, title, content_markdown, video_r2_key, materials } 원본 필드 그대로.
 async function getVodCourseLectures(memberId, vodCourseId) {
-  const [enrollRows] = await getPool().query(
-    'SELECT id FROM member_vod_enrollments WHERE member_id = ? AND vod_course_id = ?',
-    [memberId, vodCourseId]
-  );
-  if (!enrollRows[0]) return { error: '수강 중인 강좌가 아닙니다.', status: 403 };
+  const access = await checkVodAccess(memberId, vodCourseId);
+  if (!access.ok) return { error: access.error, status: access.status, reason: access.reason };
 
   const [courseRows] = await getPool().query('SELECT id, title FROM vod_courses WHERE id = ?', [vodCourseId]);
   if (!courseRows[0]) return { error: '강좌를 찾을 수 없습니다.', status: 404 };
@@ -1976,7 +2038,7 @@ app.get('/api/members/my-vod-courses', requireMember, wrapAsync(async (req, res)
 app.get('/api/members/my-vod-lectures/:vodCourseId', requireMember, wrapAsync(async (req, res) => {
   const result = await getVodCourseLectures(req.session.memberId, req.params.vodCourseId);
   if (result.error) {
-    res.status(result.status).json({ error: result.error });
+    res.status(result.status).json({ error: result.error, reason: result.reason });
     return;
   }
   res.json({
@@ -2084,7 +2146,7 @@ const VOD_COURSE_FIELDS = [
   'category_label', 'title', 'description', 'tags_text',
   'old_price', 'new_price', 'thumbnail_url', 'is_active',
   'total_duration_text', 'difficulty', 'difficulty_visible', 'has_feedback', 'instructor_id',
-  'intro_heading', 'intro_paragraph', 'recommended_heading'
+  'intro_heading', 'intro_paragraph', 'recommended_heading', 'access_days', 'ends_at'
 ];
 
 function validateVodCourseBody(body) {
@@ -2101,6 +2163,8 @@ function vodCourseValues(body) {
     if (field === 'is_active') return body.is_active === false || body.is_active === 0 || body.is_active === '0' ? 0 : 1;
     if (field === 'difficulty_visible') return body.difficulty_visible === false || body.difficulty_visible === 0 || body.difficulty_visible === '0' ? 0 : 1;
     if (field === 'instructor_id') return body.instructor_id ? parseInt(body.instructor_id, 10) || null : null;
+    if (field === 'access_days') { const n = parseInt(body.access_days, 10); return Number.isNaN(n) || n <= 0 ? null : n; }
+    if (field === 'ends_at') return /^\d{4}-\d{2}-\d{2}$/.test(String(body.ends_at || '').trim()) ? String(body.ends_at).trim() : null;
     if (field === 'intro_heading') return body.intro_heading && String(body.intro_heading).trim() ? String(body.intro_heading).trim() : '클래스에서 배울 수 있는 내용이에요';
     if (field === 'recommended_heading') return body.recommended_heading && String(body.recommended_heading).trim() ? String(body.recommended_heading).trim() : '이런 분들께 추천해요';
     const value = body[field];
@@ -2149,6 +2213,15 @@ async function computeVodCourseLectureCounts(courseIds) {
   return map;
 }
 
+// mysql2는 DATE 컬럼을 "로컬 자정" Date 객체로 돌려주는데, JSON 직렬화(toISOString)에서 UTC로 밀리면서
+// KST 기준 2026-12-31이 클라이언트엔 2026-12-30으로 도착한다. 밖으로 나가는 날짜는 항상 'YYYY-MM-DD' 문자열로 고정.
+function toDateOnly(value) {
+  if (!value) return null;
+  if (typeof value === 'string') return value.slice(0, 10);
+  const pad = n => String(n).padStart(2, '0');
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+}
+
 async function withComputedTotalDuration(courses) {
   const courseIds = courses.map(c => c.id);
   const [durationMap, lectureCountMap] = await Promise.all([
@@ -2157,20 +2230,26 @@ async function withComputedTotalDuration(courses) {
   ]);
   return courses.map(c => ({
     ...c,
+    ends_at: toDateOnly(c.ends_at),
     total_duration_text: formatDurationSeconds(durationMap[c.id]) || c.total_duration_text,
     lecture_count: lectureCountMap[c.id] || 0
   }));
 }
 
+// 종료일이 지난 강좌는 공개 목록(vod.html/홈/커리큘럼)에서 자동으로 빠진다 —
+// 배치 잡으로 is_active를 내리지 않고 조회 시점에 걸러서 ends_at을 단일 진실공급원으로 유지한다.
 app.get('/api/vod-courses', wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
-    'SELECT * FROM vod_courses WHERE is_active = 1 ORDER BY sort_order, id'
+    'SELECT * FROM vod_courses WHERE is_active = 1 AND (ends_at IS NULL OR ends_at >= CURDATE()) ORDER BY sort_order, id'
   );
   res.json(await withComputedTotalDuration(rows));
 }));
 
+// 관리자 목록에는 종료된 강좌도 계속 보여야 하므로(종료일 수정/연장) is_ended 플래그만 실어 보낸다.
 app.get('/admin/api/vod-courses', requireAdminApi, wrapAsync(async (req, res) => {
-  const [rows] = await getPool().query('SELECT * FROM vod_courses ORDER BY sort_order, id');
+  const [rows] = await getPool().query(
+    'SELECT *, (ends_at IS NOT NULL AND ends_at < CURDATE()) AS is_ended FROM vod_courses ORDER BY sort_order, id'
+  );
   res.json(await withComputedTotalDuration(rows));
 }));
 
@@ -2184,8 +2263,13 @@ async function fetchVodCourseIntroParts(courseId) {
   return { checklistItems, tags, sections, purchaseHighlights };
 }
 
+// 상세는 종료된 강좌도 404로 끊지 않고 is_ended를 실어 내려준다 — 북마크/검색으로 들어온 사용자에게
+// 깨진 화면 대신 "종료된 강좌" 안내를 보여주고 구매 버튼만 막기 위해서.
 app.get('/api/vod-courses/:id', wrapAsync(async (req, res) => {
-  const [[course]] = await getPool().query('SELECT * FROM vod_courses WHERE id = ? AND is_active = 1', [req.params.id]);
+  const [[course]] = await getPool().query(
+    'SELECT *, (ends_at IS NOT NULL AND ends_at < CURDATE()) AS is_ended FROM vod_courses WHERE id = ? AND is_active = 1',
+    [req.params.id]
+  );
   if (!course) { res.status(404).json({ error: 'VOD 강좌를 찾을 수 없습니다.' }); return; }
   const [introParts, [courseWithDuration]] = await Promise.all([
     fetchVodCourseIntroParts(req.params.id),
@@ -2234,9 +2318,14 @@ app.delete('/admin/api/vod-courses/:id', requireAdminApi, wrapAsync(async (req, 
 }));
 
 // vod_course_lectures — class_lectures와 동일한 패턴. 커리큘럼 스텝 목록 겸 영상 연결 목록.
+// duration_seconds는 워커가 트랜스코딩 완료 시 lecture_videos에 채워둔 값 — 커리큘럼에 차시별 재생시간을
+// 표시하려고 조인해서 같이 내려준다. 영상 미연결/인코딩 중이면 NULL이라 프론트에서 자연히 표시가 생략된다.
 app.get('/api/vod-courses/:id/lectures', wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
-    'SELECT lecture_number, title, video_r2_key, content_markdown FROM vod_course_lectures WHERE vod_course_id = ? ORDER BY sort_order, lecture_number',
+    `SELECT l.lecture_number, l.title, l.video_r2_key, l.content_markdown, v.duration_seconds
+     FROM vod_course_lectures l
+     LEFT JOIN lecture_videos v ON v.final_r2_key = l.video_r2_key
+     WHERE l.vod_course_id = ? ORDER BY l.sort_order, l.lecture_number`,
     [req.params.id]
   );
   res.json(rows.map(({ video_r2_key, ...r }) => ({ ...r, has_video: !!video_r2_key })));
@@ -2448,12 +2537,12 @@ app.post('/api/vod-courses/:id/questions', requireMember, wrapAsync(async (req, 
     res.status(400).json({ error: '제목과 내용을 입력해주세요.' });
     return;
   }
-  const [[enrollment]] = await getPool().query(
-    'SELECT id FROM member_vod_enrollments WHERE member_id = ? AND vod_course_id = ?',
-    [req.session.memberId, req.params.id]
-  );
-  if (!enrollment) {
-    res.status(403).json({ error: '수강 중인 강좌만 질문을 작성할 수 있습니다.' });
+  const access = await checkVodAccess(req.session.memberId, req.params.id);
+  if (!access.ok) {
+    res.status(access.status).json({
+      error: access.reason === 'not_enrolled' ? '수강 중인 강좌만 질문을 작성할 수 있습니다.' : access.error,
+      reason: access.reason
+    });
     return;
   }
   const [result] = await getPool().query(

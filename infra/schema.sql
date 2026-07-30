@@ -807,3 +807,16 @@ CREATE TABLE IF NOT EXISTS vod_course_purchase_highlights (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_vcph_course FOREIGN KEY (vod_course_id) REFERENCES vod_courses(id) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- ── 수강기간 / 강좌 종료일 (2026-07) ──
+-- access_days: 구매(등록) 시점부터 며칠간 시청 가능한지. NULL이면 무제한.
+-- ends_at: 강좌 자체의 종료일. 이 날짜가 지나면 수강기간이 남아 있어도 전원 시청 불가 + 사이트에서 숨김.
+-- expires_at: 등록 시점에 access_days로 계산해 "스냅샷"으로 박아둔 개인별 만료 시각.
+--   강좌의 access_days를 나중에 줄여도 기존 구매자에게 소급 적용되지 않게 하려는 것이고,
+--   개별 회원 연장(고객 응대)도 이 행 하나만 고치면 된다. 기존 행은 NULL(무제한)로 남아 영향 없음.
+ALTER TABLE vod_courses
+  ADD COLUMN IF NOT EXISTS access_days INT DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS ends_at DATE DEFAULT NULL;
+
+ALTER TABLE member_vod_enrollments
+  ADD COLUMN IF NOT EXISTS expires_at DATETIME DEFAULT NULL;

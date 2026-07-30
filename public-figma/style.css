@@ -2189,6 +2189,34 @@ body.lp2-page { background: var(--grey-bg); }
   margin-bottom: 20px;
 }
 
+/* 내 강좌 카드의 수강 만료일 안내 */
+.mp-course-period {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--beige-700);
+}
+
+.mp-course-period.is-soon { color: #c0392b; }
+.mp-course-period.is-over { color: rgba(3, 18, 40, 0.45); }
+
+/* 수강기간이 끝난 강좌 — 살아있는 강좌와 시각적으로 구분 */
+.mp-expired-title {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--navy-900);
+}
+
+.mp-expired-note {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: rgba(3, 18, 40, 0.55);
+}
+
+.mp-expired-grid .vod-course-card { opacity: 0.62; }
+.mp-expired-grid .vod-course-card:hover { opacity: 1; }
+
 .mp-dockplayer-row .btn-fill {
   display: inline-block;
   padding: 12px 22px;
