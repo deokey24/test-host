@@ -95,20 +95,7 @@ body[data-page="privacy"]{background:var(--warm-white)}
 <body data-page="privacy">
 <div class="page">
 
-  <header class="header"><div class="container header__inner">
-    <a class="logo" href="index.html"><img src="assets/home/footer-logo.png" alt="DOCK PASS" style="height:42px;width:auto;display:block"></a>
-    <nav class="nav" aria-label="주요 메뉴">
-      <a href="vod.html">VOD 강좌</a>
-      <a href="intro.html">학습소개</a>
-      <a href="notice.html">공지사항</a>
-      <a href="cert.html">합격인증</a>
-    </nav>
-    <div class="header__actions">
-      <a class="btn btn--ghost-dark" id="loginTrigger" href="javascript:void(0)">로그인</a>
-      <a class="btn btn--ghost-dark my-info-link" id="myInfoBtn" href="mypage.html" style="display:none;">마이페이지</a>
-      <button class="mobile-toggle" type="button" aria-label="메뉴 열기">☰</button>
-    </div>
-  </div></header>
+  <div id="site-header"></div><script src="header.js?v=20260731"></script>
 
   <section class="legal-hero"><div class="container">
     <div class="crumb">HOME / 개인정보처리방침</div>
@@ -235,7 +222,6 @@ body[data-page="privacy"]{background:var(--warm-white)}
   </footer>
 
   <a class="kakao-float" href="#" target="_blank" rel="noopener">카카오톡 상담</a>
-  <script>document.querySelector('.mobile-toggle')?.addEventListener('click',()=>document.querySelector('.header .nav')?.classList.toggle('open'));</script>
 
   <div class="auth-modal-overlay" id="loginModalOverlay">
     <div class="auth-modal-box">

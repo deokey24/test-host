@@ -17,6 +17,7 @@
     </div>
     <nav class="sidebar-nav">
       <button class="side-link active" data-target="homeSection">메인 페이지</button>
+      <button class="side-link" data-target="bannerSection">메인 페이지 배너</button>
       <button class="side-link" data-target="vodSection">VOD 강좌</button>
       <button class="side-link" data-target="introSection">학습소개</button>
       <button class="side-link" data-target="certSection">합격 인증</button>
@@ -43,59 +44,6 @@
     <main>
 
       <section id="homeSection" class="admin-section active">
-
-        <div class="card">
-          <h2>타이틀</h2>
-          <div class="field-grid">
-            <div class="field-row full">
-              <label class="field-label">상단 뱃지 텍스트</label>
-              <input type="text" id="home-hero-badge" placeholder="예: CERTIFIED · 2026 최종 합격">
-            </div>
-            <div class="field-row">
-              <label class="field-label">포인트 색깔</label>
-              <div class="color-field" id="home-hero-color">
-                <div class="swatch-wrap"></div>
-                <input type="color">
-                <span class="hex-label"></span>
-              </div>
-            </div>
-            <div class="field-row full">
-              <label class="field-label">제목 (줄바꿈은 그대로 반영)</label>
-              <textarea id="home-hero-title" rows="2" placeholder="예: 결과로 증명하는&#10;연고대 편입 합격"></textarea>
-            </div>
-            <div class="field-row full">
-              <label class="field-label">내용</label>
-              <textarea id="home-hero-body" rows="2"></textarea>
-            </div>
-            <div class="field-row full">
-              <label class="check-row"><input type="checkbox" id="home-hero-btn-enabled" checked> 버튼 생성</label>
-            </div>
-            <div class="field-row full">
-              <label class="field-label">버튼 텍스트</label>
-              <input type="text" id="home-hero-btn-text" placeholder="예: 합격 인증 보기 →">
-            </div>
-            <div class="field-row full">
-              <label class="field-label">우측 이미지</label>
-              <div class="image-picker" id="home-hero-image">
-                <div class="image-picker-preview">
-                  <img class="preview-img" style="display:none;">
-                  <div class="empty-note">미리보기 없음</div>
-                </div>
-                <div class="image-picker-controls">
-                  <div class="ratio-btns">
-                    <button type="button" class="ratio-btn" data-ratio="3:4">3:4</button>
-                    <button type="button" class="ratio-btn" data-ratio="1:1">1:1</button>
-                    <button type="button" class="ratio-btn" data-ratio="16:9">16:9</button>
-                  </div>
-                  <div class="file-row"><input type="file" accept="image/*"></div>
-                  <div class="status-text"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <button class="btn" id="home-hero-save" type="button" style="margin-top:10px;">저장</button>
-          <div class="status-text" id="home-hero-status"></div>
-        </div>
 
         <div class="card">
           <h2>온라인 클래스</h2>
@@ -818,6 +766,98 @@
         </div>
       </section>
 
+      <section id="bannerSection" class="admin-section">
+        <p class="field-hint" style="margin-bottom:14px;">프론트 페이지에 노출되는 배너 4종을 관리합니다. 목록 상단의 "+ 배너 추가"로 새로 등록하고, 순서는 드래그로 바꿀 수 있습니다.</p>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h2>상단배너 (<span id="bannerTotal-top">0</span>개)</h2>
+            <button class="btn" type="button" data-banner-add="top">+ 배너 추가</button>
+          </div>
+          <p class="field-hint" style="margin-bottom:10px;">권장 이미지 크기 1280×180px</p>
+          <ul class="drag-list" id="banner-top-list"></ul>
+          <div class="status-text" id="banner-top-list-status"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h2>중간배너 (<span id="bannerTotal-middle">0</span>개)</h2>
+            <button class="btn" type="button" data-banner-add="middle">+ 배너 추가</button>
+          </div>
+          <p class="field-hint" style="margin-bottom:10px;">권장 이미지 크기 1280×100px</p>
+          <ul class="drag-list" id="banner-middle-list"></ul>
+          <div class="status-text" id="banner-middle-list-status"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h2>콘텐츠배너 (<span id="bannerTotal-content">0</span>개)</h2>
+            <button class="btn" type="button" data-banner-add="content">+ 배너 추가</button>
+          </div>
+          <p class="field-hint" style="margin-bottom:10px;">권장 이미지 크기 600×325px · 라벨이 DOCK NEWS 탭 이름으로 표시됩니다.</p>
+          <ul class="drag-list" id="banner-content-list"></ul>
+          <div class="status-text" id="banner-content-list-status"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h2>사이드배너 (<span id="bannerTotal-side">0</span>개)</h2>
+            <button class="btn" type="button" data-banner-add="side">+ 배너 추가</button>
+          </div>
+          <p class="field-hint" style="margin-bottom:10px;">권장 이미지 크기 320×325px · 맨 위 항목(순서 1번) 하나만 프론트에 노출됩니다.</p>
+          <ul class="drag-list" id="banner-side-list"></ul>
+          <div class="status-text" id="banner-side-list-status"></div>
+        </div>
+      </section>
+
+      <div class="modal-overlay" id="bannerModalOverlay">
+        <div class="modal-box">
+          <div class="modal-head">
+            <h2 id="bannerModalTitle">배너 추가</h2>
+            <button class="row-btn" id="bannerModalCloseBtn" type="button">닫기</button>
+          </div>
+          <div class="field-grid">
+            <div class="field-row full">
+              <label class="field-label">이미지 * <span id="bannerModalSizeHint" style="font-weight:400; color:var(--text-soft);"></span></label>
+              <div style="display:flex; align-items:center; gap:14px;">
+                <label class="popup-thumb" for="bannerModalFile" title="이미지 선택" id="bannerModalThumbLabel">
+                  <img class="popup-thumb-img" id="bannerModalPreview" src="" alt="">
+                  <span class="popup-thumb-empty" id="bannerModalPreviewEmpty">이미지<br>선택</span>
+                </label>
+                <input type="file" id="bannerModalFile" accept="image/*" hidden>
+              </div>
+            </div>
+            <div class="field-row full" id="bannerModalMobileRow">
+              <label class="field-label">모바일 이미지 <span id="bannerModalMobileSizeHint" style="font-weight:400; color:var(--text-soft);"></span></label>
+              <p class="field-hint" style="margin-bottom:10px;">모바일(폭 600px 이하)에서 대신 노출됩니다. 비워두면 위 이미지를 확대 크롭해서 보여줍니다.</p>
+              <div style="display:flex; align-items:center; gap:14px;">
+                <label class="popup-thumb" for="bannerModalMobileFile" title="모바일 이미지 선택" id="bannerModalMobileThumbLabel">
+                  <img class="popup-thumb-img" id="bannerModalMobilePreview" src="" alt="">
+                  <span class="popup-thumb-empty" id="bannerModalMobilePreviewEmpty">모바일<br>이미지</span>
+                </label>
+                <input type="file" id="bannerModalMobileFile" accept="image/*" hidden>
+                <div>
+                  <button type="button" class="row-btn danger" id="bannerModalMobileClearBtn">모바일 이미지 없이 쓰기</button>
+                  <div style="margin-top:10px;" id="bannerModalFocusWrap">
+                    <label class="field-label" style="font-size:12px;">확대 크롭 시 남길 부분</label>
+                    <select id="bannerModalMobileFocus">
+                      <option value="center">가운데</option>
+                      <option value="left">왼쪽</option>
+                      <option value="right">오른쪽</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="field-row full"><label class="field-label" id="bannerModalLabelLabel">라벨(관리용)</label><input type="text" id="bannerModalLabel"></div>
+            <div class="field-row full"><label class="field-label">링크 URL</label><input type="text" id="bannerModalLink" placeholder="https://..."></div>
+            <div class="field-row"><label class="check-row"><input type="checkbox" id="bannerModalVisible" checked> 노출</label></div>
+          </div>
+          <button class="btn" id="bannerModalSaveBtn" type="button">추가</button>
+          <div class="status-text" id="bannerModalStatus"></div>
+        </div>
+      </div>
+
       <section id="qnaSection" class="admin-section">
         <div class="card">
           <h2>강좌 선택</h2>
@@ -1069,6 +1109,7 @@
 <script src="/admin/instructors.js"></script>
 <script src="/admin/notice.js"></script>
 <script src="/admin/popup.js"></script>
+<script src="/admin/banners.js"></script>
 <script src="/admin/qna.js"></script>
 <script src="/admin/settings.js"></script>
 <script src="/admin/video.js"></script>

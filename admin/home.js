@@ -91,55 +91,6 @@ function renderCardList(listEl, cards, { withImage, imageScope, withColor }) {
   });
 }
 
-// ── 타이틀 (히어로) ──
-let heroImagePicker, heroColorPicker;
-
-async function initHeroCard() {
-  const data = await loadHomeSectionData('hero');
-  document.getElementById('home-hero-badge').value = data.badge || '';
-  document.getElementById('home-hero-title').value = data.title || '';
-  document.getElementById('home-hero-body').value = data.body || '';
-  document.getElementById('home-hero-btn-enabled').checked = data.button ? !!data.button.enabled : true;
-  document.getElementById('home-hero-btn-text').value = (data.button && data.button.text) || '';
-  updateHeroButtonEnabled();
-
-  heroColorPicker = initColorPaletteField(document.getElementById('home-hero-color'), {
-    initial: data.accentColor || '#a98254'
-  });
-  heroImagePicker = initAspectImagePicker(document.getElementById('home-hero-image'), {
-    scope: 'home-hero', resourceId: 'hero',
-    initial: data.image || { url: '', ratio: '3:4' }
-  });
-
-  document.getElementById('home-hero-btn-enabled').addEventListener('change', updateHeroButtonEnabled);
-  document.getElementById('home-hero-save').addEventListener('click', saveHeroCard);
-}
-
-function updateHeroButtonEnabled() {
-  document.getElementById('home-hero-btn-text').disabled = !document.getElementById('home-hero-btn-enabled').checked;
-}
-
-async function saveHeroCard() {
-  const status = document.getElementById('home-hero-status');
-  const payload = {
-    badge: document.getElementById('home-hero-badge').value.trim(),
-    accentColor: heroColorPicker.getValue(),
-    title: document.getElementById('home-hero-title').value,
-    body: document.getElementById('home-hero-body').value,
-    button: {
-      enabled: document.getElementById('home-hero-btn-enabled').checked,
-      text: document.getElementById('home-hero-btn-text').value.trim()
-    },
-    image: heroImagePicker.getState()
-  };
-  try {
-    await apiFetch('/admin/api/site/home/hero', { method: 'PUT', body: JSON.stringify(payload) });
-    setStatus(status, '저장되었습니다.', 'ok');
-  } catch (err) {
-    setStatus(status, err.message, 'error');
-  }
-}
-
 // ── 온라인 클래스 ──
 let ocCards = [];
 
@@ -272,7 +223,6 @@ async function initReviewsCard() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  initHeroCard();
   initOnlineClassCard();
   initCertifiedCard();
   initVodListCard();

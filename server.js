@@ -2089,7 +2089,7 @@ app.delete('/api/members/devices/:id', requireMember, wrapAsync(async (req, res)
 // ══════════════════════════════════════════════════════════════════
 
 const ALLOWED_UPLOAD_SCOPES = [
-  'home-hero', 'home-online-class', 'home-why', 'vod-course', 'cert-gallery', 'notice', 'instructor', 'popup', 'intro'
+  'home-online-class', 'home-why', 'vod-course', 'cert-gallery', 'notice', 'instructor', 'popup', 'intro', 'content-banner'
 ];
 
 app.post('/admin/api/site/upload/presign', requireAdminApi, wrapAsync(async (req, res) => {
@@ -3187,6 +3187,125 @@ app.put('/admin/api/popup-banners/:id', requireAdminApi, wrapAsync(async (req, r
 app.delete('/admin/api/popup-banners/:id', requireAdminApi, wrapAsync(async (req, res) => {
   const [result] = await getPool().query('DELETE FROM popup_banners WHERE id = ?', [req.params.id]);
   if (result.affectedRows === 0) { res.status(404).json({ error: '팝업 배너를 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+// ── content_banners (관리자 "배너 관리" — 상단/중간/콘텐츠/사이드 4종) ──
+// top/middle: 홈 상단 슬라이더. content/side: DOCK NEWS 섹션 좌(탭+이미지)/우(고정 이미지).
+// content 타입의 label은 프론트에서 DOCK NEWS 탭 버튼 이름으로 쓰인다.
+const BANNER_TYPES = ['top', 'middle', 'content', 'side'];
+const BANNER_MOBILE_FOCUS = ['left', 'center', 'right'];
+
+// mobile_image_url/mobile_focus는 나중에 추가된 컬럼(infra/schema.sql 하단 ALTER).
+// 마이그레이션 전 DB에 이 코드가 먼저 올라가도 홈 배너가 500으로 죽지 않도록 컬럼 유무를 한 번만 확인해 캐시한다.
+let bannerMobileColsCache = null;
+async function hasBannerMobileCols() {
+  if (bannerMobileColsCache === null) {
+    try {
+      const [rows] = await getPool().query(
+        `SELECT COUNT(*) AS n FROM information_schema.columns
+         WHERE table_schema = DATABASE() AND table_name = 'content_banners'
+           AND column_name IN ('mobile_image_url', 'mobile_focus')`
+      );
+      bannerMobileColsCache = Number(rows[0]?.n) === 2;
+    } catch (err) {
+      bannerMobileColsCache = false;
+    }
+  }
+  return bannerMobileColsCache;
+}
+
+app.get('/api/content-banners', wrapAsync(async (req, res) => {
+  const mobileCols = await hasBannerMobileCols() ? ', mobile_image_url, mobile_focus' : '';
+  const [rows] = await getPool().query(
+    `SELECT id, banner_type, label, image_url, link_url${mobileCols}
+     FROM content_banners
+     WHERE visible = 1
+     ORDER BY banner_type, sort_order, id`
+  );
+  res.json(rows);
+}));
+
+app.get('/admin/api/content-banners', requireAdminApi, wrapAsync(async (req, res) => {
+  const mobileCols = await hasBannerMobileCols() ? ', mobile_image_url, mobile_focus' : '';
+  const [rows] = await getPool().query(
+    `SELECT id, banner_type, label, image_url, link_url, visible, sort_order${mobileCols}
+     FROM content_banners ORDER BY banner_type, sort_order, id`
+  );
+  res.json(rows);
+}));
+
+app.post('/admin/api/content-banners', requireAdminApi, wrapAsync(async (req, res) => {
+  const { banner_type, label, image_url, link_url, visible, sort_order, mobile_image_url, mobile_focus } = req.body;
+  if (!BANNER_TYPES.includes(banner_type)) {
+    res.status(400).json({ error: `banner_type은 ${BANNER_TYPES.join(', ')} 중 하나여야 합니다.` });
+    return;
+  }
+  if (!image_url || !String(image_url).trim()) {
+    res.status(400).json({ error: '이미지를 업로드해주세요.' });
+    return;
+  }
+  if (mobile_focus !== undefined && mobile_focus !== null && !BANNER_MOBILE_FOCUS.includes(mobile_focus)) {
+    res.status(400).json({ error: `mobile_focus는 ${BANNER_MOBILE_FOCUS.join(', ')} 중 하나여야 합니다.` });
+    return;
+  }
+  const cols = ['banner_type', 'label', 'image_url', 'link_url', 'visible', 'sort_order'];
+  const vals = [banner_type, label ? String(label).trim() : null, String(image_url).trim(), link_url ? String(link_url).trim() : null, visible === false ? 0 : 1, parseInt(sort_order, 10) || 0];
+  if (await hasBannerMobileCols()) {
+    cols.push('mobile_image_url', 'mobile_focus');
+    vals.push(mobile_image_url ? String(mobile_image_url).trim() : null, mobile_focus || 'center');
+  } else if (mobile_image_url) {
+    res.status(400).json({ error: 'DB에 mobile_image_url 컬럼이 없습니다. infra/schema.sql의 content_banners ALTER를 먼저 적용해주세요.' });
+    return;
+  }
+  const [result] = await getPool().query(
+    `INSERT INTO content_banners (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`,
+    vals
+  );
+  res.json({ ok: true, id: result.insertId });
+}));
+
+app.put('/admin/api/content-banners/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const { banner_type, label, image_url, link_url, visible, sort_order, mobile_image_url, mobile_focus } = req.body;
+  const fields = [];
+  const values = [];
+  if (mobile_image_url !== undefined || mobile_focus !== undefined) {
+    if (!await hasBannerMobileCols()) {
+      res.status(400).json({ error: 'DB에 mobile_image_url 컬럼이 없습니다. infra/schema.sql의 content_banners ALTER를 먼저 적용해주세요.' });
+      return;
+    }
+    // 빈 문자열/null → NULL(모바일 전용 이미지 해제 → 프론트가 데스크톱 이미지를 확대 크롭)
+    if (mobile_image_url !== undefined) {
+      fields.push('mobile_image_url = ?');
+      values.push(mobile_image_url && String(mobile_image_url).trim() ? String(mobile_image_url).trim() : null);
+    }
+    if (mobile_focus !== undefined) {
+      if (!BANNER_MOBILE_FOCUS.includes(mobile_focus)) { res.status(400).json({ error: `mobile_focus는 ${BANNER_MOBILE_FOCUS.join(', ')} 중 하나여야 합니다.` }); return; }
+      fields.push('mobile_focus = ?'); values.push(mobile_focus);
+    }
+  }
+  if (banner_type !== undefined) {
+    if (!BANNER_TYPES.includes(banner_type)) { res.status(400).json({ error: `banner_type은 ${BANNER_TYPES.join(', ')} 중 하나여야 합니다.` }); return; }
+    fields.push('banner_type = ?'); values.push(banner_type);
+  }
+  if (label !== undefined) { fields.push('label = ?'); values.push(label ? String(label).trim() : null); }
+  if (image_url !== undefined) {
+    if (!String(image_url).trim()) { res.status(400).json({ error: '이미지를 업로드해주세요.' }); return; }
+    fields.push('image_url = ?'); values.push(String(image_url).trim());
+  }
+  if (link_url !== undefined) { fields.push('link_url = ?'); values.push(link_url ? String(link_url).trim() : null); }
+  if (visible !== undefined) { fields.push('visible = ?'); values.push(visible ? 1 : 0); }
+  if (sort_order !== undefined) { fields.push('sort_order = ?'); values.push(parseInt(sort_order, 10) || 0); }
+  if (fields.length === 0) { res.status(400).json({ error: '변경할 값이 없습니다.' }); return; }
+  values.push(req.params.id);
+  const [result] = await getPool().query(`UPDATE content_banners SET ${fields.join(', ')} WHERE id = ?`, values);
+  if (result.affectedRows === 0) { res.status(404).json({ error: '배너를 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+app.delete('/admin/api/content-banners/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const [result] = await getPool().query('DELETE FROM content_banners WHERE id = ?', [req.params.id]);
+  if (result.affectedRows === 0) { res.status(404).json({ error: '배너를 찾을 수 없습니다.' }); return; }
   res.json({ ok: true });
 }));
 

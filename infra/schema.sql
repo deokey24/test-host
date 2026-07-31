@@ -359,6 +359,42 @@ CREATE TABLE IF NOT EXISTS popup_banners (
   INDEX idx_popup_banners_visible_dates (visible, start_date, end_date)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- 배너 관리 (관리자 "배너 관리" 메뉴 — 상단/중간/콘텐츠/사이드 4종)
+-- top/middle: 홈 상단 슬라이더(.banner-slider--top/--mid). content/side: DOCK NEWS 섹션 좌(탭+이미지)/우(고정 이미지).
+-- content 타입의 label은 DOCK NEWS 탭 버튼 이름으로 쓰인다.
+CREATE TABLE IF NOT EXISTS content_banners (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  banner_type ENUM('top', 'middle', 'content', 'side') NOT NULL,
+  label VARCHAR(200),
+  image_url VARCHAR(500) NOT NULL,
+  -- 모바일 전용 이미지(top/middle만 사용). NULL이면 image_url을 확대 크롭해서 노출 — 파일 하단 ALTER 주석 참고.
+  mobile_image_url VARCHAR(500) DEFAULT NULL,
+  mobile_focus ENUM('left', 'center', 'right') NOT NULL DEFAULT 'center',
+  link_url VARCHAR(500),
+  visible TINYINT(1) NOT NULL DEFAULT 1,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_content_banners_type_visible (banner_type, visible, sort_order)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- index.html에 하드코딩돼 있던 배너/DOCK NEWS 시안 이미지를 실제 데이터로 이전
+INSERT INTO content_banners (banner_type, label, image_url, link_url, sort_order)
+SELECT * FROM (
+  SELECT 'top' AS banner_type, '8월 신규반 안내' AS label, '/assets/home/banner-slide-1.png' AS image_url, NULL AS link_url, 0 AS sort_order UNION ALL
+  SELECT 'top', '연세대 대관 모의논술', '/assets/home/banner-slide-2.png', NULL, 1 UNION ALL
+  SELECT 'top', '고려대 대관 모의논술', '/assets/home/banner-slide-3.png', NULL, 2 UNION ALL
+  SELECT 'top', 'DOCKPASS 홈페이지 신설', '/assets/home/banner-slide-5.png', NULL, 3 UNION ALL
+  SELECT 'middle', '최종합격자 88명', '/assets/home/banner-mid.png', NULL, 0 UNION ALL
+  SELECT 'content', '황성찬T 시그니처 강의', '/assets/home/docknews-1.png', NULL, 0 UNION ALL
+  SELECT 'content', '경찰대학 편입', '/assets/home/docknews-2.png', NULL, 1 UNION ALL
+  SELECT 'content', '학업계획서 특강 01', '/assets/home/docknews-3.png', NULL, 2 UNION ALL
+  SELECT 'content', '학업계획서 특강 02', '/assets/home/docknews-4.png', NULL, 3 UNION ALL
+  SELECT 'content', '황성찬T 유형별 강의', '/assets/home/docknews-5.png', NULL, 4 UNION ALL
+  SELECT 'content', '연세대 특별반 신청', '/assets/home/docknews-6.png', NULL, 5 UNION ALL
+  SELECT 'side', '독한선생들 유튜브', '/assets/home/docknews-side.png', 'https://www.youtube.com/@hwangsungchan_1', 0
+) AS seed
+WHERE NOT EXISTS (SELECT 1 FROM content_banners);
+
 -- vod_courses/curriculum.html이 CMS 하이드레이션 전환 후 빈 화면으로 뜨지 않도록 기존 하드코딩 6개 강좌를 시드
 INSERT INTO vod_courses
   (tag, category_label, title, description, meta_text, is_best, color_variant, old_price, new_price, sort_order)
@@ -820,3 +856,12 @@ ALTER TABLE vod_courses
 
 ALTER TABLE member_vod_enrollments
   ADD COLUMN IF NOT EXISTS expires_at DATETIME DEFAULT NULL;
+
+-- ── 모바일 전용 배너 이미지 (2026-07) ──
+-- 상단/중간 배너 원본은 1280×180(7.1:1)·1280×100(12.8:1)처럼 극단적으로 납작해서,
+-- 모바일 폭(390px)에 맞추면 높이가 55px/30px로 줄어 글자를 읽기 어렵다.
+-- mobile_image_url: 모바일에서 대신 쓸 세로가 긴 이미지(권장 1080×720 등). NULL이면 데스크톱 이미지를 확대 크롭해서 보여준다.
+-- mobile_focus: 확대 크롭 폴백일 때 이미지의 어느 부분을 남길지(object-position). mobile_image_url이 있으면 무시된다.
+ALTER TABLE content_banners
+  ADD COLUMN IF NOT EXISTS mobile_image_url VARCHAR(500) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS mobile_focus ENUM('left', 'center', 'right') NOT NULL DEFAULT 'center';
