@@ -3198,21 +3198,23 @@ const BANNER_MOBILE_FOCUS = ['left', 'center', 'right'];
 
 // mobile_image_url/mobile_focus는 나중에 추가된 컬럼(infra/schema.sql 하단 ALTER).
 // 마이그레이션 전 DB에 이 코드가 먼저 올라가도 홈 배너가 500으로 죽지 않도록 컬럼 유무를 한 번만 확인해 캐시한다.
-let bannerMobileColsCache = null;
+// 있다고 확인되면 영구 캐시, 없으면 60초 후 다시 확인 — 마이그레이션을 적용해도 서버를 재시작해야 하는 상황을 피한다.
+let bannerMobileCols = { value: false, checkedAt: 0 };
 async function hasBannerMobileCols() {
-  if (bannerMobileColsCache === null) {
-    try {
-      const [rows] = await getPool().query(
-        `SELECT COUNT(*) AS n FROM information_schema.columns
-         WHERE table_schema = DATABASE() AND table_name = 'content_banners'
-           AND column_name IN ('mobile_image_url', 'mobile_focus')`
-      );
-      bannerMobileColsCache = Number(rows[0]?.n) === 2;
-    } catch (err) {
-      bannerMobileColsCache = false;
-    }
+  if (bannerMobileCols.value) return true;
+  if (Date.now() - bannerMobileCols.checkedAt < 60_000) return false;
+  bannerMobileCols.checkedAt = Date.now();
+  try {
+    const [rows] = await getPool().query(
+      `SELECT COUNT(*) AS n FROM information_schema.columns
+       WHERE table_schema = DATABASE() AND table_name = 'content_banners'
+         AND column_name IN ('mobile_image_url', 'mobile_focus')`
+    );
+    bannerMobileCols.value = Number(rows[0]?.n) === 2;
+  } catch (err) {
+    bannerMobileCols.value = false;
   }
-  return bannerMobileColsCache;
+  return bannerMobileCols.value;
 }
 
 app.get('/api/content-banners', wrapAsync(async (req, res) => {
