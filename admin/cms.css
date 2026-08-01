@@ -317,6 +317,32 @@ th { color: var(--text-soft); font-weight: 700; font-size: 12px; }
 .badge-new { background: #f3ead9; color: var(--green-dark); }
 .badge-existing { background: var(--border); color: var(--text-soft); }
 
+/* ── 수강현황(자동 집계 진도율) — 관리자메모와 달리 읽기 전용 ── */
+/* 수강현황 컬럼이 늘면서 720px로는 강좌명이 글자마다 줄바꿈될 만큼 좁아진다 */
+#enrollModalOverlay .modal-box { width: 1120px; }
+#enrollVodList td:first-child { min-width: 150px; }
+.vod-progress { min-width: 150px; }
+.vod-progress__bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.vod-progress__bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--green);
+}
+.vod-progress__text { margin: 5px 0 6px; font-size: 12px; color: var(--text-soft); font-weight: 700; }
+.vod-progress-detail > td { background: var(--grey-bg); }
+.vod-progress-table { font-size: 12px; }
+.vod-progress-table th, .vod-progress-table td { padding: 6px 8px; border-bottom: 1px solid var(--border-strong); }
+/* 진도 칸은 "62%"와 "완료"가 같은 축에 놓이도록 가운데 정렬 —
+   badge처럼 좌우 패딩이 있는 요소를 쓰면 %와 시작 위치가 어긋난다. */
+.vod-progress-table .progress-cell { text-align: center; }
+.vod-progress-table .progress-done { color: var(--green-dark); font-weight: 700; }
+
 /* ── modal ── */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(21,25,28,0.55);

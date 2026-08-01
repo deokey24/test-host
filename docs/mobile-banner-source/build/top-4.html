@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@main/dist/web/variable/pretendardvariable.css');
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:720px;overflow:hidden}
+body{font-family:'Pretendard Variable',Pretendard,sans-serif;letter-spacing:-.02em;
+  position:relative;background:linear-gradient(160deg,#010c17 0%,#02101f 55%,#010a14 100%)}
+.beam{position:absolute;width:1700px;height:200px;left:-300px;
+  background:linear-gradient(90deg,transparent 5%,rgba(40,122,255,.32) 45%,rgba(54,148,255,.38) 55%,transparent 95%);
+  filter:blur(34px)}
+.b1{top:430px;transform:rotate(-16deg)}
+.b2{top:110px;transform:rotate(14deg);opacity:.5}
+.glow{position:absolute;left:50%;bottom:-120px;transform:translateX(-50%);
+  width:900px;height:480px;border-radius:50%;
+  background:radial-gradient(ellipse at center,rgba(40,122,255,.4) 0%,transparent 65%)}
+.wrap{position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;
+  padding:40px 54px 0;text-align:center}
+.logo{height:84px;margin-bottom:18px;mix-blend-mode:screen;
+  -webkit-mask-image:radial-gradient(ellipse 105% 105% at center,#000 60%,transparent 98%)}
+.sub{color:#3694ff;font-size:44px;font-weight:700;margin-bottom:14px}
+h1{color:#fff;font-weight:900;line-height:1.12}
+h1 .l1{display:block;font-size:100px;letter-spacing:-.01em}
+h1 .blue{color:#287aff}
+.body{color:#cfd0d1;font-size:42px;font-weight:500;margin-top:14px}
+.laptop{position:absolute;left:50%;bottom:-130px;transform:translateX(-50%);width:560px;
+  filter:drop-shadow(0 0 60px rgba(40,122,255,.45));
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 7%,#000 93%,transparent 100%)}
+</style></head>
+<body>
+<div class="beam b1"></div>
+<div class="beam b2"></div>
+<div class="glow"></div>
+<div class="wrap">
+  <img class="logo" src="../crops/top4-logo.png" alt="">
+  <div class="sub">독편사편입논술학원의 새로운 브랜드</div>
+  <h1><span class="l1">dockpass</span><span class="l1">홈페이지 <span class="blue">신설!</span></span></h1>
+  <div class="body">편입논술, dockpass에서 시작됩니다.</div>
+</div>
+<img class="laptop" src="../crops/top4-laptop.png" alt="">
+</body></html>

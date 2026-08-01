@@ -3,3 +3,6 @@ node_modules/
 *.pem
 backups/
 db-backups/
+
+# 서버가 만드는 업로드 이미지 WebP 변환 캐시 (재생성 가능)
+.cache/

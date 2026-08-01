@@ -45,7 +45,7 @@
 <body data-page="mypage">
 <div class="page">
 
-  <div id="site-header"></div><script src="header.js?v=20260731"></script>
+  <div id="site-header"></div><script src="header.js?v=20260731-3"></script>
 
   <section class="hero-wrap">
     <div class="vod-hero">
@@ -265,9 +265,11 @@
           node.querySelector('.desc').textContent = course.description || '';
           node.querySelector('.meta').textContent = course.meta_text || '';
           renderMpPeriod(node.querySelector('.mp-course-period'), course);
-          node.querySelector('.mp-course-status').textContent = isExpired
+          // 진도율은 재생 기록으로 자동 집계된 값 — progress_note(관리자 수기 메모)와는 별개다.
+          const progressText = !isExpired && course.progress_percent > 0 ? ` · ${course.progress_percent}%` : '';
+          node.querySelector('.mp-course-status').textContent = (isExpired
             ? '수강 기간 종료'
-            : course.status === '완료' ? '수강 완료' : '수강중';
+            : course.status === '완료' ? '수강 완료' : '수강중') + progressText;
           const enrollBtn = node.querySelector('.mp-enroll-btn');
           if (isExpired) {
             // 만료된 강좌는 재생 진입 대신 상세 페이지로 보내 재구매하게 한다.

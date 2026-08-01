@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>DOCK PASS 하단 CTA 배너 소스</title>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@main/dist/web/variable/pretendardvariable.css');
+
+/* 사이트 index.html :root 와 동일한 브랜드 토큰 */
+:root{
+  --navy-950:#020918;--navy-900:#031228;--navy-850:#071a34;--navy-800:#0e1c30;--navy-700:#162844;
+  --beige-700:#a98254;--beige-500:#d7bf9f;--beige-400:#e3cdaf;--beige-100:#f1e6d7;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#3a3a3a;font-family:'Pretendard Variable',Pretendard,sans-serif;
+     letter-spacing:-.015em;display:flex;flex-direction:column;gap:40px;padding:40px;align-items:flex-start}
+
+/* ── 공통: 네이비 무대 ───────────────────────────────────────────── */
+.stage{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--navy-900) 0%,#0c2a51 62%,#123566 100%);color:#fff}
+
+/* 우상단 골드 글로우 — 기존 CTA의 밋밋한 단색 그라데이션과 차별화 */
+.stage::before{content:"";position:absolute;border-radius:50%;
+  background:radial-gradient(circle,rgba(227,205,175,.20) 0%,rgba(227,205,175,.07) 42%,transparent 70%);
+  pointer-events:none}
+/* 대각선 라이트 스윕 */
+.stage::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(115deg,transparent 38%,rgba(255,255,255,.055) 47%,transparent 56%)}
+
+/* 안쪽 골드 헤어라인 프레임 */
+.frame{position:absolute;border:1px solid rgba(227,205,175,.22);border-radius:10px;pointer-events:none;z-index:3}
+
+.content{position:relative;z-index:4;height:100%;display:flex}
+
+/* ── 텍스트 ─────────────────────────────────────────────────────── */
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(227,205,175,.45);
+      border-radius:999px;color:var(--beige-400);font-weight:800;white-space:nowrap}
+.chip .dot{width:5px;height:5px;border-radius:50%;background:var(--beige-400);flex:none}
+.head{font-weight:800;line-height:1.26;letter-spacing:-.03em}
+.head em{font-style:normal;color:var(--beige-400)}
+.sub{color:#cfd9e8;font-weight:500}
+
+/* 버튼 — 사이트 .btn--primary(베이지 그라데이션) 그대로 */
+.cta-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  background:linear-gradient(135deg,var(--beige-400),#f0d8b5);color:#14213a;font-weight:800;
+  border-radius:12px;box-shadow:0 10px 26px rgba(215,191,159,.28)}
+.cta-btn .arrow{font-weight:900}
+
+/* ── 캠퍼스 메달리온 ────────────────────────────────────────────── */
+.medals{display:flex}
+.medal{display:flex;flex-direction:column;align-items:center}
+.medal-ring{position:relative;border-radius:50%;display:grid;place-items:center;
+  border:1px solid rgba(227,205,175,.38);
+  background:radial-gradient(circle at 50% 30%,rgba(227,205,175,.13),rgba(3,18,40,0) 72%);}
+.medal-ring svg{color:var(--beige-400)}
+.medal-label{color:var(--beige-100);font-weight:800;white-space:nowrap}
+
+/* 실적 스트립 */
+.stats{display:flex;align-items:center;color:#b9c6d9;font-weight:600;white-space:nowrap}
+.stats b{color:#fff;font-weight:900}
+.stats .num{color:var(--beige-400);font-weight:900}
+.stats .bar{background:rgba(227,205,175,.3)}
+
+/* 우측 글래스 패널 — 메달리온+실적을 한 덩어리로 묶어 오른쪽 여백을 채운다 */
+.glass{background:rgba(255,255,255,.045);border:1px solid rgba(227,205,175,.16);
+       border-radius:20px;backdrop-filter:blur(2px);display:flex;flex-direction:column;align-items:center}
+
+/* 바닥에 깔리는 캠퍼스 스카이라인 — 좌우로 꽉 채워 '의도된 배경'으로 읽히게 한다 */
+.skyline{position:absolute;left:0;bottom:0;width:100%;color:#fff;opacity:.06;pointer-events:none;z-index:1}
+
+/* ══════════ PC 1080 × 500 ══════════ */
+#pc{width:1080px;height:500px;border-radius:0}
+#pc .frame{inset:18px}
+#pc::before{width:620px;height:620px;right:-190px;top:-260px}
+#pc .content{padding:52px 56px;align-items:center;justify-content:space-between;gap:36px}
+#pc .left{max-width:560px}
+#pc .chip{padding:8px 16px;font-size:14px;margin-bottom:20px}
+#pc .head{font-size:44px;margin-bottom:16px}
+#pc .sub{font-size:17px;line-height:1.62;margin-bottom:30px}
+#pc .cta-btn{height:58px;padding:0 32px;font-size:18px}
+#pc .glass{flex:none;padding:26px 30px 22px;gap:20px}
+#pc .medals{gap:20px}
+#pc .medal{gap:11px}
+#pc .medal-ring{width:118px;height:118px}
+#pc .medal-ring svg{width:64px;height:64px}
+#pc .medal-label{font-size:15px}
+#pc .stats{gap:12px;font-size:13.5px}
+#pc .stats .bar{width:1px;height:12px}
+
+/* ══════════ 모바일 720 × 600 ══════════ */
+#mo{width:720px;height:600px}
+#mo .frame{inset:20px}
+#mo::before{width:600px;height:600px;right:-210px;top:-250px}
+/* 세로형이라 스카이라인이 버튼 아래로 살짝만 보인다 — 크게 키워 큰 건물 밑동만 깔리게 */
+#mo .skyline{width:170%;left:-35%;opacity:.05}
+#mo .content{padding:44px 46px;flex-direction:column;align-items:center;text-align:center;justify-content:center;gap:0}
+#mo .chip{padding:9px 18px;font-size:15.5px;margin-bottom:18px}
+#mo .head{font-size:42px;margin-bottom:20px}
+#mo .sub{font-size:17.5px;line-height:1.58;margin-bottom:22px}
+#mo .glass{width:100%;padding:20px 18px 16px;gap:14px;margin-bottom:22px}
+#mo .medals{gap:34px}
+#mo .medal{gap:9px}
+#mo .medal-ring{width:94px;height:94px}
+#mo .medal-ring svg{width:50px;height:50px}
+#mo .medal-label{font-size:14.5px}
+#mo .stats{gap:12px;font-size:14px}
+#mo .stats .bar{width:1px;height:12px}
+#mo .cta-btn{height:66px;width:100%;font-size:21px}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ PC : 1080 × 500 ═══════════════ -->
+<div class="stage" id="pc">
+  <div class="frame"></div>
+
+  <svg class="skyline" viewBox="0 0 640 120" preserveAspectRatio="xMidYMax meet"
+       fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+    <path d="M18 116V60h34v56M26 74h6v10h-6M38 74h6v10h-6"/>
+    <path d="M74 116V44l16-14 16 14v72M84 62h12v14H84M86 116V94a4 4 0 018 0v22"/>
+    <path d="M128 116V70h48v46M138 82h8v12h-8M158 82h8v12h-8"/>
+    <path d="M196 116V52h12V36l10-10 10 10v16h12v64M212 74h12v16h-12M216 116V98a5 5 0 0110 0v18"/>
+    <path d="M262 116V64h40v52M272 78h8v12h-8M286 78h8v12h-8"/>
+    <path d="M322 116V48l18-16 18 16v68M332 68h14v16h-14M336 116V92a6 6 0 0112 0v24"/>
+    <path d="M378 116V72h44v44M388 84h9v13h-9M406 84h9v13h-9"/>
+    <path d="M442 116V56h14V40l9-9 9 9v16h14v60M456 76h14v16h-14"/>
+    <path d="M502 116V66h38v50M512 80h8v12h-8M526 80h8v12h-8"/>
+    <path d="M562 116V50l16-14 16 14v66M572 70h14v16h-14M576 116V96a5 5 0 0110 0v20"/>
+    <path d="M0 116h640"/>
+  </svg>
+
+  <div class="content">
+    <div class="left">
+      <span class="chip"><span class="dot"></span>연고대 편입논술 · DOCK PASS</span>
+      <h2 class="head">합격의 시작,<br><em>지금 바로 경험하세요</em></h2>
+      <p class="sub">지금 수강하면 맞춤 학습 플랜과<br>1:1 학습 상담을 무료로 제공합니다.</p>
+      <span class="cta-btn">학습소개 살펴보기 <span class="arrow">→</span></span>
+    </div>
+
+    <div class="glass">
+      <div class="medals">
+        <div class="medal">
+          <div class="medal-ring">
+            <!-- 고려대 본관: 중앙 첨탑 + 좌우 날개 (석조 고딕) -->
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.7"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M32 4l7 8v6h5v10h6v26H14V28h6V18h5v-6z"/>
+              <path d="M28 54V42a4 4 0 018 0v12"/>
+              <path d="M24 32h4v7h-4zM36 32h4v7h-4z"/>
+              <path d="M30 22h4v6h-4z"/>
+              <path d="M8 54h48"/>
+              <path d="M14 28h-4v26M50 28h4v26"/>
+            </svg>
+          </div>
+          <span class="medal-label">고려대</span>
+        </div>
+
+        <div class="medal">
+          <div class="medal-ring">
+            <!-- 연세대 언더우드관: 중앙 시계탑 + 넓은 본관 -->
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.7"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M32 4l6 7v7h4v10h10v26H12V28h10V18h4v-7z"/>
+              <circle cx="32" cy="24" r="4.4"/>
+              <path d="M32 22v2.4l1.8 1.2"/>
+              <path d="M27 54V44a5 5 0 0110 0v10"/>
+              <path d="M17 34h6v8h-6zM41 34h6v8h-6z"/>
+              <path d="M6 54h52"/>
+            </svg>
+          </div>
+          <span class="medal-label">연세대</span>
+        </div>
+      </div>
+
+      <div class="stats">
+        <span>2026 최종합격 <span class="num">88명</span></span>
+        <i class="bar"></i>
+        <span>1차 합격 <span class="num">222명</span></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ 모바일 : 720 × 600 ═══════════════ -->
+<div class="stage" id="mo">
+  <div class="frame"></div>
+
+  <svg class="skyline" viewBox="0 0 640 120" preserveAspectRatio="xMidYMax meet"
+       fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+    <path d="M18 116V60h34v56M26 74h6v10h-6M38 74h6v10h-6"/>
+    <path d="M74 116V44l16-14 16 14v72M84 62h12v14H84M86 116V94a4 4 0 018 0v22"/>
+    <path d="M128 116V70h48v46M138 82h8v12h-8M158 82h8v12h-8"/>
+    <path d="M196 116V52h12V36l10-10 10 10v16h12v64M212 74h12v16h-12M216 116V98a5 5 0 0110 0v18"/>
+    <path d="M262 116V64h40v52M272 78h8v12h-8M286 78h8v12h-8"/>
+    <path d="M322 116V48l18-16 18 16v68M332 68h14v16h-14M336 116V92a6 6 0 0112 0v24"/>
+    <path d="M378 116V72h44v44M388 84h9v13h-9M406 84h9v13h-9"/>
+    <path d="M442 116V56h14V40l9-9 9 9v16h14v60M456 76h14v16h-14"/>
+    <path d="M502 116V66h38v50M512 80h8v12h-8M526 80h8v12h-8"/>
+    <path d="M562 116V50l16-14 16 14v66M572 70h14v16h-14M576 116V96a5 5 0 0110 0v20"/>
+    <path d="M0 116h640"/>
+  </svg>
+
+  <div class="content">
+    <span class="chip"><span class="dot"></span>연고대 편입논술 · DOCK PASS</span>
+    <h2 class="head">합격의 시작,<br><em>지금 바로 경험하세요</em></h2>
+
+    <div class="glass">
+    <div class="medals">
+      <div class="medal">
+        <div class="medal-ring">
+          <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.7"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M32 4l7 8v6h5v10h6v26H14V28h6V18h5v-6z"/>
+            <path d="M28 54V42a4 4 0 018 0v12"/>
+            <path d="M24 32h4v7h-4zM36 32h4v7h-4z"/>
+            <path d="M30 22h4v6h-4z"/>
+            <path d="M8 54h48"/>
+            <path d="M14 28h-4v26M50 28h4v26"/>
+          </svg>
+        </div>
+        <span class="medal-label">고려대</span>
+      </div>
+      <div class="medal">
+        <div class="medal-ring">
+          <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.7"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M32 4l6 7v7h4v10h10v26H12V28h10V18h4v-7z"/>
+            <circle cx="32" cy="24" r="4.4"/>
+            <path d="M32 22v2.4l1.8 1.2"/>
+            <path d="M27 54V44a5 5 0 0110 0v10"/>
+            <path d="M17 34h6v8h-6zM41 34h6v8h-6z"/>
+            <path d="M6 54h52"/>
+          </svg>
+        </div>
+        <span class="medal-label">연세대</span>
+      </div>
+    </div>
+
+      <div class="stats">
+        <span>2026 최종합격 <span class="num">88명</span></span>
+        <i class="bar"></i>
+        <span>1차 합격 <span class="num">222명</span></span>
+      </div>
+    </div>
+
+    <p class="sub">지금 수강하면 맞춤 학습 플랜과<br>1:1 학습 상담을 무료로 제공합니다.</p>
+    <span class="cta-btn">학습소개 살펴보기 <span class="arrow">→</span></span>
+  </div>
+</div>
+
+</body>
+</html>

@@ -2108,6 +2108,16 @@ body.lp2-page { background: var(--grey-bg); }
 .lp-curriculum-list li.active .num { background: var(--dark); }
 .lp-curriculum-list li.active .step-title { color: var(--green); font-weight: 700; }
 
+/* 강의별 진도 배지 — 25초마다 진도를 저장하면서 함께 갱신된다 */
+.lp-curriculum-list .lp-progress {
+  margin-left: auto;
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8a938f;
+}
+.lp-curriculum-list .lp-progress--done { color: var(--green); }
+
 /* ── My page ── */
 .mp-section-head {
   display: flex;

@@ -499,8 +499,56 @@
             <h2>인증 갤러리</h2>
             <div class="file-row"><input type="file" id="cert-gallery-file" accept="image/*"></div>
           </div>
+          <p class="field-hint" style="margin-bottom:6px;">홈 화면의 합격 인증 슬라이더에 노출됩니다. (합격인증 페이지는 아래 게시판을 사용합니다)</p>
           <div class="status-text" id="cert-gallery-upload-status"></div>
           <ul class="drag-list" id="cert-gallery-list" style="margin-top:10px;"></ul>
+        </div>
+
+        <div class="card" id="certPostWriteCard">
+          <div class="card-head-row">
+            <h2 id="certPostFormTitle" style="display:none;">새 인증글 작성</h2>
+            <button class="btn" id="cert-post-add" type="button">+ 새 인증글 작성</button>
+          </div>
+          <div class="field-grid" id="certPostFormBody" style="display:none; margin-top:4px;">
+            <div class="field-row">
+              <label class="field-label">작성자 *</label>
+              <input type="text" id="cpAuthor" placeholder="예: 김○○ 수강생">
+            </div>
+            <div class="field-row">
+              <label class="check-row" style="align-self:flex-end; padding-bottom:9px;"><input type="checkbox" id="cpPinned"> 상단 고정</label>
+            </div>
+            <div class="field-row full">
+              <label class="field-label">제목 *</label>
+              <input type="text" id="cpTitle">
+            </div>
+            <div class="field-row full">
+              <label class="field-label">인증 사진 (선택)</label>
+              <div class="file-row"><input type="file" id="cpImageFile" accept="image/*"></div>
+              <img id="cpImagePreview" style="display:none; margin-top:10px; max-width:220px; border-radius:8px;">
+              <div class="status-text" id="cpImageStatus"></div>
+            </div>
+            <div class="field-row full">
+              <label class="field-label">내용</label>
+              <div id="cpBodyEditor"></div>
+            </div>
+          </div>
+          <div class="status-text" id="certPostFormStatus"></div>
+          <div id="certPostFormActions" style="display:none; gap:8px; margin-top:14px;">
+            <button class="btn" id="certPostSaveBtn" type="button">저장</button>
+            <button class="btn-outline" id="certPostCancelBtn" type="button">취소</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h2>합격 인증 게시판 (<span id="certPostTotal">0</span>개)</h2>
+          </div>
+          <p class="field-hint" style="margin-bottom:14px;">합격인증 페이지의 게시판에 노출됩니다. 조회수는 방문자가 글을 펼칠 때 자동으로 올라갑니다.</p>
+          <table>
+            <thead><tr><th>번호</th><th>제목</th><th>작성자</th><th>조회</th><th>등록일</th><th>노출</th><th>작업</th></tr></thead>
+            <tbody id="cert-post-list"></tbody>
+          </table>
+          <div class="status-text" id="cert-post-status"></div>
         </div>
       </section>
 
@@ -767,7 +815,7 @@
       </section>
 
       <section id="bannerSection" class="admin-section">
-        <p class="field-hint" style="margin-bottom:14px;">프론트 페이지에 노출되는 배너 4종을 관리합니다. 목록 상단의 "+ 배너 추가"로 새로 등록하고, 순서는 드래그로 바꿀 수 있습니다.</p>
+        <p class="field-hint" style="margin-bottom:14px;">프론트 페이지에 노출되는 배너 5종을 관리합니다. 목록 상단의 "+ 배너 추가"로 새로 등록하고, 순서는 드래그로 바꿀 수 있습니다.</p>
 
         <div class="card">
           <div class="card-head-row">
@@ -807,6 +855,16 @@
           <p class="field-hint" style="margin-bottom:10px;">권장 이미지 크기 320×325px · 맨 위 항목(순서 1번) 하나만 프론트에 노출됩니다.</p>
           <ul class="drag-list" id="banner-side-list"></ul>
           <div class="status-text" id="banner-side-list-status"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h2>하단배너 (<span id="bannerTotal-bottom">0</span>개)</h2>
+            <button class="btn" type="button" data-banner-add="bottom">+ 배너 추가</button>
+          </div>
+          <p class="field-hint" style="margin-bottom:10px;">홈 맨 아래 자주 묻는 질문 옆 자리 · 권장 이미지 크기 1080×500px(모바일 720×600px) · 여러 장 등록하면 4초마다 자동 전환됩니다.</p>
+          <ul class="drag-list" id="banner-bottom-list"></ul>
+          <div class="status-text" id="banner-bottom-list-status"></div>
         </div>
       </section>
 
@@ -1077,7 +1135,7 @@
             <button class="btn" id="enrollVodAddBtn" type="button">추가</button>
           </div>
           <table>
-            <thead><tr><th>강좌명</th><th>상태</th><th>수강 만료일</th><th style="width:32%;">관리자메모</th><th>등록경로</th><th></th></tr></thead>
+            <thead><tr><th>강좌명</th><th>상태</th><th>수강현황</th><th>수강 만료일</th><th style="width:24%;">관리자메모</th><th>등록경로</th><th></th></tr></thead>
             <tbody id="enrollVodList"></tbody>
           </table>
           <div class="status-text" id="enrollVodStatus"></div>

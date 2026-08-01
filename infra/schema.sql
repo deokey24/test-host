@@ -359,12 +359,13 @@ CREATE TABLE IF NOT EXISTS popup_banners (
   INDEX idx_popup_banners_visible_dates (visible, start_date, end_date)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- 배너 관리 (관리자 "배너 관리" 메뉴 — 상단/중간/콘텐츠/사이드 4종)
+-- 배너 관리 (관리자 "배너 관리" 메뉴 — 상단/중간/콘텐츠/사이드/하단 5종)
 -- top/middle: 홈 상단 슬라이더(.banner-slider--top/--mid). content/side: DOCK NEWS 섹션 좌(탭+이미지)/우(고정 이미지).
+-- bottom: 홈 맨 아래 FAQ 옆 CTA 자리 슬라이더(.banner-slider--bottom). PC 1080×500 / 모바일 720×600.
 -- content 타입의 label은 DOCK NEWS 탭 버튼 이름으로 쓰인다.
 CREATE TABLE IF NOT EXISTS content_banners (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  banner_type ENUM('top', 'middle', 'content', 'side') NOT NULL,
+  banner_type ENUM('top', 'middle', 'content', 'side', 'bottom') NOT NULL,
   label VARCHAR(200),
   image_url VARCHAR(500) NOT NULL,
   -- 모바일 전용 이미지(top/middle만 사용). NULL이면 image_url을 확대 크롭해서 노출 — 파일 하단 ALTER 주석 참고.
@@ -865,3 +866,72 @@ ALTER TABLE member_vod_enrollments
 ALTER TABLE content_banners
   ADD COLUMN IF NOT EXISTS mobile_image_url VARCHAR(500) DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS mobile_focus ENUM('left', 'center', 'right') NOT NULL DEFAULT 'center';
+
+-- ── 하단배너 슬롯 추가 (2026-08) ──
+-- 홈 맨 아래 FAQ 옆에 있던 하드코딩 CTA 블록(합격의 시작…)을 관리자 배너로 전환.
+-- 기존 DB는 ENUM에 'bottom'이 없으므로 먼저 확장한다(ENUM은 ADD COLUMN IF NOT EXISTS 같은 멱등 문법이 없어 MODIFY로 덮어쓴다).
+ALTER TABLE content_banners
+  MODIFY COLUMN banner_type ENUM('top', 'middle', 'content', 'side', 'bottom') NOT NULL;
+
+-- 하단배너 초기 2종(수강권 쿠폰 / 캠퍼스 포토). 이미 등록돼 있으면 건너뛴다.
+INSERT INTO content_banners (banner_type, label, image_url, mobile_image_url, link_url, sort_order)
+SELECT * FROM (
+  SELECT 'bottom' AS banner_type, '수강권 쿠폰 10%' AS label,
+         '/assets/home/cta-bottom-1.webp' AS image_url,
+         '/assets/home/cta-bottom-1-mobile.webp' AS mobile_image_url,
+         '/intro.html' AS link_url, 0 AS sort_order UNION ALL
+  SELECT 'bottom', '캠퍼스 포토 10%',
+         '/assets/home/cta-bottom-2.webp',
+         '/assets/home/cta-bottom-2-mobile.webp',
+         '/intro.html', 1
+) AS seed
+WHERE NOT EXISTS (SELECT 1 FROM content_banners WHERE banner_type = 'bottom');
+
+-- ── 수강현황(진도) 기록 (2026-08) ──
+-- 웹 플레이어(lecturePlayer.html)와 데스크톱 앱(dock-player)이 재생 중 주기적으로 보내는
+-- 하트비트를 강의 단위로 누적한다. 강좌 단위 진도율은 이 테이블을 GROUP BY로 집계해서 얻는다
+-- (member_vod_enrollments에 비정규화하지 않음 — 회원×강의 수 규모상 집계가 충분히 싸다).
+--
+-- last_position_seconds vs watched_seconds — 반드시 분리해야 한다:
+--   last_position_seconds: 이어보기 지점. 그냥 마지막 위치를 덮어쓴다.
+--   watched_seconds: 실제로 재생된 미디어 시간의 누적(진도율 분자). 클라이언트가 timeupdate
+--     델타를 모아 보내고 서버가 더한다. 이 값을 currentTime으로 대체하면 시크바를 끝까지
+--     드래그하는 것만으로 진도율 100%를 만들 수 있다.
+-- 분모(영상 길이)는 이 테이블에 저장하지 않고 lecture_videos.duration_seconds를 조인해서 쓴다.
+-- completed: watched_seconds가 길이의 PROGRESS_COMPLETE_RATIO(server.js) 이상이면 서버가 세팅.
+--   강좌 수강상태(member_vod_enrollments.status)는 여기서 자동 전환하지 않는다(관리자 수동).
+CREATE TABLE IF NOT EXISTS member_lecture_progress (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  member_id BIGINT NOT NULL,
+  vod_course_lecture_id BIGINT NOT NULL,
+  vod_course_id BIGINT NOT NULL,            -- 강좌 단위 집계용(매번 vod_course_lectures를 조인하지 않기 위함)
+  last_position_seconds INT NOT NULL DEFAULT 0,
+  watched_seconds INT NOT NULL DEFAULT 0,
+  completed TINYINT(1) NOT NULL DEFAULT 0,
+  first_played_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_played_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_member_lecture (member_id, vod_course_lecture_id),
+  KEY idx_member_course (member_id, vod_course_id),
+  CONSTRAINT fk_mlp_member FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
+  CONSTRAINT fk_mlp_lecture FOREIGN KEY (vod_course_lecture_id) REFERENCES vod_course_lectures(id) ON DELETE CASCADE,
+  CONSTRAINT fk_mlp_course FOREIGN KEY (vod_course_id) REFERENCES vod_courses(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- ── 합격 인증 게시판 (2026-08) ──
+-- cert.html이 기존 이미지 갤러리(cert_gallery_images)에서 게시판 형태로 바뀌면서 추가.
+-- 갤러리 테이블은 홈 "합격 인증" 슬라이더가 계속 쓰고 있으므로 건드리지 않고 별도 테이블로 둔다.
+-- view_count는 상세 조회(GET /api/cert-posts/:id) 때 서버가 1씩 올린다 — 목록 조회로는 오르지 않는다.
+CREATE TABLE IF NOT EXISTS cert_posts (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  author VARCHAR(100) NOT NULL,
+  body LONGTEXT,
+  image_url VARCHAR(500) DEFAULT NULL,      -- 인증 사진(선택). 상세에서 본문 위에 표시
+  view_count INT NOT NULL DEFAULT 0,
+  pinned TINYINT(1) NOT NULL DEFAULT 0,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_cert_posts_list (is_active, pinned, created_at)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

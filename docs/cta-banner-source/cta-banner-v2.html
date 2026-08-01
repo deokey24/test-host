@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>DOCK PASS 하단 CTA 배너 — A안 / B안</title>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@main/dist/web/variable/pretendardvariable.css');
+
+:root{
+  /* A안 — 참고 배너(37384_8월신규반안내) 톤 */
+  --blue:#1d45ff;          /* 브랜드 로열블루 */
+  --blue-btn:#1877ff;      /* 참고 배너 버튼 파랑 */
+  --ink:#0b1f4b;           /* 헤드라인 네이비 */
+  --ink-sub:#4a5875;
+  --line-a:#d8def0;
+  /* B안 — 사이트 네이비 팔레트 */
+  --navy:#081a44;          /* 단색 배경 (그라데이션 없음) */
+  --beige-400:#e3cdaf;
+  --beige-100:#f1e6d7;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#5b5b5b;font-family:'Pretendard Variable',Pretendard,sans-serif;letter-spacing:-.015em;
+     display:flex;flex-direction:column;gap:44px;padding:44px;align-items:flex-start}
+.tag{color:#fff;font-weight:800;font-size:15px;margin-bottom:-30px}
+
+/* 무대: 배경 그라데이션 없이 전부 단색 */
+.stage{position:relative;overflow:hidden}
+.content{position:relative;z-index:2;height:100%;display:flex}
+
+/* ── 실제 캠퍼스 사진 원형 아이콘 ─────────────────────────── */
+.camp{display:flex;flex-direction:column;align-items:center}
+.camp-img{border-radius:50%;object-fit:cover;display:block}
+.camp-label{font-weight:800;white-space:nowrap}
+
+/* ── 공통 텍스트 ──────────────────────────────────────────── */
+.head{font-weight:800;line-height:1.24;letter-spacing:-.032em}
+.sub{font-weight:600}
+.hl{font-weight:900}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;font-weight:800;white-space:nowrap}
+
+/* ══════════════════════════════════════════════════════════
+   A안 — 화이트 + 로열블루 (참고 배너 스타일)
+   ══════════════════════════════════════════════════════════ */
+.a{background:#ffffff;color:var(--ink)}
+.a .brand{display:flex;align-items:center;gap:18px}
+.a .brand img{display:block}
+.a .brand .vline{width:1px;background:var(--line-a);align-self:stretch}
+.a .campus-chip{display:flex;align-items:center;gap:10px;color:var(--ink);font-weight:800;white-space:nowrap}
+.a .campus-chip .camp-img{border:2px solid #fff;box-shadow:0 0 0 1px var(--line-a)}
+.a .head em{font-style:normal;color:var(--blue)}
+.a .sub{color:var(--ink-sub)}
+.a .sub .hl{color:var(--blue)}
+.a .btn{background:var(--blue-btn);color:#fff;border-radius:999px}
+.a .photo{flex:none;border-radius:16px;overflow:hidden}
+.a .medals{align-items:flex-start}
+.a .photo img{width:100%;height:100%;object-fit:cover;display:block}
+/* 참고 배너의 아웃라인 정보 박스 */
+.a .infobox{display:inline-flex;align-items:center;border:1px solid var(--line-a);border-radius:12px;
+            color:var(--ink);font-weight:800;white-space:nowrap}
+.a .infobox .sep{width:1px;background:var(--line-a);align-self:stretch}
+.a .seal{position:absolute;z-index:5;background:var(--blue);color:#fff;border-radius:50%;
+         display:flex;flex-direction:column;align-items:center;justify-content:center;
+         box-shadow:0 10px 26px rgba(29,69,255,.32);text-align:center;line-height:1.16}
+.a .seal .pct{font-weight:900}
+.a .seal .txt{font-weight:800;opacity:.95}
+.a .stars{letter-spacing:.14em;opacity:.9}
+
+/* A안 PC 1080×500 */
+#a-pc{width:1080px;height:500px}
+#a-pc .content{padding:46px 0 46px 52px;align-items:center;gap:40px}
+#a-pc .left{flex:1;min-width:0}
+#a-pc .toprow{display:flex;align-items:center;gap:18px;margin-bottom:26px}
+#a-pc .brand img{height:52px}
+#a-pc .brand .vline{height:44px}
+#a-pc .campus-chip{font-size:14.5px}
+#a-pc .campus-chip .camp-img{width:38px;height:38px}
+#a-pc .campus-chip .camp-img+.camp-img{margin-left:-12px}
+#a-pc .head{font-size:47px;margin-bottom:18px}
+#a-pc .infobox{height:54px;font-size:16px;margin-bottom:22px}
+#a-pc .infobox span{padding:0 24px}
+#a-pc .infobox .sep{margin:11px 0}
+#a-pc .sub{font-size:18px;margin-bottom:24px}
+#a-pc .btn{height:58px;padding:0 32px;font-size:18px}
+/* 사진 원본(163×285)의 비율 그대로 — 늘리지 않아 선명도 유지 */
+#a-pc .photo{width:233px;height:408px;border-radius:16px 0 0 16px}
+#a-pc .seal{width:132px;height:132px;right:172px;top:44px;font-size:13px}
+#a-pc .seal .pct{font-size:34px}
+#a-pc .seal .stars{font-size:10px;margin-bottom:2px}
+
+/* A안 모바일 720×600 — 세로형이라 사진 패널 대신 캠퍼스 원형 아이콘 */
+#a-mo{width:720px;height:600px}
+#a-mo .content{padding:40px 44px;flex-direction:column;align-items:center;text-align:center}
+#a-mo .brand{justify-content:center;margin-bottom:16px}
+#a-mo .brand img{height:46px}
+#a-mo .head{font-size:41px;margin-bottom:20px}
+#a-mo .medals{display:flex;position:relative;gap:104px;margin-bottom:20px}
+#a-mo .camp{gap:10px}
+#a-mo .camp-img{width:118px;height:118px;border:3px solid #fff;box-shadow:0 0 0 1px var(--line-a)}
+#a-mo .camp-label{font-size:15.5px;color:var(--ink)}
+#a-mo .seal{width:100px;height:100px;left:50%;top:12px;transform:translateX(-50%);font-size:11px}
+#a-mo .seal .pct{font-size:27px}
+#a-mo .seal .stars{font-size:8.5px}
+#a-mo .sub{font-size:18px;margin-bottom:20px}
+#a-mo .btn{height:66px;width:100%;font-size:21px}
+
+/* ══════════════════════════════════════════════════════════
+   B안 — 단색 딥네이비 + 캠퍼스 메달리온 + 10% 할인
+   ══════════════════════════════════════════════════════════ */
+.b{background:var(--navy);color:#fff}
+.b .chip{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(227,205,175,.45);
+         border-radius:999px;color:var(--beige-400);font-weight:800;white-space:nowrap}
+.b .chip .dot{width:5px;height:5px;border-radius:50%;background:var(--beige-400);flex:none}
+.b .head em{font-style:normal;color:var(--beige-400)}
+.b .sub{color:#c6d1e2}
+.b .sub .hl{color:var(--beige-400)}
+.b .btn{background:var(--beige-400);color:#14213a;border-radius:12px}
+.b .camp-img{border:3px solid rgba(227,205,175,.55)}
+.b .camp-label{color:var(--beige-100)}
+.b .medals{display:flex;position:relative}
+.b .disc{position:absolute;background:var(--beige-400);color:#14213a;border-radius:50%;
+         display:flex;flex-direction:column;align-items:center;justify-content:center;
+         text-align:center;line-height:1.1;box-shadow:0 12px 28px rgba(0,0,0,.35)}
+.b .disc .pct{font-weight:900}
+.b .disc .txt{font-weight:800}
+
+/* B안 PC 1080×500 */
+#b-pc{width:1080px;height:500px}
+#b-pc .content{padding:48px 56px;align-items:center;justify-content:space-between;gap:36px}
+#b-pc .left{max-width:576px}
+#b-pc .chip{padding:8px 16px;font-size:14px;margin-bottom:20px}
+#b-pc .head{font-size:44px;margin-bottom:15px}
+#b-pc .sub{font-size:18px;margin-bottom:28px}
+#b-pc .btn{height:58px;padding:0 32px;font-size:18px}
+#b-pc .medals{gap:26px;flex:none;padding-top:14px}
+#b-pc .camp{gap:13px}
+#b-pc .camp-img{width:158px;height:158px}
+#b-pc .camp-label{font-size:16px}
+#b-pc .disc{width:104px;height:104px;left:50%;top:-26px;transform:translateX(-50%)}
+#b-pc .disc .pct{font-size:30px}
+#b-pc .disc .txt{font-size:12.5px}
+
+/* B안 모바일 720×600 */
+#b-mo{width:720px;height:600px}
+#b-mo .content{padding:42px 44px;flex-direction:column;align-items:center;text-align:center;justify-content:center}
+#b-mo .chip{padding:9px 18px;font-size:15px;margin-bottom:18px}
+#b-mo .head{font-size:42px;margin-bottom:20px}
+#b-mo .medals{gap:96px;margin-bottom:22px}
+#b-mo .camp{gap:11px}
+#b-mo .camp-img{width:128px;height:128px}
+#b-mo .camp-label{font-size:15.5px}
+#b-mo .disc{width:96px;height:96px;left:50%;top:20px;transform:translateX(-50%)}
+#b-mo .disc .pct{font-size:27px}
+#b-mo .disc .txt{font-size:11.5px}
+#b-mo .sub{font-size:18px;margin-bottom:22px}
+#b-mo .btn{height:66px;width:100%;font-size:21px}
+</style>
+</head>
+<body>
+
+<!-- ══════════ A안 PC : 1080 × 500 ══════════ -->
+<div class="tag">A안 PC 1080×500</div>
+<div class="stage a" id="a-pc">
+  <div class="content">
+    <div class="left">
+      <div class="toprow">
+        <div class="brand">
+          <img src="assets/logo-dockpass-blue.png" alt="DOCK PASS">
+          <div class="vline"></div>
+        </div>
+        <div class="campus-chip">
+          <img class="camp-img" src="assets/campus-korea.png" alt="고려대">
+          <img class="camp-img" src="assets/campus-yonsei.png" alt="연세대">
+          <span>고려대 · 연세대 편입논술</span>
+        </div>
+      </div>
+      <h2 class="head">합격의 시작,<br><em>지금 바로 경험하세요</em></h2>
+      <div class="infobox">
+        <span>1:1 첨삭 지도</span><i class="sep"></i>
+        <span>맞춤 학습 플랜</span><i class="sep"></i>
+        <span>합격까지 관리</span>
+      </div>
+      <p class="sub">지금 수강하면 <span class="hl">10% 할인 혜택</span> 제공</p>
+      <span class="btn">학습소개 살펴보기 <span>›</span></span>
+    </div>
+
+    <div class="photo"><img src="assets/campus-photo.png" alt="캠퍼스"></div>
+  </div>
+  <div class="seal">
+    <span class="stars">★★★★★</span>
+    <span class="pct">10%</span>
+    <span class="txt">할인 혜택</span>
+  </div>
+</div>
+
+<!-- ══════════ A안 모바일 : 720 × 600 ══════════ -->
+<div class="tag">A안 모바일 720×600</div>
+<div class="stage a" id="a-mo">
+  <div class="content">
+    <div class="brand"><img src="assets/logo-dockpass-blue.png" alt="DOCK PASS"></div>
+    <h2 class="head">합격의 시작,<br><em>지금 바로 경험하세요</em></h2>
+    <div class="medals">
+      <div class="camp">
+        <img class="camp-img" src="assets/campus-korea.png" alt="고려대 캠퍼스">
+        <span class="camp-label">고려대</span>
+      </div>
+      <div class="camp">
+        <img class="camp-img" src="assets/campus-yonsei.png" alt="연세대 캠퍼스">
+        <span class="camp-label">연세대</span>
+      </div>
+      <div class="seal">
+        <span class="stars">★★★★★</span>
+        <span class="pct">10%</span>
+        <span class="txt">할인 혜택</span>
+      </div>
+    </div>
+    <p class="sub">지금 수강하면 <span class="hl">10% 할인 혜택</span> 제공</p>
+    <span class="btn">학습소개 살펴보기 <span>›</span></span>
+  </div>
+</div>
+
+<!-- ══════════ B안 PC : 1080 × 500 ══════════ -->
+<div class="tag">B안 PC 1080×500</div>
+<div class="stage b" id="b-pc">
+  <div class="content">
+    <div class="left">
+      <span class="chip"><span class="dot"></span>고려대 · 연세대 편입논술</span>
+      <h2 class="head">합격의 시작,<br><em>지금 바로 경험하세요</em></h2>
+      <p class="sub">지금 수강하면 <span class="hl">10% 할인 혜택</span> 제공</p>
+      <span class="btn">학습소개 살펴보기 <span>→</span></span>
+    </div>
+
+    <div class="medals">
+      <div class="camp">
+        <img class="camp-img" src="assets/campus-korea.png" alt="고려대 캠퍼스">
+        <span class="camp-label">고려대</span>
+      </div>
+      <div class="camp">
+        <img class="camp-img" src="assets/campus-yonsei.png" alt="연세대 캠퍼스">
+        <span class="camp-label">연세대</span>
+      </div>
+      <div class="disc"><span class="pct">10%</span><span class="txt">할인</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ B안 모바일 : 720 × 600 ══════════ -->
+<div class="tag">B안 모바일 720×600</div>
+<div class="stage b" id="b-mo">
+  <div class="content">
+    <span class="chip"><span class="dot"></span>고려대 · 연세대 편입논술</span>
+    <h2 class="head">합격의 시작,<br><em>지금 바로 경험하세요</em></h2>
+    <div class="medals">
+      <div class="camp">
+        <img class="camp-img" src="assets/campus-korea.png" alt="고려대 캠퍼스">
+        <span class="camp-label">고려대</span>
+      </div>
+      <div class="camp">
+        <img class="camp-img" src="assets/campus-yonsei.png" alt="연세대 캠퍼스">
+        <span class="camp-label">연세대</span>
+      </div>
+      <div class="disc"><span class="pct">10%</span><span class="txt">할인</span></div>
+    </div>
+    <p class="sub">지금 수강하면 <span class="hl">10% 할인 혜택</span> 제공</p>
+    <span class="btn">학습소개 살펴보기 <span>→</span></span>
+  </div>
+</div>
+
+</body>
+</html>

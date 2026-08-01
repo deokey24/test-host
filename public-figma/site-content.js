@@ -68,6 +68,93 @@ function attachVideoSource(videoEl, url) {
   videoEl.load();
 }
 
+// ── 수강현황(진도) 전송 ──
+// 서버 계약은 dock-player/API_SPEC.md 7·8번과 같다. dock-player에도 같은 알고리즘의 트래커가
+// 따로 있으므로(별도 저장소라 코드 공유 불가), 규약이나 delta 계산 방식을 바꾸면 그쪽도 같이 고쳐야 한다.
+//
+// 핵심은 "현재 위치"가 아니라 "직전 전송 이후 실제로 재생된 미디어 시간(delta)"을 보낸다는 것 —
+// timeupdate의 currentTime 증가분만 누적하므로 배속 재생은 자연히 반영되고, 시크 점프는
+// 정상 재생 폭을 넘어 버려지기 때문에 시크바를 끝까지 끌어도 진도가 오르지 않는다.
+const PROGRESS_ENDPOINT = '/api/v1/progress';
+const PROGRESS_INTERVAL_MS = 25000;
+const PROGRESS_MAX_STEP_SECONDS = 3;  // timeupdate 한 번에 인정하는 최대 재생 폭(넘으면 시크로 간주해 버림)
+const PROGRESS_QUEUE_MAX = 100;       // 전송 실패분 보관 상한(서버가 받는 배치 상한과 동일)
+
+function createProgressTracker(videoEl, onSaved) {
+  let lectureId = null;
+  let accumulated = 0;
+  let prevTime = 0;
+  let timer = null;
+  let stopped = false;
+  let queue = [];
+
+  function accumulate() {
+    const now = videoEl.currentTime;
+    const step = now - prevTime;
+    prevTime = now;
+    if (step > 0 && step <= PROGRESS_MAX_STEP_SECONDS) accumulated += step;
+  }
+
+  function stopTimer() { clearInterval(timer); timer = null; }
+  function stop() { stopped = true; stopTimer(); }
+
+  // beacon: 탭을 닫는 중에는 fetch가 취소되므로 sendBeacon으로 보낸다.
+  function flush({ beacon = false } = {}) {
+    if (stopped || !lectureId) return;
+    const item = { lectureId, position: Math.round(videoEl.currentTime), delta: Math.round(accumulated), at: Date.now() };
+    if (!item.delta && !queue.length) return; // 보낼 게 없으면(일시정지 상태 등) 요청 자체를 하지 않는다
+    accumulated = 0;
+    const items = queue.concat(item);
+    queue = [];
+    const payload = JSON.stringify({ items });
+
+    if (beacon && navigator.sendBeacon) {
+      if (!navigator.sendBeacon(PROGRESS_ENDPOINT, new Blob([payload], { type: 'application/json' }))) queue = items;
+      return;
+    }
+    fetch(PROGRESS_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload
+    }).then(res => {
+      if (res.status === 401) { stop(); return null; } // 세션 만료(서버 재시작 포함) — 조용히 중단
+      if (!res.ok) throw new Error(String(res.status));
+      return res.json();
+    }).then(data => {
+      if (data && onSaved) onSaved(data.progress || []);
+    }).catch(() => {
+      // 네트워크 실패분은 다음 flush에 함께 보낸다(넘치면 오래된 것부터 버린다)
+      queue = items.concat(queue).slice(-PROGRESS_QUEUE_MAX);
+    });
+  }
+
+  videoEl.addEventListener('timeupdate', accumulate);
+  videoEl.addEventListener('playing', () => {
+    prevTime = videoEl.currentTime;
+    if (!timer && !stopped) timer = setInterval(() => { accumulate(); flush(); }, PROGRESS_INTERVAL_MS);
+  });
+  videoEl.addEventListener('seeked', () => { prevTime = videoEl.currentTime; });
+  videoEl.addEventListener('pause', () => { accumulate(); stopTimer(); flush(); });
+  videoEl.addEventListener('ended', () => { accumulate(); stopTimer(); flush(); });
+  // 탭을 숨기거나 닫는 순간이 마지막 구간을 건질 유일한 기회라 반드시 beacon으로 보낸다.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') { accumulate(); flush({ beacon: true }); }
+  });
+  window.addEventListener('pagehide', () => { accumulate(); flush({ beacon: true }); });
+
+  return {
+    // 강의를 바꿀 때 호출 — 이전 강의의 마지막 구간을 먼저 보내고 대상만 갈아끼운다.
+    // (video의 src를 갈기 전에 불러야 currentTime이 아직 이전 강의의 것이다)
+    setLecture(nextId) {
+      if (lectureId && nextId !== lectureId) { accumulate(); flush(); }
+      lectureId = nextId;
+      accumulated = 0;
+      prevTime = 0;
+      stopTimer();
+    }
+  };
+}
+
 // 관리자에서 TOAST UI 마크다운 에디터로 작성한 텍스트를 프론트 el에 읽기전용 뷰어로 렌더링
 // (이 TOAST UI 버전엔 문자열 변환용 정적 메서드가 없어 viewer:true 인스턴스를 직접 마운트해야 함 —
 //  el이 아직 보이지 않는 컨테이너(예: 닫힌 <details>) 안에 있으면 크기 계산이 틀어질 수 있으니
@@ -665,6 +752,22 @@ async function hydrateLecturePlayer() {
   }
   const topbarCourse = document.getElementById('lpTopbarCourse'); if (topbarCourse) topbarCourse.textContent = course.title || '';
 
+  // 진도(이어보기 지점 + 목록 배지). 실패해도 재생 자체엔 영향이 없도록 조용히 넘어간다.
+  const progressByLecture = {};
+  try {
+    const progressRes = await fetch(`/api/v1/courses/${courseId}/progress`);
+    if (progressRes.ok) {
+      const progressData = await progressRes.json();
+      (progressData.lectures || []).forEach(p => { progressByLecture[p.lectureId] = p; });
+    }
+  } catch { /* 진도 없이 진행 */ }
+
+  const videoEl = document.getElementById('lpVideo');
+  const progressTracker = videoEl ? createProgressTracker(videoEl, saved => {
+    saved.forEach(p => { progressByLecture[p.lectureId] = p; });
+    renderList(); // 25초마다 목록 배지를 최신 진도로 갱신
+  }) : null;
+
   const listEl = document.getElementById('lpCurriculumList');
   const nextBtn = document.getElementById('lpNextBtn');
   let currentIndex = 0;
@@ -674,11 +777,19 @@ async function hydrateLecturePlayer() {
     if (idx >= 0) currentIndex = idx;
   }
 
+  function progressBadgeHtml(lectureId) {
+    const p = progressByLecture[lectureId];
+    if (!p) return '';
+    if (p.completed) return '<span class="lp-progress lp-progress--done">완료</span>';
+    if (!p.percent) return '';
+    return `<span class="lp-progress">${p.percent}%</span>`;
+  }
+
   function renderList() {
     if (!listEl) return;
     listEl.innerHTML = lectures.map((l, i) => `
       <li class="${i === currentIndex ? 'active' : ''}" data-lecture-idx="${i}">
-        <span class="num">${String(i + 1).padStart(2, '0')}</span><span class="step-title">${escapeCmsHtml(l.title)}</span>
+        <span class="num">${String(i + 1).padStart(2, '0')}</span><span class="step-title">${escapeCmsHtml(l.title)}</span>${progressBadgeHtml(l.id)}
       </li>
     `).join('');
   }
@@ -718,9 +829,17 @@ async function hydrateLecturePlayer() {
     currentIndex = idx;
     const lecture = lectures[idx];
 
-    const videoEl = document.getElementById('lpVideo');
     if (videoEl) {
+      // src를 갈기 전에 호출해야 이전 강의의 마지막 구간이 이전 강의 앞으로 기록된다.
+      if (progressTracker) progressTracker.setLecture(lecture.id);
       attachVideoSource(videoEl, lecture.video_url || '');
+      // 이어보기 — 거의 다 본 강의는 끝에서 시작하면 의미가 없으니 처음부터 튼다.
+      const saved = progressByLecture[lecture.id];
+      const resumeAt = saved && !saved.completed && saved.position > 5 ? saved.position : 0;
+      if (resumeAt) {
+        // hls.js가 매니페스트를 파싱하기 전엔 currentTime을 못 잡으므로 메타데이터를 기다린다.
+        videoEl.addEventListener('loadedmetadata', () => { videoEl.currentTime = resumeAt; }, { once: true });
+      }
       if (autoplay) videoEl.play().catch(() => {});
     }
 

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@main/dist/web/variable/pretendardvariable.css');
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:400px;overflow:hidden}
+body{font-family:'Pretendard Variable',Pretendard,sans-serif;letter-spacing:-.02em;
+  position:relative;
+  background:radial-gradient(150% 260% at 50% 50%,#031434 0%,#031434 42%,#01102a 78%,#020b20 100%)}
+.confetti span{position:absolute;display:block;border-radius:2px}
+.logo-chip{position:absolute;top:24px;left:44px;background:#01102a;
+  border:1.5px solid rgba(255,255,255,.09);border-radius:14px;padding:8px 16px}
+.logo-chip img{display:block;height:56px}
+.trophy{position:absolute;right:24px;top:50%;transform:translateY(-50%);height:190px;
+  -webkit-mask-image:radial-gradient(ellipse 95% 100% at center,#000 55%,transparent 90%)}
+.col{position:absolute;inset:0;padding:0 270px 0 60px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center}
+.year{color:#7fb7ff;font-size:40px;font-weight:700;letter-spacing:.06em}
+.row{display:flex;align-items:center;gap:20px}
+.label{color:#fff;font-size:56px;font-weight:900;white-space:nowrap}
+.row img{height:168px}
+.sub{color:#dfe9ff;font-size:44px;font-weight:600;margin-top:2px;white-space:nowrap}
+.sub b{color:#2e86ff;font-size:50px;font-weight:900}
+</style></head>
+<body>
+<div class="confetti">
+  <span style="left:60px;top:330px;width:14px;height:9px;background:#2e86ff;transform:rotate(24deg)"></span>
+  <span style="left:150px;top:120px;width:10px;height:10px;background:#7fb7ff;transform:rotate(-16deg)"></span>
+  <span style="left:230px;top:300px;width:9px;height:14px;background:#1d45ff;transform:rotate(40deg)"></span>
+  <span style="left:250px;top:60px;width:12px;height:8px;background:#ffffff;opacity:.8;transform:rotate(12deg)"></span>
+  <span style="left:420px;top:40px;width:10px;height:10px;background:#2e86ff;transform:rotate(-30deg)"></span>
+  <span style="left:520px;top:350px;width:13px;height:9px;background:#7fb7ff;transform:rotate(18deg)"></span>
+  <span style="left:610px;top:70px;width:9px;height:9px;background:#ffffff;opacity:.7;transform:rotate(45deg)"></span>
+  <span style="left:700px;top:330px;width:11px;height:11px;background:#1d45ff;transform:rotate(-24deg)"></span>
+  <span style="left:790px;top:50px;width:12px;height:8px;background:#2e86ff;transform:rotate(30deg)"></span>
+  <span style="left:860px;top:300px;width:9px;height:13px;background:#7fb7ff;transform:rotate(-40deg)"></span>
+  <span style="left:950px;top:90px;width:10px;height:10px;background:#ffffff;opacity:.75;transform:rotate(20deg)"></span>
+  <span style="left:1010px;top:340px;width:12px;height:9px;background:#2e86ff;transform:rotate(-14deg)"></span>
+  <span style="left:340px;top:200px;width:8px;height:8px;background:#7fb7ff;opacity:.6;transform:rotate(10deg)"></span>
+  <span style="left:900px;top:180px;width:8px;height:8px;background:#2e86ff;opacity:.6;transform:rotate(-20deg)"></span>
+</div>
+<div class="logo-chip"><img src="../crops/mid-logo.png" alt=""></div>
+<img class="trophy" src="../crops/mid-trophy.png" alt="">
+<div class="col">
+  <div class="year">2026학년도</div>
+  <div class="row">
+    <div class="label">최종합격자</div>
+    <img src="../crops/mid-88.png" alt="88명">
+  </div>
+  <div class="sub">1차 합격자 <b>222명</b></div>
+</div>
+</body></html>

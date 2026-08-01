@@ -1,4 +1,4 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="DOCK PASS 연고대 편입논술 VOD 강좌 목록"><title>VOD 강좌 | DOCK PASS</title><link rel="icon" type="image/png" href="assets/favicon.png"><style>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="DOCK PASS 연고대 편입논술 VOD 강좌 목록"><title>VOD 강좌 | DOCK PASS</title><link rel="icon" type="image/png" href="assets/favicon.png"><script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script><style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@main/dist/web/variable/pretendardvariable.css');
 :root{
   --navy-950:#020918;--navy-900:#031228;--navy-850:#071a34;--navy-800:#0e1c30;--navy-700:#162844;
@@ -28,7 +28,19 @@
 .auth-modal-links a{opacity:.6}
 .auth-modal-links a:hover{opacity:1}
 .auth-links-sep{margin:0 10px;opacity:.35}
-.catalog-hero{background:radial-gradient(circle at 70% 20%,#10325b 0,transparent 34%),linear-gradient(135deg,var(--navy-950),#0b294b);color:#fff;padding:42px 0}.catalog-hero__inner{display:flex;justify-content:space-between;align-items:center;gap:30px}.crumb{color:#9fb0c7;font-size:12px;font-weight:700;letter-spacing:.06em}.catalog-hero h1{font-size:48px;margin:6px 0 10px}.catalog-hero .lead{margin:0;color:#dbe3ee}.stats{display:flex;gap:28px;margin-top:26px;flex-wrap:wrap}.stat{min-width:140px;display:flex;gap:11px;align-items:flex-start}.stat-ico{color:var(--beige-400);margin-top:4px}.stat-ico svg{width:26px;height:26px}.stat small{display:block;color:#aeb9c9}.stat strong{font-size:24px;color:#fff}
+.vod-intro{padding:34px 0 0}
+.vod-intro__hero{width:100%;height:auto;display:block;border-radius:16px}
+.vod-intro__player{position:relative;width:100%;aspect-ratio:16/9;margin-top:18px;border-radius:16px;overflow:hidden;background:#000}
+.vod-intro__player video{width:100%;height:100%;object-fit:contain;display:block;background:#000}
+.vod-intro__placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:linear-gradient(135deg,var(--navy-950),#0b294b);border:0;padding:0;color:#fff;text-align:center;cursor:pointer;font-family:inherit}
+.vod-intro__placeholder.hidden{display:none}
+.vod-intro__play{width:76px;height:76px;border-radius:50%;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.65);display:flex;align-items:center;justify-content:center;color:#fff;flex:none}
+/* margin-left로 밀지 않는다 — 광학 보정은 path 자체에 넣어야 아이콘 크기가 바뀌어도 비율이 유지된다.
+   삼각형은 무게중심이 왼쪽에 쏠려 있어 bbox를 정확히 가운데 두면 왼쪽으로 치우쳐 보인다.
+   path를 viewBox 중심에서 +1 단위(=아이콘 폭의 4%)만 오른쪽으로 둬서 bbox와 무게중심의 평균이 원 중심에 오게 맞췄다. */
+.vod-intro__play svg{width:28px;height:28px}
+.vod-intro__caption{margin:0;font-size:30px;font-weight:800;line-height:1.45}
+@media(max-width:760px){.vod-intro__caption{font-size:21px}.vod-intro__play{width:60px;height:60px}.vod-intro__play svg{width:22px;height:22px}}
 
 .section{padding:34px 0 58px}.section--soft{background:var(--ivory)}.section__head{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:24px}.section__head h2{margin:0;font-size:31px}.link-accent{color:var(--beige-700);font-weight:800}
 .chips{display:flex;gap:8px;flex-wrap:wrap}.chip{padding:9px 15px;border-radius:999px;border:1px solid var(--line);background:#fff;color:#4c5665;font-weight:700;font-size:13px;cursor:pointer}.chip.active{background:var(--navy-800);color:#fff;border-color:var(--navy-800)}
@@ -57,14 +69,19 @@
 .recent-empty{color:var(--muted);font-size:13px;padding:4px 0 2px}
 .footer{background:var(--navy-950);color:#d7dde8;padding:38px 0 26px}.footer__grid{display:grid;grid-template-columns:1fr 1.4fr .8fr;gap:30px}.footer small{color:#9ba7b8}.phone{font-size:28px;color:#fff;font-weight:900}.hours{font-size:12.5px;color:#9ba7b8;margin-top:4px}.social{display:flex;gap:8px;margin-top:14px}.social a{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.28);display:grid;place-items:center;color:#d7dde8;transition:.2s}.social a:hover{background:rgba(255,255,255,.12)}.social svg{width:15px;height:15px}.social a.blog{font-size:9px;font-weight:900;letter-spacing:-.04em}.footer__bottom{display:flex;justify-content:space-between;align-items:center;margin-top:28px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:#9ba7b8}.footer__bottom a{margin-left:16px;color:#c3ccd9}
 @media(max-width:1100px){.nav{gap:20px}.catalog-layout{grid-template-columns:1fr}.sidebar{grid-template-columns:repeat(2,1fr)}.sidebar .panel.dark{grid-column:1/-1}.course-row{grid-template-columns:180px 1fr 150px}.footer__grid{grid-template-columns:1fr 1fr}}
-@media(max-width:760px){.container{width:min(100% - 24px,var(--max))}.header__inner{height:64px}.nav{display:none;position:absolute;left:12px;right:12px;top:70px;background:var(--navy-900);padding:16px;border-radius:12px;flex-direction:column;gap:0}.nav.open{display:flex}.nav a{padding:12px}.nav a.active:after,.nav a:hover:after{display:none}.mobile-toggle{display:block}.header__actions .btn{padding:10px 13px}.catalog-hero__inner{display:block}.catalog-hero h1{font-size:38px}.stats{gap:16px}.filterbar .control{flex:1 1 calc(50% - 10px)}.course-row{grid-template-columns:1fr}.course-row__actions{text-align:left;flex-direction:row;align-items:center;justify-content:space-between;gap:12px}.price-block{gap:2px}.actions-buttons{flex-direction:row;gap:8px}.actions-buttons .btn{padding:10px 14px;font-size:13px}.sidebar{grid-template-columns:1fr}.section{padding:26px 0 42px}.section__head{align-items:flex-start;flex-direction:column}.footer__grid{grid-template-columns:1fr}.footer__bottom{flex-direction:column;gap:10px;align-items:flex-start}.footer__bottom a{margin:0 16px 0 0}}
-</style></head><body data-page="vod"><a class="skip" href="#main">본문 바로가기</a><div id="site-header"></div><script src="header.js?v=20260731"></script><main id="main">
+@media(max-width:760px){.container{width:min(100% - 24px,var(--max))}.header__inner{height:64px}.nav{display:none;position:absolute;left:12px;right:12px;top:70px;background:var(--navy-900);padding:16px;border-radius:12px;flex-direction:column;gap:0}.nav.open{display:flex}.nav a{padding:12px}.nav a.active:after,.nav a:hover:after{display:none}.mobile-toggle{display:block}.header__actions .btn{padding:10px 13px}.filterbar .control{flex:1 1 calc(50% - 10px)}.course-row{grid-template-columns:1fr}.course-row__actions{text-align:left;flex-direction:row;align-items:center;justify-content:space-between;gap:12px}.price-block{gap:2px}.actions-buttons{flex-direction:row;gap:8px}.actions-buttons .btn{padding:10px 14px;font-size:13px}.sidebar{grid-template-columns:1fr}.section{padding:26px 0 42px}.section__head{align-items:flex-start;flex-direction:column}.footer__grid{grid-template-columns:1fr}.footer__bottom{flex-direction:column;gap:10px;align-items:flex-start}.footer__bottom a{margin:0 16px 0 0}}
+</style></head><body data-page="vod"><a class="skip" href="#main">본문 바로가기</a><div id="site-header"></div><script src="header.js?v=20260731-3"></script><main id="main">
 
-<section class="catalog-hero"><div class="container catalog-hero__inner"><div><span class="crumb">HOME &nbsp;/&nbsp; VOD 강좌</span><h1>VOD 강좌</h1><p class="lead">독학으로 이론부터 실전까지, 합격에 필요한 모든 강좌를 제공합니다.</p><div class="stats">
-<div class="stat"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4l2 2h8a1.5 1.5 0 0 1 1.5 1.5V17a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 17V7.5Z"/><path d="m11.5 11.5 3 1.9-3 1.9v-3.8Z"/></svg></span><div><small>전체 강좌</small><strong>87개</strong></div></div>
-<div class="stat"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7.5" width="13" height="11" rx="1.6"/><path d="M7 4.5h13v11"/><path d="m9 11 3.5 2L9 15v-4Z"/></svg></span><div><small>총 강의 수</small><strong>1,200+강</strong></div></div>
-<div class="stat"><span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-9-8.8C1.8 8.4 3.7 5.2 6.9 5.2c2.1 0 3.6 1.2 5.1 2.9 1.5-1.7 3-2.9 5.1-2.9 3.2 0 5.1 3.2 3.9 6C19 15.6 12 20 12 20Z"/></svg></span><div><small>수강생 만족도</small><strong>4.9/5.0</strong></div></div>
-</div></div></div></section>
+<section class="vod-intro"><div class="container">
+<img class="vod-intro__hero" src="assets/vod/hero.jpg" alt="최저 없는 마지막 연세대 논술 - 황성찬T의 차별화된 연세대 특별반">
+<div class="vod-intro__player" id="vodIntroPlayer">
+<video id="vodIntroVideo" playsinline></video>
+<button type="button" class="vod-intro__placeholder" id="vodIntroPlaceholder" aria-label="0강 연고대 편입논술 OT 재생">
+<span class="vod-intro__play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 5.5v13l11-6.5z"/></svg></span>
+<p class="vod-intro__caption">0강 연고대<br>편입논술 OT <br>- 황성찬 T -</p>
+</button>
+</div>
+</div></section>
 
 <section class="section"><div class="container">
 <div class="chips" data-chip-group id="categoryChips"><button class="chip active" data-chip data-filter="">전체 강좌</button></div>
@@ -85,6 +102,28 @@
 </div></div><div><small class="footer-desc">(주)독패스 | 대표이사 김독패<br>사업자등록번호 000-00-00000 | 통신판매업신고 2020-서울강남-00000<br>서울특별시 서대문구 신촌로 221, 2층<br>학원설립·운영등록번호 제2020-0006호 | 사업자등록번호 104-94-47747<br>평일 운영 14:00~22:00 · 상담 운영 15:00~20:00</small></div><div><small>상담 문의</small><div class="phone">02-6404-1018</div><div class="hours">상담 월~금 15:00–20:00</div><div style="display:flex;gap:8px;margin-top:12px"><a class="btn btn--primary" href="#" data-kakao-link>카카오톡 상담</a></div></div></div><div class="footer__bottom"><span class="copyright">© DOCK PASS. All rights reserved.</span><span><a href="terms.html">이용약관</a><a href="privacy.html">개인정보처리방침</a></span></div></div></footer><script>
 const $=(s,c=document)=>c.querySelector(s);const $$=(s,c=document)=>[...c.querySelectorAll(s)];
 document.addEventListener('click',e=>{if(e.target.closest('[data-coming-soon]'))alert('준비 중인 강좌입니다. 오픈 시 안내드리겠습니다.')});
+
+// ── 상단 인트로 영상(0강 연고대 편입논술 OT) — 클릭 전엔 플레이스홀더만, 클릭하면 로그인 없이 바로 재생 ──
+// 재생이 시작되면 브라우저 기본 컨트롤(재생·정지·탐색·볼륨·전체화면)을 켠다.
+// 컨트롤을 처음부터 켜두지 않는 건 플레이스홀더가 영상 위를 덮고 있어 어차피 안 보이고,
+// 플레이스홀더의 브랜드 화면(재생 버튼 + 강의 제목)을 그대로 유지하기 위해서다.
+(function initVodIntro(){
+  const placeholder=$('#vodIntroPlaceholder'), video=$('#vodIntroVideo');
+  if(!placeholder||!video)return;
+  let sourceAttached=false;
+  placeholder.addEventListener('click',()=>{
+    placeholder.classList.add('hidden');
+    video.controls=true;
+    if(!sourceAttached){ sourceAttached=true; attachVideoSource(video,'/api/stream/vod-intro/master.m3u8'); }
+    video.play().catch(()=>{});
+  });
+  // 끝까지 보면 처음 화면으로 되돌려 다시 재생할 수 있게 한다(소스는 이미 붙어 있어 재요청하지 않음)
+  video.addEventListener('ended',()=>{
+    video.controls=false;
+    video.currentTime=0;
+    placeholder.classList.remove('hidden');
+  });
+})();
 
 // ── 강좌 목록/카테고리/페이지네이션: /api/vod-courses, /api/vod-categories 실 데이터 연동 ──
 const COURSE_PAGE_SIZE=5;

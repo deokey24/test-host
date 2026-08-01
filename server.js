@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const sharp = require('sharp');
 const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
@@ -156,7 +157,11 @@ async function requireApiToken(req, res, next) {
     }
     req.memberId = row.member_id;
     req.apiTokenId = row.id;
-    getPool().query('UPDATE api_tokens SET last_used_at = NOW() WHERE id = ?', [row.id]).catch(() => {});
+    // 진도 하트비트처럼 수십 초마다 호출되는 라우트가 생겨서, 매 요청 쓰기를 하지 않도록 5분에 한 번만 갱신한다.
+    getPool().query(
+      'UPDATE api_tokens SET last_used_at = NOW() WHERE id = ? AND last_used_at < NOW() - INTERVAL 5 MINUTE',
+      [row.id]
+    ).catch(() => {});
     next();
   } catch (err) {
     console.error(err);
@@ -410,6 +415,31 @@ app.get('/admin/api/videos/:id/stream/key', wrapAsync(async (req, res) => {
     return;
   }
   const [[video]] = await getPool().query('SELECT hls_key_base64 FROM lecture_videos WHERE id = ?', [req.params.id]);
+  sendHlsKey(res, video?.hls_key_base64);
+}));
+
+// vod.html 상단 인트로 영상 — 로그인 없이 누구나 볼 수 있는 유일한 공개 강의(0강 연고대 편입논술 OT).
+// enrollment 확인 없이 항상 이 한 영상만 내려주므로 :id 파라미터를 받지 않는다(임의 lecture_videos.id 스트리밍 노출 방지).
+const PUBLIC_VOD_INTRO_LECTURE_ID = 24;
+
+app.get('/api/stream/vod-intro/master.m3u8', wrapAsync(async (req, res) => {
+  const [[video]] = await getPool().query('SELECT final_r2_key FROM lecture_videos WHERE id = ?', [PUBLIC_VOD_INTRO_LECTURE_ID]);
+  if (!video || !isHlsKey(video.final_r2_key)) {
+    res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
+    return;
+  }
+  const manifest = await renderSignedManifest(video.final_r2_key, signKeyUrl('/api/stream/vod-intro/key'));
+  res.set('Content-Type', 'application/vnd.apple.mpegurl');
+  res.set('Cache-Control', 'no-store');
+  res.send(manifest);
+}));
+
+app.get('/api/stream/vod-intro/key', wrapAsync(async (req, res) => {
+  if (!verifySignedKeyUrl('/api/stream/vod-intro/key', req.query.exp, req.query.sig)) {
+    res.status(403).json({ error: '유효하지 않거나 만료된 요청입니다.' });
+    return;
+  }
+  const [[video]] = await getPool().query('SELECT hls_key_base64 FROM lecture_videos WHERE id = ?', [PUBLIC_VOD_INTRO_LECTURE_ID]);
   sendHlsKey(res, video?.hls_key_base64);
 }));
 
@@ -781,11 +811,108 @@ app.post('/admin/api/classes/:id/banner-image/confirm', requireAdminApi, wrapAsy
   res.json({ ok: true, url });
 }));
 
+// ── 관리자 업로드 PNG의 무손실 WebP 변환 캐시 ──
+// R2에 있는 원본 PNG(강좌 썸네일·배너 등)는 장당 1~2MB라 홈 첫 화면을 가장 크게 잡아먹는다.
+// R2 원본은 그대로 두고, 서버 디스크에 무손실 WebP를 만들어 두었다가 WebP를 받는 브라우저에만 대신 내려준다.
+// - 무손실(lossless)만 사용 — 보이는 픽셀은 원본과 100% 동일하다. 화질 저하 없음.
+// - JPEG는 변환하지 않는다: 이미 손실 압축이라 무손실 WebP로 감싸면 오히려 커진다.
+// - 캐시 미스인 첫 요청은 원본을 그대로 내려주고 변환은 백그라운드로 돌린다(첫 방문자가 변환을 기다리지 않음).
+// - 변환 결과가 원본보다 크면 빈 마커를 남겨 다시 시도하지 않고 계속 원본을 쓴다.
+const UPLOADS_WEBP_CACHE = path.join(__dirname, '.cache', 'uploads-webp');
+const WEBP_CONVERT_MAX_BYTES = 40 * 1024 * 1024; // 이 이상 큰 원본은 메모리 보호 차원에서 변환하지 않음
+const webpConverting = new Set(); // 같은 키를 동시에 여러 번 변환하지 않도록
+fs.mkdirSync(UPLOADS_WEBP_CACHE, { recursive: true });
+
+function uploadsWebpPath(key) {
+  // 키에 슬래시·확장자가 섞여 있으므로 해시로 평평하게 저장(경로 탈출 걱정도 없어진다)
+  return path.join(UPLOADS_WEBP_CACHE, crypto.createHash('sha256').update(key).digest('hex') + '.webp');
+}
+
+async function convertUploadToWebp(key, cachePath) {
+  if (webpConverting.has(key)) return;
+  webpConverting.add(key);
+  try {
+    const object = await r2.getObject(key);
+    if (Number(object.ContentLength) > WEBP_CONVERT_MAX_BYTES) { await fs.promises.writeFile(cachePath, ''); return; }
+    const chunks = [];
+    for await (const chunk of object.Body) chunks.push(chunk);
+    const original = Buffer.concat(chunks);
+    const webp = await sharp(original).webp({ lossless: true, effort: 6 }).toBuffer();
+    // 원본보다 크면 이득이 없다 → 빈 파일을 마커로 남겨 매번 재변환하지 않게 한다
+    await fs.promises.writeFile(cachePath, webp.length < original.length ? webp : Buffer.alloc(0));
+  } catch (err) {
+    console.error('[uploads-webp] 변환 실패', key, err.message);
+  } finally {
+    webpConverting.delete(key);
+  }
+}
+
+// 업로드 이미지 썸네일(`/uploads/...?w=320`) — 원본은 900~1700px인데 카드에서는 150~300px로 줄여 쓴다.
+// 브라우저 축소만 맡기면 스캔 문서의 잔글씨가 뭉개지므로, sharp로 미리 줄이면서 가볍게 샤픈해 캐시해 둔다.
+// 비율은 건드리지 않는다(합격증 이미지 비율이 0.56~0.86으로 제각각이라 자르면 잘려나가는 부분이 생긴다).
+const UPLOADS_THUMB_CACHE = path.join(__dirname, '.cache', 'uploads-thumb');
+const THUMB_WIDTHS = [160, 200, 240, 320, 400, 480, 640, 800]; // 캐시가 무한정 늘지 않도록 허용 폭 고정
+fs.mkdirSync(UPLOADS_THUMB_CACHE, { recursive: true });
+
+function uploadsThumbPath(key, width, format) {
+  return path.join(UPLOADS_THUMB_CACHE, crypto.createHash('sha256').update(`${key}@${width}.${format}`).digest('hex') + '.' + format);
+}
+
+async function makeUploadThumb(key, width, format, cachePath) {
+  const object = await r2.getObject(key);
+  const chunks = [];
+  for await (const chunk of object.Body) chunks.push(chunk);
+  const pipeline = sharp(Buffer.concat(chunks))
+    .rotate()                                     // EXIF 회전 반영(휴대폰으로 찍어 올린 합격증)
+    .resize({ width, withoutEnlargement: true })  // 비율 유지 — 자르지 않는다
+    .sharpen();                                   // 축소하면 흐려지므로 되살린다
+  const buf = await (format === 'webp' ? pipeline.webp({ quality: 82 }) : pipeline.jpeg({ quality: 84, mozjpeg: true })).toBuffer();
+  // 동시 요청이 반쯤 쓰인 파일을 읽지 않도록 임시 파일에 쓰고 옮긴다
+  const tmpPath = `${cachePath}.${crypto.randomUUID()}.tmp`;
+  await fs.promises.writeFile(tmpPath, buf);
+  await fs.promises.rename(tmpPath, cachePath);
+  return buf;
+}
+
 app.get('/uploads/*', wrapAsync(async (req, res) => {
   const key = req.params[0];
+  const thumbWidth = THUMB_WIDTHS.includes(Number(req.query.w)) ? Number(req.query.w) : 0;
+  if (thumbWidth && /\.(png|jpe?g|webp)$/i.test(key)) {
+    const format = (req.headers.accept || '').includes('image/webp') ? 'webp' : 'jpeg';
+    const cachePath = uploadsThumbPath(key, thumbWidth, format);
+    try {
+      let cached = null;
+      try { cached = await fs.promises.stat(cachePath); } catch { /* 캐시 없음 */ }
+      const buf = cached && cached.size > 0 ? null : await makeUploadThumb(key, thumbWidth, format, cachePath);
+      res.setHeader('Content-Type', `image/${format}`);
+      res.setHeader('Vary', 'Accept');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      if (buf) res.end(buf); else res.sendFile(cachePath);
+      return;
+    } catch (err) {
+      // 썸네일을 못 만들면 아래로 흘려보내 원본을 그대로 내려준다
+      console.error('[uploads-thumb] 생성 실패', key, err.message);
+    }
+  }
+  const wantsWebp = (req.headers.accept || '').includes('image/webp') && /\.png$/i.test(key);
+  if (wantsWebp) {
+    const cachePath = uploadsWebpPath(key);
+    let cached = null;
+    try { cached = await fs.promises.stat(cachePath); } catch { /* 캐시 없음 */ }
+    if (cached && cached.size > 0) {
+      res.setHeader('Content-Type', 'image/webp');
+      res.setHeader('Vary', 'Accept');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.sendFile(cachePath);
+      return;
+    }
+    // 캐시 미스(또는 "변환해도 이득 없음" 마커) — 원본을 내려주고, 아직 안 만들었으면 백그라운드로 만든다
+    if (!cached) convertUploadToWebp(key, cachePath);
+  }
   try {
     const object = await r2.getObject(key);
     if (object.ContentType) res.setHeader('Content-Type', object.ContentType);
+    if (/\.png$/i.test(key)) res.setHeader('Vary', 'Accept'); // 위 WebP 대체와 짝을 맞춘다
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     object.Body.pipe(res);
   } catch (err) {
@@ -1465,7 +1592,14 @@ app.post('/admin/api/payments/:id/manual-approve', requireAdminApi, wrapAsync(as
 app.get('/admin/api/members/:id/vod-enrollments', requireAdminApi, wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
     `SELECT e.id, e.vod_course_id, e.status, e.progress_note, e.source, e.enrolled_at, e.expires_at,
-            c.title AS name, c.ends_at,
+            c.title AS name, c.ends_at, c.access_days,
+            -- 화면에 보여줄 만료일. 보통은 등록 시점에 박아둔 스냅샷(expires_at)이지만,
+            -- 강좌에 수강기간(access_days)이 설정되기 전에 등록된 행은 스냅샷이 NULL이라
+            -- 강좌의 현재 수강기간을 등록일에 적용해 계산해서 보여준다.
+            COALESCE(e.expires_at,
+                     CASE WHEN c.access_days > 0 THEN DATE_ADD(e.enrolled_at, INTERVAL c.access_days DAY) END
+            ) AS effective_expires_at,
+            (e.expires_at IS NULL AND c.access_days > 0) AS expiry_is_derived,
             (e.expires_at IS NOT NULL AND e.expires_at <= NOW()) AS is_expired,
             (c.ends_at IS NOT NULL AND c.ends_at < CURDATE()) AS is_ended
      FROM member_vod_enrollments e
@@ -1474,7 +1608,40 @@ app.get('/admin/api/members/:id/vod-enrollments', requireAdminApi, wrapAsync(asy
      ORDER BY e.enrolled_at DESC`,
     [req.params.id]
   );
-  res.json(rows.map(r => ({ ...r, ends_at: toDateOnly(r.ends_at) })));
+  // 재생 기록으로 자동 집계된 진도율(progress_note는 관리자 수기 메모라 별개 값이다)
+  const progressMap = await computeVodCourseProgress(req.params.id, rows.map(r => r.vod_course_id));
+  res.json(rows.map(r => ({
+    ...r,
+    ends_at: toDateOnly(r.ends_at),
+    progress_percent: progressMap[r.vod_course_id]?.percent ?? 0,
+    completed_lectures: progressMap[r.vod_course_id]?.completedLectures ?? 0,
+    total_lectures: progressMap[r.vod_course_id]?.totalLectures ?? 0
+  })));
+}));
+
+// 회원의 강의별 수강현황 — 관리자 모달에서 강좌 행을 펼쳤을 때 조회한다.
+app.get('/admin/api/members/:id/lecture-progress/:vodCourseId', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT l.id AS lectureId, l.lecture_number, l.title, v.duration_seconds,
+            p.last_position_seconds, p.watched_seconds, p.completed, p.last_played_at
+     FROM vod_course_lectures l
+     LEFT JOIN lecture_videos v ON v.final_r2_key = l.video_r2_key
+     LEFT JOIN member_lecture_progress p ON p.vod_course_lecture_id = l.id AND p.member_id = ?
+     WHERE l.vod_course_id = ?
+     ORDER BY l.sort_order, l.lecture_number`,
+    [req.params.id, req.params.vodCourseId]
+  );
+  res.json(rows.map(r => ({
+    lectureId: r.lectureId,
+    lectureNumber: r.lecture_number,
+    title: r.title,
+    durationSeconds: r.duration_seconds,
+    watchedSeconds: r.watched_seconds || 0,
+    position: r.last_position_seconds || 0,
+    percent: r.duration_seconds ? Math.min(100, Math.round(((r.watched_seconds || 0) / r.duration_seconds) * 100)) : null,
+    completed: !!r.completed,
+    lastPlayedAt: r.last_played_at
+  })));
 }));
 
 app.post('/admin/api/members/:id/vod-enrollments', requireAdminApi, wrapAsync(async (req, res) => {
@@ -1814,6 +1981,9 @@ app.get('/api/v1/courses', requireApiToken, wrapAsync(async (req, res) => {
     thumbnailUrl: c.thumbnail_url,
     status: c.status,
     progressNote: c.progress_note,
+    progressPercent: c.progress_percent,
+    completedLectures: c.completed_lectures,
+    totalLectures: c.total_lectures,
     expiresAt: c.expires_at
   })));
 }));
@@ -1858,6 +2028,209 @@ app.get('/api/v1/lectures/:id/playback', requireApiToken, wrapAsync(async (req, 
   } else {
     res.json({ kind: 'mp4', url: buildCdnUrl(lecture.video_r2_key) });
   }
+}));
+
+// ── 수강현황(진도) — 웹 플레이어(세션 쿠키)와 데스크톱 앱(Bearer)이 공유하는 라우트 ──
+// 클라이언트는 재생 중 주기적으로(기본 25초) + 일시정지·강의전환·이탈 시점에 하트비트를 보낸다.
+// 핵심: 보내는 값이 "현재 위치"가 아니라 "직전 전송 이후 실제로 재생된 미디어 시간(delta)"이라
+// 서버가 그걸 더한다. 그래서 (1) 전송 주기를 바꿔도 진도율 정확도가 그대로고 (2) 배속 재생이
+// 자연히 반영되며 (3) 시크바를 끝까지 드래그해도 delta가 생기지 않아 진도율이 오르지 않는다.
+// 이어보기 지점(last_position_seconds)은 별개로 마지막 위치를 그대로 덮어쓴다.
+const PROGRESS_COMPLETE_RATIO = 0.9;      // 영상 길이의 90% 이상 재생하면 그 강의를 완료로 본다(엔딩·인사말 감안)
+const PROGRESS_MAX_PLAYBACK_RATE = 2;     // 플레이어가 허용하는 최대 배속 — delta 상한 계산용
+const PROGRESS_DELTA_GRACE_SECONDS = 90;  // 하트비트 지터 + 첫 전송분 보정 여유
+const PROGRESS_MAX_ITEMS = 100;           // 오프라인 큐를 한 번에 flush할 때의 상한
+
+function toFiniteNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+// 강좌 단위 진도율(%) — 길이를 아는 강의만 분모에 넣는다(아직 인코딩 중인 강의는 자연히 빠짐).
+async function computeVodCourseProgress(memberId, courseIds) {
+  if (!courseIds.length) return {};
+  const [rows] = await getPool().query(
+    `SELECT l.vod_course_id AS courseId,
+            SUM(COALESCE(p.watched_seconds, 0)) AS watched,
+            SUM(v.duration_seconds) AS total,
+            SUM(COALESCE(p.completed, 0)) AS completedLectures,
+            COUNT(*) AS totalLectures
+     FROM vod_course_lectures l
+     JOIN lecture_videos v ON v.final_r2_key = l.video_r2_key AND v.duration_seconds IS NOT NULL
+     LEFT JOIN member_lecture_progress p ON p.vod_course_lecture_id = l.id AND p.member_id = ?
+     WHERE l.vod_course_id IN (?)
+     GROUP BY l.vod_course_id`,
+    [memberId, courseIds]
+  );
+  const map = {};
+  rows.forEach(r => {
+    map[r.courseId] = {
+      percent: r.total > 0 ? Math.min(100, Math.round((r.watched / r.total) * 100)) : 0,
+      completedLectures: Number(r.completedLectures) || 0,
+      totalLectures: Number(r.totalLectures) || 0
+    };
+  });
+  return map;
+}
+
+app.post('/api/v1/progress', requireMemberOrApiToken, wrapAsync(async (req, res) => {
+  const items = Array.isArray(req.body?.items) ? req.body.items : null;
+  if (!items || !items.length) {
+    res.status(400).json({ error: 'items 배열이 필요합니다.' });
+    return;
+  }
+  if (items.length > PROGRESS_MAX_ITEMS) {
+    res.status(400).json({ error: `한 번에 보낼 수 있는 항목은 ${PROGRESS_MAX_ITEMS}개까지입니다.` });
+    return;
+  }
+
+  // 오프라인 큐를 flush하면 같은 강의 항목이 여러 개 올라온다 — 강의별로 미리 합쳐서
+  // 강의당 조회/UPSERT를 1회로 줄인다(delta는 합계, position은 가장 최근 항목의 것).
+  const merged = new Map();
+  for (const item of items) {
+    const lectureId = toFiniteNumber(item?.lectureId);
+    const position = toFiniteNumber(item?.position);
+    const delta = toFiniteNumber(item?.delta);
+    if (!lectureId || lectureId <= 0 || position === null || position < 0 || delta === null || delta < 0) {
+      res.status(400).json({ error: 'lectureId/position/delta 형식이 올바르지 않습니다.' });
+      return;
+    }
+    const at = toFiniteNumber(item?.at) ?? Date.now();
+    const prev = merged.get(lectureId);
+    if (!prev) {
+      merged.set(lectureId, { lectureId, position, delta, at, firstAt: at });
+    } else {
+      prev.delta += delta;
+      prev.firstAt = Math.min(prev.firstAt, at);
+      if (at >= prev.at) { prev.position = position; prev.at = at; }
+    }
+  }
+
+  const lectureIds = [...merged.keys()];
+  const [lectureRows] = await getPool().query(
+    `SELECT l.id, l.vod_course_id, v.duration_seconds
+     FROM vod_course_lectures l
+     LEFT JOIN lecture_videos v ON v.final_r2_key = l.video_r2_key
+     WHERE l.id IN (?)`,
+    [lectureIds]
+  );
+  const lectureById = new Map(lectureRows.map(l => [l.id, l]));
+
+  // 강좌 단위로 한 번씩만 수강권한을 확인한다(같은 강좌의 강의가 여러 개 올라오는 게 보통).
+  const accessByCourse = new Map();
+  for (const l of lectureRows) {
+    if (!accessByCourse.has(l.vod_course_id)) {
+      accessByCourse.set(l.vod_course_id, await checkVodAccess(req.memberId, l.vod_course_id));
+    }
+  }
+
+  // 경과 시간은 반드시 SQL에서 구한다 — last_played_at은 타임존 없는 DATETIME이라
+  // Node의 Date.now()와 빼면 앱 서버와 DB 서버의 타임존 차이(로컬 KST ↔ DB UTC = 9시간)가
+  // 그대로 경과시간으로 잡혀 아래 delta 클램프가 통째로 무력화된다.
+  const [existingRows] = await getPool().query(
+    `SELECT vod_course_lecture_id, watched_seconds, completed,
+            TIMESTAMPDIFF(SECOND, last_played_at, NOW()) AS elapsed_seconds
+     FROM member_lecture_progress WHERE member_id = ? AND vod_course_lecture_id IN (?)`,
+    [req.memberId, lectureIds]
+  );
+  const existingById = new Map(existingRows.map(r => [r.vod_course_lecture_id, r]));
+
+  const saved = [];
+  for (const item of merged.values()) {
+    const lecture = lectureById.get(item.lectureId);
+    if (!lecture) continue;                                   // 없는 강의 id는 조용히 건너뛴다(배치 전체를 실패시키지 않음)
+    if (!accessByCourse.get(lecture.vod_course_id)?.ok) continue; // 수강 중이 아닌 강좌 → 기록하지 않음
+    const existing = existingById.get(item.lectureId);
+    const duration = lecture.duration_seconds || 0;
+
+    // delta 상한 = (기준 시점 이후 실제로 흐른 시간) × 최대 배속 + 여유.
+    // 기준 시점은 이미 기록이 있으면 서버가 찍어둔 last_played_at(클라이언트 시계는 믿지 않는다),
+    // 첫 기록이면 이 배치 항목들이 걸쳐 있는 구간 — 오프라인 큐를 모아 보낸 경우 그만큼 허용된다.
+    const referenceElapsed = existing
+      ? existing.elapsed_seconds
+      : (item.at - item.firstAt) / 1000;
+    const allowedDelta = Math.max(0, referenceElapsed) * PROGRESS_MAX_PLAYBACK_RATE + PROGRESS_DELTA_GRACE_SECONDS;
+
+    const delta = Math.min(item.delta, allowedDelta);
+    let watched = (existing?.watched_seconds || 0) + delta;
+    if (duration) watched = Math.min(watched, duration);
+    watched = Math.round(watched);
+    const position = Math.round(duration ? Math.min(item.position, duration) : item.position);
+    const completed = duration ? watched >= duration * PROGRESS_COMPLETE_RATIO : !!existing?.completed;
+
+    // 같은 강의를 두 기기에서 동시에 보면 position은 나중에 쓴 쪽이 이긴다(watched_seconds는 누적이라 무관).
+    await getPool().query(
+      `INSERT INTO member_lecture_progress
+         (member_id, vod_course_lecture_id, vod_course_id, last_position_seconds, watched_seconds, completed, last_played_at)
+       VALUES (?, ?, ?, ?, ?, ?, NOW())
+       ON DUPLICATE KEY UPDATE
+         last_position_seconds = VALUES(last_position_seconds),
+         watched_seconds = VALUES(watched_seconds),
+         completed = VALUES(completed),
+         last_played_at = NOW()`,
+      [req.memberId, item.lectureId, lecture.vod_course_id, position, watched, completed ? 1 : 0]
+    );
+
+    saved.push({
+      lectureId: item.lectureId,
+      position,
+      watchedSeconds: watched,
+      durationSeconds: duration || null,
+      percent: duration ? Math.min(100, Math.round((watched / duration) * 100)) : null,
+      completed
+    });
+  }
+
+  res.json({ ok: true, progress: saved });
+}));
+
+// 강좌의 강의별 진도 + 강좌 집계. 플레이어가 목록을 그릴 때와 이어보기 지점을 잡을 때 호출한다.
+app.get('/api/v1/courses/:id/progress', requireMemberOrApiToken, wrapAsync(async (req, res) => {
+  const access = await checkVodAccess(req.memberId, req.params.id);
+  if (!access.ok) {
+    res.status(access.status).json({ error: access.error, reason: access.reason });
+    return;
+  }
+  const [rows] = await getPool().query(
+    `SELECT l.id AS lectureId, v.duration_seconds,
+            p.last_position_seconds, p.watched_seconds, p.completed, p.last_played_at
+     FROM vod_course_lectures l
+     LEFT JOIN lecture_videos v ON v.final_r2_key = l.video_r2_key
+     LEFT JOIN member_lecture_progress p ON p.vod_course_lecture_id = l.id AND p.member_id = ?
+     WHERE l.vod_course_id = ?
+     ORDER BY l.sort_order, l.lecture_number`,
+    [req.memberId, req.params.id]
+  );
+
+  let watchedTotal = 0, durationTotal = 0, lastLectureId = null, lastPlayedAt = null;
+  const lectures = rows.map(r => {
+    const duration = r.duration_seconds || 0;
+    const watched = r.watched_seconds || 0;
+    if (duration) { durationTotal += duration; watchedTotal += Math.min(watched, duration); }
+    if (r.last_played_at && (!lastPlayedAt || r.last_played_at > lastPlayedAt)) {
+      lastPlayedAt = r.last_played_at;
+      lastLectureId = r.lectureId;
+    }
+    return {
+      lectureId: r.lectureId,
+      position: r.last_position_seconds || 0,
+      watchedSeconds: watched,
+      durationSeconds: duration || null,
+      percent: duration ? Math.min(100, Math.round((watched / duration) * 100)) : null,
+      completed: !!r.completed
+    };
+  });
+
+  res.json({
+    lectures,
+    course: {
+      percent: durationTotal > 0 ? Math.min(100, Math.round((watchedTotal / durationTotal) * 100)) : 0,
+      completedLectures: lectures.filter(l => l.completed).length,
+      totalLectures: lectures.length,
+      // 이어보기 진입점 — 마지막으로 재생한 강의
+      lastLectureId
+    }
+  });
 }));
 
 app.get('/api/members/my-info', requireMember, wrapAsync(async (req, res) => {
@@ -1987,13 +2360,17 @@ async function getMemberVodCourses(memberId) {
      ORDER BY e.enrolled_at DESC`,
     [memberId]
   );
-  return rows
-    .filter(r => !r.is_ended)
-    .map(({ is_expired, is_ended, ...r }) => ({
-      ...r,
-      ends_at: toDateOnly(r.ends_at),
-      access_state: is_expired ? 'expired' : 'active'
-    }));
+  const visible = rows.filter(r => !r.is_ended);
+  const progressMap = await computeVodCourseProgress(memberId, visible.map(r => r.id));
+  return visible.map(({ is_expired, is_ended, ...r }) => ({
+    ...r,
+    ends_at: toDateOnly(r.ends_at),
+    access_state: is_expired ? 'expired' : 'active',
+    // 자동 집계 진도율. progress_note(관리자 수기 메모)와는 별개 값이다.
+    progress_percent: progressMap[r.id]?.percent ?? 0,
+    completed_lectures: progressMap[r.id]?.completedLectures ?? 0,
+    total_lectures: progressMap[r.id]?.totalLectures ?? 0
+  }));
 }
 
 // 실제로 그 회원이 수강 중인 강좌일 때만 강의 목록(원본 video_r2_key 포함)을 반환한다.
@@ -2089,7 +2466,7 @@ app.delete('/api/members/devices/:id', requireMember, wrapAsync(async (req, res)
 // ══════════════════════════════════════════════════════════════════
 
 const ALLOWED_UPLOAD_SCOPES = [
-  'home-online-class', 'home-why', 'vod-course', 'cert-gallery', 'notice', 'instructor', 'popup', 'intro', 'content-banner'
+  'home-online-class', 'home-why', 'vod-course', 'cert-gallery', 'cert-post', 'notice', 'instructor', 'popup', 'intro', 'content-banner'
 ];
 
 app.post('/admin/api/site/upload/presign', requireAdminApi, wrapAsync(async (req, res) => {
@@ -2773,6 +3150,125 @@ app.delete('/admin/api/cert-gallery/:id', requireAdminApi, wrapAsync(async (req,
   res.json({ ok: true });
 }));
 
+// ── cert_posts — 합격 인증 게시판 ──
+// 목록은 페이지네이션(번호는 최신글이 큰 번호가 되도록 전체 개수 기준으로 서버가 계산해서 내려준다).
+const CERT_POSTS_PAGE_SIZE = 15;
+
+// 본문 HTML(관리자 에디터 산출물)을 카드에 얹을 한 줄 요약으로 — 태그 제거 후 공백 정리해서 앞부분만
+function certBodyExcerpt(html, limit = 220) {
+  const text = String(html || '')
+    .replace(/<br\s*\/?>|<\/p>|<\/div>|<\/li>/gi, ' ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text.length > limit ? text.slice(0, limit) + '…' : text;
+}
+
+// focus=<id> — 홈 카드에서 특정 수기로 바로 들어올 때, 그 글이 몇 페이지에 있는지 서버가 찾아준다.
+// 목록 정렬(pinned DESC, created_at DESC, id DESC)에서 그 글보다 앞에 오는 글 수를 세면 그대로 순번이 된다.
+async function findCertPostPage(id, size) {
+  const [[row]] = await getPool().query(
+    `SELECT COUNT(*) AS ahead
+       FROM cert_posts p JOIN cert_posts t ON t.id = ? AND t.is_active = 1
+      WHERE p.is_active = 1
+        AND (p.pinned > t.pinned
+          OR (p.pinned = t.pinned
+            AND (p.created_at > t.created_at
+              OR (p.created_at = t.created_at AND p.id > t.id))))`,
+    [id]
+  );
+  return Math.floor(Number(row.ahead) / size) + 1; // 글이 없으면 ahead=0 → 1페이지로 폴백
+}
+
+app.get('/api/cert-posts', wrapAsync(async (req, res) => {
+  const size = Math.min(50, Math.max(1, Number(req.query.size) || CERT_POSTS_PAGE_SIZE));
+  const focusId = Number(req.query.focus) || 0;
+  const page = focusId ? await findCertPostPage(focusId, size) : Math.max(1, Number(req.query.page) || 1);
+  // preview=1 — 홈 "실제 합격 인증" 카드용. 목록에 합격증 이미지와 본문 발췌까지 같이 실어 보내고(카드 한 장에
+  // 필요한 정보가 다 있어야 함), 고정글 우선 없이 최신순으로만 정렬한다(게시판과 달리 최근 인증을 흘려보내는 용도).
+  const preview = req.query.preview === '1';
+  const [[{ total }]] = await getPool().query('SELECT COUNT(*) AS total FROM cert_posts WHERE is_active = 1');
+  const [rows] = await getPool().query(
+    `SELECT id, title, author, view_count, pinned, ${preview ? 'image_url, body,' : ''}
+            DATE_FORMAT(created_at, '%Y.%m.%d') AS created_date
+     FROM cert_posts WHERE is_active = 1
+     ORDER BY ${preview ? '' : 'pinned DESC, '}created_at DESC, id DESC
+     LIMIT ? OFFSET ?`,
+    [size, (page - 1) * size]
+  );
+  // 화면에 찍히는 글번호 — 최신글이 가장 큰 번호(일반적인 게시판 방식)
+  const firstNo = total - (page - 1) * size;
+  const items = rows.map((r, i) => {
+    const item = { ...r, no: firstNo - i, pinned: !!r.pinned };
+    if (preview) {
+      item.excerpt = certBodyExcerpt(item.body);
+      delete item.body; // 원본 HTML은 상세 API에서만
+    }
+    return item;
+  });
+  res.json({ items, total, page, size, totalPages: Math.max(1, Math.ceil(total / size)) });
+}));
+
+app.get('/api/cert-posts/:id', wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT id, title, author, body, image_url, view_count,
+            DATE_FORMAT(created_at, '%Y.%m.%d') AS created_date
+     FROM cert_posts WHERE id = ? AND is_active = 1`,
+    [req.params.id]
+  );
+  if (!rows.length) { res.status(404).json({ error: '게시글을 찾을 수 없습니다.' }); return; }
+  // 상세를 열 때만 조회수 증가(목록 조회로는 오르지 않는다). 실패해도 본문은 그대로 내려준다.
+  getPool().query('UPDATE cert_posts SET view_count = view_count + 1 WHERE id = ?', [req.params.id]).catch(() => {});
+  res.json({ ...rows[0], view_count: rows[0].view_count + 1 });
+}));
+
+app.get('/admin/api/cert-posts', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT id, title, author, body, image_url, view_count, pinned, is_active,
+            DATE_FORMAT(created_at, '%Y.%m.%d') AS created_date
+     FROM cert_posts ORDER BY pinned DESC, created_at DESC, id DESC`
+  );
+  res.json(rows);
+}));
+
+app.post('/admin/api/cert-posts', requireAdminApi, wrapAsync(async (req, res) => {
+  const { title, author, body, image_url, pinned, is_active } = req.body;
+  if (!title || !String(title).trim()) { res.status(400).json({ error: '제목을 입력해주세요.' }); return; }
+  if (!author || !String(author).trim()) { res.status(400).json({ error: '작성자를 입력해주세요.' }); return; }
+  const [result] = await getPool().query(
+    'INSERT INTO cert_posts (title, author, body, image_url, pinned, is_active) VALUES (?, ?, ?, ?, ?, ?)',
+    [String(title).trim(), String(author).trim(), body ? String(body) : null,
+     image_url ? String(image_url) : null, pinned ? 1 : 0, is_active === false ? 0 : 1]
+  );
+  res.json({ ok: true, id: result.insertId });
+}));
+
+app.put('/admin/api/cert-posts/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const { title, author, body, image_url, pinned, is_active, view_count } = req.body;
+  const fields = [];
+  const values = [];
+  if (title !== undefined) { fields.push('title = ?'); values.push(String(title).trim()); }
+  if (author !== undefined) { fields.push('author = ?'); values.push(String(author).trim()); }
+  if (body !== undefined) { fields.push('body = ?'); values.push(String(body)); }
+  if (image_url !== undefined) { fields.push('image_url = ?'); values.push(image_url ? String(image_url) : null); }
+  if (pinned !== undefined) { fields.push('pinned = ?'); values.push(pinned ? 1 : 0); }
+  if (is_active !== undefined) { fields.push('is_active = ?'); values.push(is_active ? 1 : 0); }
+  if (view_count !== undefined) { fields.push('view_count = ?'); values.push(Math.max(0, Number(view_count) || 0)); }
+  if (fields.length === 0) { res.status(400).json({ error: '변경할 값이 없습니다.' }); return; }
+  values.push(req.params.id);
+  const [result] = await getPool().query(`UPDATE cert_posts SET ${fields.join(', ')} WHERE id = ?`, values);
+  if (result.affectedRows === 0) { res.status(404).json({ error: '게시글을 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+app.delete('/admin/api/cert-posts/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const [result] = await getPool().query('DELETE FROM cert_posts WHERE id = ?', [req.params.id]);
+  if (result.affectedRows === 0) { res.status(404).json({ error: '게시글을 찾을 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
 // ── faq_items ──
 app.get('/api/faq-items', wrapAsync(async (req, res) => {
   const [rows] = await getPool().query('SELECT id, question, answer, sort_order FROM faq_items WHERE is_active = 1 ORDER BY sort_order, id');
@@ -3190,10 +3686,11 @@ app.delete('/admin/api/popup-banners/:id', requireAdminApi, wrapAsync(async (req
   res.json({ ok: true });
 }));
 
-// ── content_banners (관리자 "배너 관리" — 상단/중간/콘텐츠/사이드 4종) ──
+// ── content_banners (관리자 "배너 관리" — 상단/중간/콘텐츠/사이드/하단 5종) ──
 // top/middle: 홈 상단 슬라이더. content/side: DOCK NEWS 섹션 좌(탭+이미지)/우(고정 이미지).
+// bottom: 홈 맨 아래 FAQ 옆 CTA 자리 슬라이더(PC 1080×500 / 모바일 720×600, mobile_image_url 사용).
 // content 타입의 label은 프론트에서 DOCK NEWS 탭 버튼 이름으로 쓰인다.
-const BANNER_TYPES = ['top', 'middle', 'content', 'side'];
+const BANNER_TYPES = ['top', 'middle', 'content', 'side', 'bottom'];
 const BANNER_MOBILE_FOCUS = ['left', 'center', 'right'];
 
 // mobile_image_url/mobile_focus는 나중에 추가된 컬럼(infra/schema.sql 하단 ALTER).
@@ -3319,8 +3816,39 @@ app.get(/^\/v1(\/.*)?$/, (req, res, next) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// ── 이미지 최적화 미들웨어 ──
+// PNG 옆에 같은 이름의 무손실(lossless) .webp가 있으면, WebP를 받을 수 있는 브라우저에는 그쪽을 대신 내려준다.
+// 픽셀은 원본 PNG와 100% 동일하고 용량만 30~40% 작다. URL은 그대로라서 HTML/DB에 저장된 .png 경로를
+// 하나도 고칠 필요가 없다(관리자가 DB에 등록한 /assets/... 배너 경로도 자동 적용).
+// 캐시 프록시가 PNG/WebP를 섞어 내보내지 않도록 Vary: Accept 필수.
+const WEBP_ROOT = path.join(__dirname, 'public-figma');
+const STATIC_IMAGE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 이미지/폰트 캐시 기간 7일
+app.get(/^\/assets\/.*\.png$/, (req, res, next) => {
+  if (!(req.headers.accept || '').includes('image/webp')) return next();
+  const webpRel = req.path.replace(/\.png$/, '.webp');
+  const webpAbs = path.join(WEBP_ROOT, webpRel);
+  // 경로 탈출 방지 — 정규식상 /assets/로 시작하지만 ..%2f 류 디코딩 결과까지 한 번 더 확인한다.
+  if (!webpAbs.startsWith(path.join(WEBP_ROOT, 'assets') + path.sep)) return next();
+  fs.access(webpAbs, fs.constants.R_OK, (err) => {
+    if (err) return next(); // .webp가 없으면 평소대로 PNG
+    res.setHeader('Vary', 'Accept');
+    res.setHeader('Content-Type', 'image/webp');
+    res.sendFile(webpAbs, { maxAge: STATIC_IMAGE_MAX_AGE }, (e) => { if (e) next(); });
+  });
+});
+
 // 신규 루트: 피그마 디자인 기반 페이지
-app.use(express.static(path.join(__dirname, 'public-figma')));
+// 이미지/폰트는 오래 캐시(재방문 시 재다운로드 없음), HTML/JS/CSS는 배포 즉시 반영돼야 하므로 매번 재검증.
+app.use(express.static(path.join(__dirname, 'public-figma'), {
+  setHeaders(res, filePath) {
+    if (/\.(png|jpe?g|webp|gif|svg|ico|woff2?)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', `public, max-age=${STATIC_IMAGE_MAX_AGE / 1000}`);
+      if (/\.png$/i.test(filePath)) res.setHeader('Vary', 'Accept'); // 위 WebP 대체와 짝을 맞춘다
+    } else {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  }
+}));
 
 // 강좌 상세페이지 시안 (확장자 없이 /classDetail로 접근)
 app.get('/classDetail', (req, res) => {
@@ -3334,6 +3862,36 @@ app.get(/^\/(?!v1|api|admin|uploads).*/, (req, res, next) => {
   res.sendFile(path.join(__dirname, 'public-figma', 'index.html'));
 });
 
+// 홈 첫 화면에 쓰이는 업로드 이미지들을 미리 WebP로 변환해둔다.
+// 안 하면 배포 직후 첫 방문자만 원본 PNG를 받게 된다(캐시는 두 번째 요청부터 효과).
+// 디스크 캐시는 재시작해도 남으므로 두 번째 기동부터는 사실상 아무 일도 하지 않는다.
+// 실패해도 서버 기동/서비스에는 영향이 없다 — 그냥 원본 PNG로 서빙될 뿐.
+async function warmUploadsWebpCache() {
+  try {
+    const [rows] = await getPool().query(
+      `SELECT image_url AS u FROM content_banners WHERE visible = 1
+       UNION SELECT mobile_image_url FROM content_banners WHERE visible = 1
+       UNION SELECT thumbnail_url FROM vod_courses WHERE is_active = 1
+       UNION SELECT image_url FROM popup_banners WHERE visible = 1`
+    );
+    const keys = rows
+      .map(r => r.u)
+      .filter(u => typeof u === 'string' && u.startsWith('/uploads/') && /\.png$/i.test(u))
+      .map(u => u.replace(/^\/uploads\//, ''));
+    let made = 0;
+    for (const key of keys) {
+      const cachePath = uploadsWebpPath(key);
+      try { await fs.promises.stat(cachePath); continue; } catch { /* 없으면 변환 */ }
+      await convertUploadToWebp(key, cachePath);
+      made++;
+    }
+    if (made) console.log(`[uploads-webp] 예열 완료: ${made}개 변환 (대상 ${keys.length}개)`);
+  } catch (err) {
+    console.error('[uploads-webp] 예열 건너뜀:', err.message);
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
+  setTimeout(warmUploadsWebpCache, 3000); // 기동 직후 요청 처리와 겹치지 않게 잠깐 미룬 뒤 시작
 });

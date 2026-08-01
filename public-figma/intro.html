@@ -34,6 +34,8 @@ body[data-page="intro"]{background:var(--warm-white)}
 .faq-hero .crumb{color:#9fb0c7;font-size:12px;font-weight:700;letter-spacing:.06em;margin-bottom:12px}
 .faq-hero h1{font-size:38px;margin:0 0 10px;letter-spacing:-.02em}
 .faq-hero p{margin:0;color:#dbe3ee;font-size:15px}
+/* 히어로 임시 숨김 — 추후 새 히어로로 교체 예정. 되살리려면 아래 한 줄만 삭제 */
+.faq-hero{display:none}
 
 .intro-layout{display:grid;grid-template-columns:180px minmax(0,900px);gap:24px;align-items:start;padding:26px 0 60px}
 .intro-tabs{display:flex;flex-direction:column;gap:8px;position:sticky;top:100px}
@@ -78,7 +80,7 @@ body[data-page="intro"]{background:var(--warm-white)}
 <body data-page="intro">
 <div class="page">
 
-  <div id="site-header"></div><script src="header.js?v=20260731"></script>
+  <div id="site-header"></div><script src="header.js?v=20260731-3"></script>
 
   <section class="faq-hero"><div class="container">
     <div class="crumb">HOME / 학습소개</div>

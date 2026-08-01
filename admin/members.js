@@ -130,22 +130,87 @@ function closeEnrollModal() {
   enrollMemberId = null;
 }
 
+// 재생 기록으로 자동 집계된 진도율 — 관리자메모(progress_note)와 달리 손댈 수 없는 읽기 전용 값이다.
+function progressCellHtml(r) {
+  const pct = r.progress_percent || 0;
+  return `
+    <div class="vod-progress">
+      <div class="vod-progress__bar"><span style="width:${pct}%"></span></div>
+      <div class="vod-progress__text">${pct}% · ${r.completed_lectures || 0}/${r.total_lectures || 0}강 완료</div>
+      <button class="row-btn" type="button" data-vod-detail-id="${r.vod_course_id}">강의별 보기</button>
+    </div>
+  `;
+}
+
+// 수강 만료일은 관리자가 직접 넣는 값이 아니라, VOD 강좌에 설정된 수강기간(access_days)을
+// 등록 시점에 적용해 박아둔 스냅샷(expires_at)이다. 여기서는 그 결과와 근거만 보여준다.
+// (강좌의 수강기간을 나중에 줄여도 기존 수강생에게 소급되지 않으므로 expires_at이 실제 기준이다.)
+function expiryCellHtml(r) {
+  if (!r.effective_expires_at) {
+    return '<div>무제한</div><div class="field-hint">강좌에 수강기간 미설정</div>';
+  }
+  const date = String(r.effective_expires_at).slice(0, 10);
+  const enrolled = String(r.enrolled_at).slice(0, 10);
+  return `<div><strong>${date}</strong></div><div class="field-hint">등록일 ${enrolled} + ${r.access_days}일</div>`;
+}
+
+function formatDuration(seconds) {
+  if (!seconds) return '-';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return h ? `${h}시간 ${m}분` : `${m}분`;
+}
+
 async function loadVodEnrollments() {
   const rows = await apiFetch(`/admin/api/members/${enrollMemberId}/vod-enrollments`);
   document.getElementById('enrollVodList').innerHTML = rows.length ? rows.map(r => `
     <tr>
       <td>${escapeHtml(r.name)}${r.is_ended ? ' <span class="badge badge-off">강좌 종료</span>' : r.is_expired ? ' <span class="badge badge-off">기간 만료</span>' : ''}</td>
       <td>${escapeHtml(r.status || '진행중')}</td>
-      <td>
-        <input type="date" data-vod-expires-id="${r.id}" value="${r.expires_at ? String(r.expires_at).slice(0, 10) : ''}" style="margin-bottom:0;">
-        <div class="field-hint">비우면 무제한</div>
-      </td>
-      <td><input type="text" data-vod-note-id="${r.id}" value="${escapeHtml(r.progress_note || '')}" placeholder="관리자 메모" style="width:100%; min-width:220px;"></td>
+      <td>${progressCellHtml(r)}</td>
+      <td>${expiryCellHtml(r)}</td>
+      <td><input type="text" data-vod-note-id="${r.id}" value="${escapeHtml(r.progress_note || '')}" placeholder="관리자 메모" style="width:100%; min-width:180px;"></td>
       <td>${r.source === 'payment' ? '결제' : '관리자'}</td>
       <td><button class="row-btn danger" data-vod-remove-id="${r.id}" type="button">삭제</button></td>
     </tr>
-  `).join('') : '<tr><td colspan="6" class="field-hint">등록된 VOD 강좌가 없습니다.</td></tr>';
+    <tr class="vod-progress-detail" data-vod-detail-row="${r.vod_course_id}" style="display:none;">
+      <td colspan="7"><div class="field-hint">불러오는 중...</div></td>
+    </tr>
+  `).join('') : '<tr><td colspan="7" class="field-hint">등록된 VOD 강좌가 없습니다.</td></tr>';
 }
+
+// "강의별 보기" — 그 강좌의 강의 목록과 각 강의의 시청 시간/진도를 펼쳐서 보여준다.
+document.getElementById('enrollVodList').addEventListener('click', async (e) => {
+  const courseId = e.target.dataset.vodDetailId;
+  if (!courseId) return;
+  const row = document.querySelector(`[data-vod-detail-row="${courseId}"]`);
+  if (!row) return;
+  if (row.style.display !== 'none') { row.style.display = 'none'; e.target.textContent = '강의별 보기'; return; }
+  row.style.display = '';
+  e.target.textContent = '접기';
+
+  const lectures = await apiFetch(`/admin/api/members/${enrollMemberId}/lecture-progress/${courseId}`);
+  if (!lectures.length) {
+    row.querySelector('td').innerHTML = '<div class="field-hint">등록된 강의가 없습니다.</div>';
+    return;
+  }
+  row.querySelector('td').innerHTML = `
+    <table class="vod-progress-table">
+      <thead><tr><th style="width:46%;">강의</th><th>영상 길이</th><th>시청 시간</th><th class="progress-cell">진도</th><th>마지막 시청</th></tr></thead>
+      <tbody>
+        ${lectures.map(l => `
+          <tr>
+            <td>${escapeHtml(l.title)}</td>
+            <td>${formatDuration(l.durationSeconds)}</td>
+            <td>${l.watchedSeconds ? formatDuration(l.watchedSeconds) : '-'}</td>
+            <td class="progress-cell">${l.completed ? '<span class="progress-done">완료</span>' : l.percent === null ? '-' : `${l.percent}%`}</td>
+            <td>${l.lastPlayedAt ? String(l.lastPlayedAt).slice(0, 16).replace('T', ' ') : '-'}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+});
 
 document.getElementById('enrollVodAddBtn').addEventListener('click', async () => {
   const vodCourseId = document.getElementById('enrollVodSelect').value;
@@ -163,30 +228,14 @@ document.getElementById('enrollVodAddBtn').addEventListener('click', async () =>
   }
 });
 
-// 상태는 읽기 전용(텍스트) — 관리자메모와 수강 만료일만 수정 가능
+// 상태·수강현황·수강 만료일은 모두 읽기 전용(각각 자동 판정/집계/강좌 수강기간 기반) — 관리자메모만 수정 가능
 document.getElementById('enrollVodList').addEventListener('change', async (e) => {
   const noteId = e.target.dataset.vodNoteId;
-  const expiresId = e.target.dataset.vodExpiresId;
-  if (noteId) {
-    await apiFetch(`/admin/api/members/${enrollMemberId}/vod-enrollments/${noteId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ progressNote: e.target.value })
-    });
-    return;
-  }
-  if (expiresId) {
-    const status = document.getElementById('enrollVodStatus');
-    try {
-      await apiFetch(`/admin/api/members/${enrollMemberId}/vod-enrollments/${expiresId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ expiresAt: e.target.value })
-      });
-      setStatus(status, '수강 만료일을 변경했습니다.', 'ok');
-      await loadVodEnrollments();
-    } catch (err) {
-      setStatus(status, err.message, 'error');
-    }
-  }
+  if (!noteId) return;
+  await apiFetch(`/admin/api/members/${enrollMemberId}/vod-enrollments/${noteId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ progressNote: e.target.value })
+  });
 });
 
 document.getElementById('enrollVodList').addEventListener('click', async (e) => {

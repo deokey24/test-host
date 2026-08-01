@@ -42,12 +42,48 @@
 .footer__bottom{display:flex;justify-content:space-between;align-items:center;margin-top:28px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:#9ba7b8}
 .footer__bottom a{margin-left:16px;color:#c3ccd9}
 @media(max-width:760px){.cert-hero .container>p{font-size:14.5px;line-height:23px}}
+
+/* ── 합격 인증 게시판 ── */
+/* 행 컬럼 폭을 헤더와 본문이 공유해야 하므로 grid-template를 변수로 한 곳에서 관리한다 */
+.cert-board{--cb-cols:76px minmax(0,1fr) 120px 80px 110px;--cb-indent:92px;margin-top:26px;background:var(--white);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 12px 34px -24px rgba(14,21,38,.4)}
+.cert-board-head{display:grid;grid-template-columns:var(--cb-cols);gap:16px;padding:16px 24px;background:var(--grey-bg);border-bottom:1px solid var(--border);font-size:13px;font-weight:800;color:var(--muted,#73737a);letter-spacing:-.01em}
+.cert-board-head .cb-no,.cert-board-head .cb-views,.cert-board-head .cb-author,.cert-board-head .cb-date{text-align:center}
+.cert-post{border-top:1px solid var(--border);scroll-margin-top:88px} /* ?post= 로 들어와 스크롤할 때 고정 헤더에 가리지 않게 */
+.cert-post:first-child{border-top:0}
+.cert-post-head{width:100%;display:grid;grid-template-columns:var(--cb-cols);gap:16px;align-items:center;padding:18px 24px;background:none;border:0;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:background .15s}
+.cert-post-head:hover{background:var(--grey-bg)}
+.cert-post .cb-no,.cert-post .cb-views,.cert-post .cb-author,.cert-post .cb-date{text-align:center;font-size:13px;color:#73737a}
+.cert-post .cb-title{min-width:0}
+.cert-post .cb-title-text{display:block;font-size:15px;font-weight:700;color:var(--text,#172033);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cert-post.open .cb-title-text{color:var(--green)}
+.cert-post-body{display:none;padding:0 24px 26px;padding-left:calc(24px + var(--cb-indent));border-top:1px solid var(--border)}
+.cert-post.open .cert-post-body{display:block}
+.cert-post-body img{max-width:min(460px,100%);height:auto;border-radius:12px;margin:22px 0 0;display:block}
+.cert-post-text{margin:18px 0 0;font-size:14.5px;line-height:1.8;color:#343a46;word-break:break-word}
+.cert-post-text img{max-width:100%}
+.cert-board-empty{margin:0;padding:56px 24px;text-align:center;font-size:14px;color:#73737a}
+/* 작성자·조회는 데스크톱에선 별도 열로 보여주므로 제목 밑 메타 줄은 숨긴다(모바일에서만 켠다) */
+.cert-post-meta{display:none}
+.cert-pagination{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:28px;flex-wrap:wrap}
+.cert-pagination button{min-width:38px;height:38px;padding:0 10px;border-radius:9px;border:1px solid var(--border);background:var(--white);font-size:13.5px;font-weight:700;color:#4c5665;cursor:pointer;transition:.15s}
+.cert-pagination button:hover:not(:disabled){border-color:var(--green);color:var(--green)}
+.cert-pagination button.active{background:var(--dark);border-color:var(--dark);color:#fff}
+.cert-pagination button:disabled{opacity:.4;cursor:default}
+/* 모바일: 조회/작성자 열을 제목 아래 메타 줄로 접는다(가로 스크롤 대신) */
+@media(max-width:760px){
+  .cert-board{--cb-cols:52px minmax(0,1fr) 88px;--cb-indent:62px}
+  .cert-board-head .cb-author,.cert-board-head .cb-views,.cert-post .cb-author,.cert-post .cb-views{display:none}
+  .cert-board-head,.cert-post-head{padding:14px 16px;gap:10px}
+  .cert-post .cb-title-text{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .cert-post-meta{display:block;margin-top:5px;font-size:12px;color:#73737a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cert-post-body{padding:0 16px 22px;padding-left:calc(16px + var(--cb-indent))}
+}
 </style>
 </head>
 <body data-page="cert">
 <div class="page">
 
-  <div id="site-header"></div><script src="header.js?v=20260731"></script>
+  <div id="site-header"></div><script src="header.js?v=20260731-3"></script>
 
   <section class="hero-wrap">
     <div class="cert-hero">
@@ -110,22 +146,23 @@
   <section class="cert-body">
     <div class="eyebrow">
       <img src="assets/home/badge-icon.png" alt="">
-      <span>CERTIFICATE GALLERY</span>
+      <span>CERTIFICATE BOARD</span>
     </div>
-    <div class="cert-gallery" data-cms-gallery>
-      <div class="cert-gallery-item"><img src="assets/pass/gallery-1.jpg" alt="합격 인증"></div>
-      <div class="cert-gallery-item"><img src="assets/pass/gallery-2.jpg" alt="합격 인증"></div>
-      <div class="cert-gallery-item"><img src="assets/pass/gallery-3.jpg" alt="합격 인증"></div>
-      <div class="cert-gallery-item"><img src="assets/pass/gallery-4.jpg" alt="합격 인증"></div>
-      <div class="cert-gallery-item"><img src="assets/pass/gallery-5.jpg" alt="합격 인증"></div>
-      <div class="cert-gallery-item"><img src="assets/pass/gallery-6.jpg" alt="합격 인증"></div>
-      <div class="cert-gallery-item"><img src="assets/pass/gallery-7.jpg" alt="합격 인증"></div>
-      <div class="cert-gallery-item"><img src="assets/pass/gallery-8.jpg" alt="합격 인증"></div>
-      <div class="cert-gallery-item"><img src="assets/pass/gallery-9.jpg" alt="합격 인증"></div>
-      <div class="cert-gallery-item"><img src="assets/pass/gallery-10.jpg" alt="합격 인증"></div>
-      <div class="cert-gallery-item"><img src="assets/pass/gallery-11.jpg" alt="합격 인증"></div>
-      <div class="cert-gallery-item"><img src="assets/pass/gallery-12.jpg" alt="합격 인증"></div>
+
+    <div class="cert-board">
+      <div class="cert-board-head">
+        <span class="cb-no">번호</span>
+        <span class="cb-title">제목</span>
+        <span class="cb-author">작성자</span>
+        <span class="cb-views">조회</span>
+        <span class="cb-date">등록일</span>
+      </div>
+      <div class="cert-board-body" id="certBoardList">
+        <p class="cert-board-empty">불러오는 중입니다…</p>
+      </div>
     </div>
+
+    <div class="cert-pagination" id="certBoardPagination"></div>
   </section>
 
   <footer class="footer"><div class="container"><div class="footer__grid">
@@ -187,5 +224,127 @@
 <script src="chart-animate.js"></script>
 <script src="site-content.js?v=20260729"></script>
 <script src="auth.js?v=20260728"></script>
+<script>
+// ── 합격 인증 게시판 ──
+// 목록은 /api/cert-posts(페이지네이션), 본문은 행을 펼칠 때 /api/cert-posts/:id로 따로 가져온다.
+// 조회수는 상세 API가 올려주므로 목록만 훑는 것으로는 오르지 않는다.
+(function () {
+  const listEl = document.getElementById('certBoardList');
+  const pagerEl = document.getElementById('certBoardPagination');
+  if (!listEl) return;
+
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  let currentPage = 1;
+
+  function rowHtml(p) {
+    return `<article class="cert-post" data-post-id="${p.id}">
+      <button type="button" class="cert-post-head">
+        <span class="cb-no">${p.no}</span>
+        <span class="cb-title"><span class="cb-title-text">${esc(p.title)}</span><span class="cert-post-meta">${esc(p.author)} · 조회 ${p.view_count}</span></span>
+        <span class="cb-author">${esc(p.author)}</span>
+        <span class="cb-views">${p.view_count}</span>
+        <span class="cb-date">${esc(p.created_date)}</span>
+      </button>
+      <div class="cert-post-body"><p class="cert-post-text">불러오는 중입니다…</p></div>
+    </article>`;
+  }
+
+  function pagerHtml(page, totalPages) {
+    if (totalPages <= 1) return '';
+    // 페이지가 많아도 버튼이 넘치지 않게 현재 페이지 주변 5개만 노출
+    const from = Math.max(1, Math.min(page - 2, totalPages - 4));
+    const to = Math.min(totalPages, from + 4);
+    let html = `<button type="button" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>이전</button>`;
+    for (let i = from; i <= to; i++) html += `<button type="button" data-page="${i}" class="${i === page ? 'active' : ''}">${i}</button>`;
+    html += `<button type="button" data-page="${page + 1}" ${page === totalPages ? 'disabled' : ''}>다음</button>`;
+    return html;
+  }
+
+  // 위쪽 히어로/차트가 로드되면서 문서가 100~200px 밀리는데, 그 전에 스크롤하면 목표 글을 지나쳐 멈춘다.
+  // load 이후 대상 글의 문서상 위치가 몇 프레임 연속 그대로일 때(=레이아웃이 잡혔을 때) 한 번만 스크롤한다.
+  function scrollToPostWhenSettled(el) {
+    const go = () => {
+      let last = null, stable = 0, frames = 0;
+      const step = () => {
+        const top = Math.round(el.getBoundingClientRect().top + window.scrollY);
+        if (top === last) stable++; else { stable = 0; last = top; }
+        if (stable >= 3 || ++frames > 90) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+        requestAnimationFrame(step);
+      };
+      step();
+    };
+    if (document.readyState === 'complete') go();
+    else window.addEventListener('load', go, { once: true });
+  }
+
+  // cert.html?post=<id> — 홈 "실제 합격 인증" 카드에서 바로 그 수기로 들어오는 경로.
+  // 몇 페이지에 있는 글인지는 서버가 focus=로 찾아주므로, 받은 페이지를 그린 뒤 해당 글만 펼치고 그리로 스크롤한다.
+  async function load(page, focusId) {
+    try {
+      const query = focusId ? `focus=${encodeURIComponent(focusId)}` : `page=${page}`;
+      const res = await fetch(`/api/cert-posts?${query}`);
+      if (!res.ok) throw new Error('목록을 불러오지 못했습니다.');
+      const data = await res.json();
+      currentPage = data.page;
+      listEl.innerHTML = data.items.length
+        ? data.items.map(rowHtml).join('')
+        : '<p class="cert-board-empty">등록된 합격 인증글이 없습니다.</p>';
+      pagerEl.innerHTML = pagerHtml(data.page, data.totalPages);
+      if (focusId) {
+        const target = listEl.querySelector(`.cert-post[data-post-id="${CSS.escape(String(focusId))}"]`);
+        if (target) {
+          target.classList.add('open');
+          await openPost(target); // 본문이 채워진 뒤 스크롤해야 위치가 밀리지 않는다
+          scrollToPostWhenSettled(target);
+        }
+      }
+    } catch (err) {
+      listEl.innerHTML = '<p class="cert-board-empty">목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</p>';
+      pagerEl.innerHTML = '';
+    }
+  }
+
+  async function openPost(article) {
+    const bodyEl = article.querySelector('.cert-post-body');
+    if (article.dataset.loaded) return;
+    article.dataset.loaded = '1';
+    try {
+      const res = await fetch(`/api/cert-posts/${article.dataset.postId}`);
+      if (!res.ok) throw new Error();
+      const post = await res.json();
+      const img = post.image_url ? `<img src="${esc(post.image_url)}" alt="${esc(post.title)}" loading="lazy" decoding="async">` : '';
+      // 본문은 관리자 에디터가 넣은 HTML이라 그대로 렌더한다(관리자만 작성 가능)
+      const text = post.body ? `<div class="cert-post-text">${post.body}</div>` : '';
+      bodyEl.innerHTML = img + text || '<p class="cert-post-text">내용이 없습니다.</p>';
+      // 상세를 열면 조회수가 올라가므로 목록의 숫자도 맞춰준다
+      const viewsEl = article.querySelector('.cb-views');
+      if (viewsEl) viewsEl.textContent = post.view_count;
+      const metaEl = article.querySelector('.cert-post-meta');
+      if (metaEl) metaEl.textContent = `${post.author} · 조회 ${post.view_count}`;
+    } catch {
+      article.dataset.loaded = '';
+      bodyEl.innerHTML = '<p class="cert-post-text">내용을 불러오지 못했습니다.</p>';
+    }
+  }
+
+  listEl.addEventListener('click', (e) => {
+    const head = e.target.closest('.cert-post-head');
+    if (!head) return;
+    const article = head.closest('.cert-post');
+    const willOpen = !article.classList.contains('open');
+    article.classList.toggle('open', willOpen);
+    if (willOpen) openPost(article);
+  });
+
+  pagerEl.addEventListener('click', (e) => {
+    const page = Number(e.target.dataset?.page);
+    if (!page || page === currentPage) return;
+    load(page);
+    document.querySelector('.cert-body')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  load(1, new URLSearchParams(location.search).get('post') || '');
+})();
+</script>
 </body>
 </html>

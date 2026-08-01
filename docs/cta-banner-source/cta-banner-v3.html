@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>DOCK PASS 하단 CTA 배너 — C안 / D안 / E안</title>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@main/dist/web/variable/pretendardvariable.css');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700;900&display=swap');
+
+:root{
+  --navy:#081a44; --navy-ink:#0b1f4b; --navy-deep:#04102c;
+  --beige-700:#a98254; --beige-500:#d7bf9f; --beige-400:#e3cdaf; --beige-100:#f1e6d7;
+  --ivory:#f7f4f1; --line:#e1ddd6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#5b5b5b;font-family:'Pretendard Variable',Pretendard,sans-serif;letter-spacing:-.015em;
+     display:flex;flex-direction:column;gap:44px;padding:44px;align-items:flex-start}
+.tag{color:#fff;font-weight:800;font-size:15px;margin-bottom:-30px}
+
+.stage{position:relative;overflow:hidden}
+.content{position:relative;z-index:3;height:100%;display:flex}
+
+/* 대학 심볼 공통 — 연세대 원형 크레스트는 사각 PNG라 원형으로 클립 */
+.sym{display:block;object-fit:contain}
+.sym--yonsei{border-radius:50%}
+.symrow{display:flex;align-items:center}
+.symrow .cap{font-weight:800;white-space:nowrap}
+
+.head{font-weight:800;line-height:1.24;letter-spacing:-.032em}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;font-weight:800;white-space:nowrap}
+.eyebrow{font-weight:800;text-transform:uppercase}
+
+/* ══════════════════════════════════════════════════════════════════
+   C안 — 캠퍼스 포토 풀블리드 + 단색 네이비 베일
+   ══════════════════════════════════════════════════════════════════ */
+.c{background:var(--navy)}
+.c .bg{position:absolute;inset:-24px;background:url('assets/campus-bg.jpg') center 38%/cover no-repeat;
+       filter:blur(7px) saturate(.8) brightness(.9);z-index:1}
+.c .veil{position:absolute;inset:0;background:rgba(6,20,52,.84);z-index:2} /* 단색 — 그라데이션 없음 */
+.c .rule{background:var(--beige-700)}
+.c .eyebrow{color:var(--beige-400)}
+.c .head{color:#fff}
+.c .head em{font-style:normal;color:var(--beige-400)}
+.c .sub{color:#c3cfe3;font-weight:600}
+.c .sub b{color:var(--beige-400);font-weight:900}
+.c .btn{background:var(--beige-400);color:#14213a;border-radius:12px}
+.c .chip{background:#fff;border-radius:50%;display:grid;place-items:center;flex:none}
+.c .crest{display:flex;flex-direction:column;align-items:center}
+.c .crest span{color:var(--beige-100);font-weight:800}
+
+#c-pc{width:1080px;height:500px}
+#c-pc .content{padding:52px 56px;align-items:center;justify-content:space-between;gap:40px}
+#c-pc .rule{width:46px;height:3px;margin-bottom:16px}
+#c-pc .eyebrow{font-size:12.5px;letter-spacing:.2em;margin-bottom:14px}
+#c-pc .head{font-size:46px;margin-bottom:16px}
+#c-pc .sub{font-size:17.5px;margin-bottom:28px}
+#c-pc .btn{height:58px;padding:0 32px;font-size:18px}
+#c-pc .crests{display:flex;gap:26px;flex:none}
+#c-pc .crest{gap:14px}
+#c-pc .chip{width:112px;height:112px}
+#c-pc .chip .sym{height:68px}
+#c-pc .chip .sym--yonsei{height:78px;width:78px}
+#c-pc .crest span{font-size:15px}
+
+#c-mo{width:720px;height:600px}
+#c-mo .content{padding:42px 44px;flex-direction:column;align-items:center;text-align:center;justify-content:center}
+#c-mo .rule{width:44px;height:3px;margin-bottom:14px}
+#c-mo .eyebrow{font-size:12.5px;letter-spacing:.2em;margin-bottom:14px}
+#c-mo .head{font-size:41px;margin-bottom:22px}
+#c-mo .crests{display:flex;gap:40px;margin-bottom:24px}
+#c-mo .crest{gap:11px}
+#c-mo .chip{width:100px;height:100px}
+#c-mo .chip .sym{height:60px}
+#c-mo .chip .sym--yonsei{height:70px;width:70px}
+#c-mo .crest span{font-size:14.5px}
+#c-mo .sub{font-size:18px;margin-bottom:22px}
+#c-mo .btn{height:66px;width:100%;font-size:21px}
+
+/* ══════════════════════════════════════════════════════════════════
+   D안 — 수강권 쿠폰 (아이보리 본문 + 네이비 절취 스텁)
+   ══════════════════════════════════════════════════════════════════ */
+.d{background:var(--ivory)}
+.d .body-col{display:flex;flex-direction:column;justify-content:center}
+.d .symrow .cap{color:#6b6257;letter-spacing:.01em}
+.d .head{color:var(--navy-ink)}
+.d .head em{font-style:normal;color:var(--beige-700)}
+.d .sub{color:#5f6b80;font-weight:600}
+.d .sub b{color:var(--beige-700);font-weight:900}
+.d .btn{background:var(--navy);color:#fff;border-radius:10px}
+/* 절취 스텁 */
+.d .stub{position:relative;background:var(--navy);color:#fff;flex:none;
+         display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.d .stub .perf{position:absolute;border:0;border-left:2px dashed rgba(255,255,255,.28)}
+.d .notch{position:absolute;background:var(--ivory);border-radius:50%}
+.d .stub .lbl{color:var(--beige-400);font-weight:800;letter-spacing:.16em}
+.d .stub .pct{font-weight:900;color:#fff;line-height:.94;letter-spacing:-.05em}
+.d .stub .off{font-weight:900;color:var(--beige-400);letter-spacing:.1em}
+.d .stub .hr{background:rgba(255,255,255,.18)}
+.d .stub .note{color:#a8b6cd;font-weight:600}
+
+#d-pc{width:1080px;height:500px}
+#d-pc .content{padding:0}
+#d-pc .body-col{flex:1;padding:0 48px 0 60px}
+#d-pc .symrow{gap:14px;margin-bottom:24px}
+#d-pc .symrow .sym{height:46px}
+#d-pc .symrow .sym--yonsei{height:44px;width:44px}
+#d-pc .symrow .cap{font-size:14.5px;margin-left:4px}
+#d-pc .head{font-size:45px;margin-bottom:16px}
+#d-pc .sub{font-size:17.5px;margin-bottom:28px}
+#d-pc .btn{height:58px;padding:0 34px;font-size:18px;align-self:flex-start}
+#d-pc .stub{width:312px;height:100%;gap:0}
+#d-pc .stub .perf{left:17px;top:34px;bottom:34px}
+#d-pc .notch{width:34px;height:34px;left:0}
+#d-pc .notch.n1{top:-17px} #d-pc .notch.n2{bottom:-17px}
+#d-pc .stub .lbl{font-size:13px;margin-bottom:12px}
+#d-pc .stub .pct{font-size:96px}
+#d-pc .stub .off{font-size:20px;margin-top:6px}
+#d-pc .stub .hr{width:64px;height:1px;margin:22px 0 14px}
+#d-pc .stub .note{font-size:13px}
+
+#d-mo{width:720px;height:600px}
+#d-mo .content{padding:0;flex-direction:column}
+#d-mo .body-col{flex:1;padding:40px 46px 34px;text-align:center;align-items:center}
+#d-mo .symrow{gap:14px;margin-bottom:18px}
+#d-mo .symrow .sym{height:46px}
+#d-mo .symrow .sym--yonsei{height:44px;width:44px}
+#d-mo .symrow .cap{font-size:15px;margin-left:4px}
+#d-mo .head{font-size:41px;margin-bottom:16px}
+#d-mo .sub{font-size:17.5px;margin-bottom:22px}
+#d-mo .btn{height:64px;width:100%;font-size:20px}
+#d-mo .stub{width:100%;height:186px;flex-direction:row;gap:30px}
+#d-mo .stub .perf{left:24px;right:24px;top:17px;border-left:0;border-top:2px dashed rgba(255,255,255,.28)}
+#d-mo .notch{width:34px;height:34px;top:0}
+#d-mo .notch.n1{left:-17px} #d-mo .notch.n2{right:-17px}
+#d-mo .stub .lbl{font-size:13px;margin-bottom:6px}
+#d-mo .stub .pct{font-size:74px}
+#d-mo .stub .off{font-size:16px;margin-top:4px}
+#d-mo .stub .vhr{width:1px;height:96px;background:rgba(255,255,255,.18)}
+#d-mo .stub .note{font-size:14px;text-align:left;line-height:1.62}
+
+/* ══════════════════════════════════════════════════════════════════
+   E안 — 에디토리얼 아치 (화이트 + 명조 헤드라인)
+   ══════════════════════════════════════════════════════════════════ */
+.e{background:#fff}
+.e .topbar{position:absolute;left:0;right:0;top:0;background:var(--navy);z-index:4}
+.e .vrule{background:var(--beige-700);flex:none}
+.e .eyebrow{color:var(--beige-700)}
+.e .head{font-family:'Noto Serif KR',serif;font-weight:700;color:var(--navy-ink);letter-spacing:-.02em;line-height:1.32}
+.e .head em{font-style:normal;color:var(--beige-700)}
+.e .sub{color:#5f6b80;font-weight:600}
+.e .sub b{color:var(--navy-ink);font-weight:900}
+.e .btn{background:var(--navy);color:#fff;border-radius:10px}
+.e .symrow{border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.e .symrow .cap{color:var(--navy-ink)}
+.e .symrow .vsep{width:1px;background:var(--line);align-self:stretch}
+.e .arch{position:relative;flex:none}
+.e .arch .frame{position:absolute;border:1.5px solid var(--beige-500)}
+.e .arch .ph{position:absolute;inset:0;overflow:hidden;
+             background:url('assets/campus-bg.jpg') center 42%/cover no-repeat}
+.e .arch .ph::after{content:"";position:absolute;inset:0;background:rgba(8,26,68,.10)}
+
+#e-pc{width:1080px;height:500px}
+#e-pc .topbar{height:6px}
+#e-pc .content{padding:48px 56px 46px;align-items:center;gap:44px}
+#e-pc .left{flex:1;display:flex;gap:22px}
+#e-pc .vrule{width:3px;align-self:stretch}
+#e-pc .eyebrow{font-size:12px;letter-spacing:.22em;margin-bottom:14px}
+#e-pc .head{font-size:40px;margin-bottom:16px}
+#e-pc .sub{font-size:17px;margin-bottom:20px}
+#e-pc .symrow{gap:18px;padding:14px 0;margin-bottom:24px;align-self:flex-start}
+#e-pc .symrow .sym{height:42px}
+#e-pc .symrow .sym--yonsei{height:40px;width:40px}
+#e-pc .symrow .cap{font-size:14px}
+#e-pc .symrow .vsep{height:34px;margin:0 6px}
+#e-pc .btn{height:56px;padding:0 32px;font-size:17.5px;align-self:flex-start}
+#e-pc .arch{width:286px;height:406px}
+#e-pc .arch .ph{border-radius:143px 143px 14px 14px}
+#e-pc .arch .frame{inset:14px -14px -14px 14px;border-radius:143px 143px 14px 14px}
+
+#e-mo{width:720px;height:600px}
+#e-mo .topbar{height:6px}
+#e-mo .content{padding:44px 46px 40px;flex-direction:column;align-items:center;text-align:center}
+#e-mo .eyebrow{font-size:12px;letter-spacing:.22em;margin-bottom:12px}
+#e-mo .head{font-size:35px;margin-bottom:18px}
+#e-mo .arch{width:244px;height:192px;margin-bottom:20px}
+#e-mo .arch .ph{border-radius:122px 122px 12px 12px}
+#e-mo .arch .frame{inset:10px -10px -10px 10px;border-radius:122px 122px 12px 12px}
+#e-mo .symrow{gap:20px;padding:14px 0;margin-bottom:18px;width:100%;justify-content:center}
+#e-mo .symrow .sym{height:42px}
+#e-mo .symrow .sym--yonsei{height:40px;width:40px}
+#e-mo .symrow .cap{font-size:14.5px}
+#e-mo .symrow .vsep{height:34px;margin:0 8px}
+#e-mo .sub{font-size:17px;margin-bottom:20px}
+#e-mo .btn{height:64px;width:100%;font-size:20px}
+</style>
+</head>
+<body>
+
+<!-- ══════════ C안 PC ══════════ -->
+<div class="tag">C안 · 캠퍼스 포토 — PC 1080×500</div>
+<div class="stage c" id="c-pc">
+  <div class="bg"></div><div class="veil"></div>
+  <div class="content">
+    <div class="left">
+      <div class="rule"></div>
+      <div class="eyebrow">DOCK PASS · 연고대 편입논술</div>
+      <h2 class="head">합격의 시작,<br><em>지금 바로 경험하세요</em></h2>
+      <p class="sub">지금 수강하면 <b>10% 할인 혜택</b> 제공</p>
+      <span class="btn">학습소개 살펴보기 <span>→</span></span>
+    </div>
+    <div class="crests">
+      <div class="crest">
+        <div class="chip"><img class="sym" src="assets/sym-korea.png" alt="고려대학교"></div>
+        <span>고려대</span>
+      </div>
+      <div class="crest">
+        <div class="chip"><img class="sym sym--yonsei" src="assets/sym-yonsei.png" alt="연세대학교"></div>
+        <span>연세대</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ C안 모바일 ══════════ -->
+<div class="tag">C안 · 캠퍼스 포토 — 모바일 720×600</div>
+<div class="stage c" id="c-mo">
+  <div class="bg"></div><div class="veil"></div>
+  <div class="content">
+    <div class="rule"></div>
+    <div class="eyebrow">DOCK PASS · 연고대 편입논술</div>
+    <h2 class="head">합격의 시작,<br><em>지금 바로 경험하세요</em></h2>
+    <div class="crests">
+      <div class="crest">
+        <div class="chip"><img class="sym" src="assets/sym-korea.png" alt="고려대학교"></div>
+        <span>고려대</span>
+      </div>
+      <div class="crest">
+        <div class="chip"><img class="sym sym--yonsei" src="assets/sym-yonsei.png" alt="연세대학교"></div>
+        <span>연세대</span>
+      </div>
+    </div>
+    <p class="sub">지금 수강하면 <b>10% 할인 혜택</b> 제공</p>
+    <span class="btn">학습소개 살펴보기 <span>→</span></span>
+  </div>
+</div>
+
+<!-- ══════════ D안 PC ══════════ -->
+<div class="tag">D안 · 수강권 쿠폰 — PC 1080×500</div>
+<div class="stage d" id="d-pc">
+  <div class="content">
+    <div class="body-col">
+      <div class="symrow">
+        <img class="sym" src="assets/sym-korea.png" alt="고려대학교">
+        <img class="sym sym--yonsei" src="assets/sym-yonsei.png" alt="연세대학교">
+        <span class="cap">고려대 · 연세대 편입논술 전문</span>
+      </div>
+      <h2 class="head">합격의 시작,<br><em>지금 바로 경험하세요</em></h2>
+      <p class="sub">지금 수강하면 <b>10% 할인 혜택</b> 제공</p>
+      <span class="btn">학습소개 살펴보기</span>
+    </div>
+    <div class="stub">
+      <div class="perf"></div><div class="notch n1"></div><div class="notch n2"></div>
+      <div class="lbl">수강 혜택</div>
+      <div class="pct">10<span style="font-size:.52em">%</span></div>
+      <div class="off">DISCOUNT</div>
+      <div class="hr"></div>
+      <div class="note">신규 수강생 대상</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ D안 모바일 ══════════ -->
+<div class="tag">D안 · 수강권 쿠폰 — 모바일 720×600</div>
+<div class="stage d" id="d-mo">
+  <div class="content">
+    <div class="body-col">
+      <div class="symrow">
+        <img class="sym" src="assets/sym-korea.png" alt="고려대학교">
+        <img class="sym sym--yonsei" src="assets/sym-yonsei.png" alt="연세대학교">
+        <span class="cap">고려대 · 연세대 편입논술 전문</span>
+      </div>
+      <h2 class="head">합격의 시작,<br><em>지금 바로 경험하세요</em></h2>
+      <p class="sub">지금 수강하면 <b>10% 할인 혜택</b> 제공</p>
+      <span class="btn">학습소개 살펴보기</span>
+    </div>
+    <div class="stub">
+      <div class="perf"></div><div class="notch n1"></div><div class="notch n2"></div>
+      <div>
+        <div class="lbl">수강 혜택</div>
+        <div class="pct">10<span style="font-size:.52em">%</span></div>
+        <div class="off">DISCOUNT</div>
+      </div>
+      <i class="vhr"></i>
+      <div class="note">신규 수강생 대상<br>학습소개에서 확인</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ E안 PC ══════════ -->
+<div class="tag">E안 · 에디토리얼 아치 — PC 1080×500</div>
+<div class="stage e" id="e-pc">
+  <div class="topbar"></div>
+  <div class="content">
+    <div class="left">
+      <div class="vrule"></div>
+      <div>
+        <div class="eyebrow">DOCKPASS ENTRANCE ESSAY</div>
+        <h2 class="head">합격의 시작,<br><em>지금 바로 경험하세요</em></h2>
+        <div class="symrow">
+          <img class="sym" src="assets/sym-korea.png" alt="고려대학교">
+          <span class="cap">고려대</span>
+          <i class="vsep"></i>
+          <img class="sym sym--yonsei" src="assets/sym-yonsei.png" alt="연세대학교">
+          <span class="cap">연세대</span>
+        </div>
+        <p class="sub">지금 수강하면 <b>10% 할인 혜택</b> 제공</p>
+        <span class="btn">학습소개 살펴보기</span>
+      </div>
+    </div>
+    <div class="arch"><div class="frame"></div><div class="ph"></div></div>
+  </div>
+</div>
+
+<!-- ══════════ E안 모바일 ══════════ -->
+<div class="tag">E안 · 에디토리얼 아치 — 모바일 720×600</div>
+<div class="stage e" id="e-mo">
+  <div class="topbar"></div>
+  <div class="content">
+    <div class="eyebrow">DOCKPASS ENTRANCE ESSAY</div>
+    <h2 class="head">합격의 시작,<br><em>지금 바로 경험하세요</em></h2>
+    <div class="arch"><div class="frame"></div><div class="ph"></div></div>
+    <div class="symrow">
+      <img class="sym" src="assets/sym-korea.png" alt="고려대학교">
+      <span class="cap">고려대</span>
+      <i class="vsep"></i>
+      <img class="sym sym--yonsei" src="assets/sym-yonsei.png" alt="연세대학교">
+      <span class="cap">연세대</span>
+    </div>
+    <p class="sub">지금 수강하면 <b>10% 할인 혜택</b> 제공</p>
+    <span class="btn">학습소개 살펴보기</span>
+  </div>
+</div>
+
+</body>
+</html>

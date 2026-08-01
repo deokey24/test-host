@@ -1,0 +1,5 @@
+
+> dockteacher-web@1.0.0 start
+> node --env-file-if-exists=.env server.js
+
+Server running at http://localhost:3000
