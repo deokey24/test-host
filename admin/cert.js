@@ -20,7 +20,7 @@ async function initCertHero() {
   });
 }
 
-// 페이지 무관 공용 로더 (home.js의 loadHomeSectionData와 동일 패턴, page 인자만 추가)
+// 페이지 무관 공용 로더 — site_sections(page, section) 한 건을 읽고, 없으면 빈 객체로 떨어진다
 async function loadHomeSectionDataFor(page, section) {
   try {
     return await apiFetch(`/admin/api/site/${page}/${section}`);
@@ -66,56 +66,6 @@ async function initCertChart() {
     }
   });
 }
-
-// ── 인증 갤러리 ──
-async function loadCertGallery() {
-  const rows = await apiFetch('/admin/api/cert-gallery');
-  const listEl = document.getElementById('cert-gallery-list');
-  listEl.innerHTML = rows.map(r => `
-    <li class="drag-item" data-id="${r.id}" style="align-items:center;">
-      <span class="drag-handle">☰</span>
-      <img src="${escapeHtml(r.image_url)}" style="width:70px; height:70px; object-fit:cover; border-radius:6px;">
-      <div class="drag-item-body"></div>
-      <button type="button" class="row-btn danger drag-item-remove" data-remove-gallery="${r.id}">삭제</button>
-    </li>
-  `).join('');
-  attachDragReorder(listEl, async (ids) => {
-    await Promise.all(ids.map((id, idx) => apiFetch(`/admin/api/cert-gallery/${id}`, {
-      method: 'PUT', body: JSON.stringify({ sort_order: idx })
-    })));
-    await loadCertGallery();
-  });
-}
-
-document.getElementById('cert-gallery-file').addEventListener('change', async () => {
-  const fileInput = document.getElementById('cert-gallery-file');
-  const file = fileInput.files[0];
-  if (!file) return;
-  const status = document.getElementById('cert-gallery-upload-status');
-  setStatus(status, '업로드 중...');
-  try {
-    const { url } = await uploadImage(file, 'cert-gallery', Date.now());
-    await apiFetch('/admin/api/cert-gallery', { method: 'POST', body: JSON.stringify({ image_url: url }) });
-    setStatus(status, '추가되었습니다.', 'ok');
-    await loadCertGallery();
-  } catch (err) {
-    setStatus(status, err.message, 'error');
-  } finally {
-    fileInput.value = '';
-  }
-});
-
-document.getElementById('cert-gallery-list').addEventListener('click', async (e) => {
-  const id = e.target.dataset.removeGallery;
-  if (!id) return;
-  if (!confirm('이 이미지를 삭제할까요?')) return;
-  try {
-    await apiFetch(`/admin/api/cert-gallery/${id}`, { method: 'DELETE' });
-    await loadCertGallery();
-  } catch (err) {
-    setStatus(document.getElementById('cert-gallery-upload-status'), err.message, 'error');
-  }
-});
 
 // ── 합격 인증 게시판(cert_posts) ──
 // 공지사항(notice.js)과 같은 "카드 안에서 펼쳐지는 작성 폼 + 아래 목록 표" 패턴.
@@ -286,7 +236,6 @@ function initCertPosts() {
 document.addEventListener('DOMContentLoaded', () => {
   initCertHero();
   initCertChart();
-  loadCertGallery();
   initCertPosts();
   loadCertPosts();
 });

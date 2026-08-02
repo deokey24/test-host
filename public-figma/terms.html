@@ -73,7 +73,7 @@ body[data-page="terms"]{background:var(--warm-white)}
 .footer .social a:hover{background:rgba(255,255,255,.12)}
 .footer .social svg{width:15px;height:15px}.social a.blog{font-size:9px;font-weight:900;letter-spacing:-.04em}
 .footer__bottom{display:flex;justify-content:space-between;align-items:center;margin-top:28px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:#9ba7b8}
-.footer__bottom a{margin-left:16px;color:#c3ccd9}
+.footer__bottom a{margin-left:16px;color:#c3ccd9}/* 카카오톡 상담 버튼 — 학습소개 플로팅 버튼(.kakao-float)과 같은 카카오 브랜드 색 */.btn--kakao{background:#fee500;color:#191600;border:0;box-shadow:none}
 
 @media(max-width:760px){
   .header__inner{height:64px}
@@ -300,11 +300,7 @@ body[data-page="terms"]{background:var(--warm-white)}
     </div>
     <div><small class="footer-desc">(주)독패스 | 대표이사 김독패<br>사업자등록번호 000-00-00000 | 통신판매업신고 2020-서울강남-00000<br>서울특별시 서대문구 신촌로 221, 2층<br>학원설립·운영등록번호 제2020-0006호 | 사업자등록번호 104-94-47747<br>평일 운영 14:00~22:00 · 상담 운영 15:00~20:00</small></div>
     <div>
-      <small>상담 문의</small>
-      <div class="phone">02-6404-1018</div><div class="hours">상담 월~금 15:00–20:00</div>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <a class="btn btn--primary" href="#" data-kakao-link>카카오톡 상담</a>
-      </div>
+      <a class="btn btn--kakao" href="#" data-kakao-link>카카오톡 상담</a>
     </div>
   </div>
   <div class="container footer__bottom">

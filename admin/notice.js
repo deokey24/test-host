@@ -239,6 +239,7 @@ function initNotices() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  initSiteHeroCard('notice', 'notice-hero'); // notice.html 상단 문구
   initNoticeCategoryToggle();
   initNoticeCategories();
   initNotices();

@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS lecture_videos (
   raw_upload_id VARCHAR(1024),  -- R2 멀티파트 UploadId는 300자 이상 (255면 ER_DATA_TOO_LONG)
   final_r2_key VARCHAR(512),
   hls_key_base64 VARCHAR(32),  -- HLS AES-128 세그먼트 암호화 키 (16바이트, base64) — mp4 레거시 행은 NULL
+  is_public TINYINT(1) NOT NULL DEFAULT 0,  -- 로그인 없이 볼 수 있는 영상(VOD 페이지 인트로) — 파일 하단 주석 참고
   status ENUM('uploading', 'queued', 'processing', 'done', 'failed') NOT NULL DEFAULT 'uploading',
   error_message TEXT,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -359,13 +360,14 @@ CREATE TABLE IF NOT EXISTS popup_banners (
   INDEX idx_popup_banners_visible_dates (visible, start_date, end_date)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- 배너 관리 (관리자 "배너 관리" 메뉴 — 상단/중간/콘텐츠/사이드/하단 5종)
+-- 배너 관리 (관리자 "메인 페이지 배너" 메뉴 — 헤더 좌/우, 상단/중간/콘텐츠/사이드/하단 7종)
+-- header-left/header-right: 모든 페이지 공통 헤더의 로고 좌/우 배너(각 230×80, public-figma/header.js).
 -- top/middle: 홈 상단 슬라이더(.banner-slider--top/--mid). content/side: DOCK NEWS 섹션 좌(탭+이미지)/우(고정 이미지).
 -- bottom: 홈 맨 아래 FAQ 옆 CTA 자리 슬라이더(.banner-slider--bottom). PC 1080×500 / 모바일 720×600.
 -- content 타입의 label은 DOCK NEWS 탭 버튼 이름으로 쓰인다.
 CREATE TABLE IF NOT EXISTS content_banners (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  banner_type ENUM('top', 'middle', 'content', 'side', 'bottom') NOT NULL,
+  banner_type ENUM('header-left', 'header-right', 'top', 'middle', 'content', 'side', 'bottom') NOT NULL,
   label VARCHAR(200),
   image_url VARCHAR(500) NOT NULL,
   -- 모바일 전용 이미지(top/middle만 사용). NULL이면 image_url을 확대 크롭해서 노출 — 파일 하단 ALTER 주석 참고.
@@ -935,3 +937,33 @@ CREATE TABLE IF NOT EXISTS cert_posts (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_cert_posts_list (is_active, pinned, created_at)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- ── 헤더배너 슬롯 추가 (2026-08) ──
+-- 모든 페이지 공통 헤더(public-figma/header.js)의 로고 좌/우 배너(각 230×80)를 관리자 배너로 전환.
+-- 좌/우가 따로 순환하지만 같은 박자를 공유하므로 타입을 둘로 나눠 각각 목록으로 관리한다.
+-- ENUM은 멱등 문법이 없어 MODIFY로 전체를 덮어쓴다(기존 값 유지 + 신규 2종 추가).
+ALTER TABLE content_banners
+  MODIFY COLUMN banner_type ENUM('header-left', 'header-right', 'top', 'middle', 'content', 'side', 'bottom') NOT NULL;
+
+-- header.js에 하드코딩돼 있던 좌 2장 / 우 2장을 실제 데이터로 이전. 이미 등록돼 있으면 건너뛴다.
+INSERT INTO content_banners (banner_type, label, image_url, link_url, sort_order)
+SELECT * FROM (
+  SELECT 'header-left' AS banner_type, '연고대 논술 대비 8월 신규반 안내 · 마지막 충원 기간' AS label,
+         '/assets/home/header-banner-l1.webp' AS image_url, NULL AS link_url, 0 AS sort_order UNION ALL
+  SELECT 'header-left', 'dockpass 홈페이지 신설', '/assets/home/header-banner-l2.webp', NULL, 1 UNION ALL
+  SELECT 'header-right', '연세대 대관 모의논술 11월 초 시행 예정', '/assets/home/header-banner-r1.webp', NULL, 0 UNION ALL
+  SELECT 'header-right', '고려대 대관 모의논술 11월 초 시행 예정', '/assets/home/header-banner-r2.webp', NULL, 1
+) AS seed
+WHERE NOT EXISTS (SELECT 1 FROM content_banners WHERE banner_type IN ('header-left', 'header-right'));
+
+-- ── 공개 영상 플래그 (2026-08) ──
+-- vod.html 상단 인트로 영상은 로그인 없이 열리는 유일한 영상이다(/api/stream/vod-intro/*).
+-- 어떤 영상인지는 site_sections(vod/intro)가 정하지만, "공개해도 되는 영상인가"의 최종 권한은 이 플래그가 갖는다.
+-- 관리자가 인트로 영상을 저장할 때마다 server.js의 syncPublicIntroVideo()가
+-- "고른 영상만 1, 나머지는 전부 0"으로 맞춘다 → 영상을 교체하면 직전 영상은 즉시 다시 회원 전용으로 잠긴다.
+ALTER TABLE lecture_videos
+  ADD COLUMN IF NOT EXISTS is_public TINYINT(1) NOT NULL DEFAULT 0;
+
+-- 마이그레이션 시점에 이미 인트로로 나가고 있던 영상을 공개로 표시해 둔다(server.js의 PUBLIC_VOD_INTRO_LECTURE_ID).
+-- 관리자가 인트로를 한 번이라도 저장하면 그 뒤로는 syncPublicIntroVideo()가 계속 맞춰준다.
+UPDATE lecture_videos SET is_public = 1 WHERE id = 24;

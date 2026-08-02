@@ -745,6 +745,101 @@ function expandLectureContent(lectureId) {
   activeContentLectureId = lectureId;
 }
 
+// ── VOD 페이지 인트로 (vod.html 상단 이미지 + 공개 소개 영상) ──
+// site_sections(page='vod', section_key='intro')에 {heroImage, caption, lectureVideoId}로 저장한다.
+// 소개 영상은 로그인 없이 열리는 유일한 영상이라 서버가 이 값으로만 스트리밍 대상을 정한다.
+//
+// 아직 저장된 값이 없을 때는 지금 사이트에 실제로 나가고 있는 값(vod.html의 하드코딩 기본값과
+// server.js의 PUBLIC_VOD_INTRO_LECTURE_ID)을 그대로 채워 넣는다 — 관리자 화면이 빈 칸으로 보이면
+// "인트로가 비어 있다"고 오해하게 되고, 한 항목만 고쳐 저장했을 때 나머지가 날아간 것처럼 보인다.
+const VOD_INTRO_DEFAULTS = {
+  heroImage: '/assets/vod/hero.jpg',
+  caption: '0강 연고대\n편입논술 OT\n- 황성찬 T -',
+  lectureVideoId: 24 // 0강 연고대 편입논술 OT
+};
+
+// VOD 카테고리 카드와 같은 방식의 접기/펼치기 (기본 접힘)
+function initVodIntroToggle() {
+  const toggleBtn = document.getElementById('vod-intro-toggle');
+  const body = document.getElementById('vod-intro-body');
+  if (!toggleBtn || !body) return;
+  toggleBtn.addEventListener('click', () => {
+    const isOpen = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : '';
+    toggleBtn.textContent = isOpen ? '펼치기' : '접기';
+  });
+}
+
+async function initVodIntroCard() {
+  const saveBtn = document.getElementById('vod-intro-save');
+  if (!saveBtn) return;
+
+  const captionEl = document.getElementById('vod-intro-caption');
+  const previewEl = document.getElementById('vod-intro-hero-preview');
+  const fileEl = document.getElementById('vod-intro-hero-file');
+  let heroImage = '';
+  let lectureVideoId = '';
+
+  function renderHero() {
+    const img = previewEl.querySelector('.preview-img');
+    const note = previewEl.querySelector('.empty-note');
+    img.src = heroImage || '';
+    img.style.display = heroImage ? '' : 'none';
+    note.style.display = heroImage ? 'none' : '';
+  }
+
+  const [data, videos, folders] = await Promise.all([
+    apiFetch('/admin/api/site/vod/intro').catch(() => ({})),
+    apiFetch('/admin/api/videos?all=1').catch(() => []),
+    apiFetch('/admin/api/video-folders').catch(() => [])
+  ]);
+  heroImage = data.heroImage || VOD_INTRO_DEFAULTS.heroImage;
+  lectureVideoId = data.lectureVideoId || VOD_INTRO_DEFAULTS.lectureVideoId;
+  captionEl.value = data.caption || VOD_INTRO_DEFAULTS.caption;
+  renderHero();
+
+  const videoOptions = videos
+    .filter(v => v.status === 'done' && v.final_r2_key)
+    .map(v => ({ id: v.id, label: v.title, group: videoFolderPath(v.folder_id, folders) || '루트' }))
+    .sort((a, b) => a.group.localeCompare(b.group, 'ko') || a.label.localeCompare(b.label, 'ko'));
+  initSearchableSelect(document.getElementById('vod-intro-video-select'), videoOptions, {
+    value: lectureVideoId,
+    placeholder: '영상 선택',
+    emptyLabel: '(영상 없음)',
+    onSelect: (id) => { lectureVideoId = id || ''; }
+  });
+
+  fileEl.addEventListener('change', async () => {
+    const file = fileEl.files[0];
+    if (!file) return;
+    const status = document.getElementById('vod-intro-hero-status');
+    setStatus(status, '업로드 중...');
+    try {
+      const { url } = await uploadImage(file, 'vod-course', 'intro');
+      heroImage = url;
+      renderHero();
+      setStatus(status, '업로드되었습니다. 저장을 눌러 반영하세요.', 'ok');
+    } catch (err) {
+      setStatus(status, err.message, 'error');
+    } finally {
+      fileEl.value = '';
+    }
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    const status = document.getElementById('vod-intro-status');
+    try {
+      await apiFetch('/admin/api/site/vod/intro', {
+        method: 'PUT',
+        body: JSON.stringify({ heroImage, caption: captionEl.value, lectureVideoId: lectureVideoId || '' })
+      });
+      setStatus(status, '저장되었습니다.', 'ok');
+    } catch (err) {
+      setStatus(status, err.message, 'error');
+    }
+  });
+}
+
 // 영상의 folder_id를 타고 올라가며 "상위폴더 / 하위폴더" 경로 문자열을 만든다 (루트면 빈 문자열)
 function videoFolderPath(folderId, folders) {
   const parts = [];
@@ -937,6 +1032,8 @@ document.getElementById('vodLectureList').addEventListener('click', async (e) =>
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  initVodIntroToggle();
+  initVodIntroCard();
   initVodCategoryToggle();
   initVodCategories();
   initVodTabs();

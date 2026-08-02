@@ -204,6 +204,12 @@ function applyCmsData(data) {
     if (value.text) el.textContent = value.text;
   });
 
+  // data-cms-image가 {url, ratio} 객체를 다루는 것과 달리, 이건 URL 문자열 하나를 img.src에 그대로 넣는다
+  document.querySelectorAll('[data-cms-src]').forEach(el => {
+    const value = resolveCmsPath(data, el.dataset.cmsSrc);
+    if (typeof value === 'string' && value) el.src = value;
+  });
+
   document.querySelectorAll('[data-cms-image]').forEach(el => {
     const value = resolveCmsPath(data, el.dataset.cmsImage);
     if (!value || !value.url) return;

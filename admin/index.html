@@ -16,8 +16,7 @@
       <span class="sidebar-logo-text">DOCK-TEACHER<br><small>ADMIN</small></span>
     </div>
     <nav class="sidebar-nav">
-      <button class="side-link active" data-target="homeSection">메인 페이지</button>
-      <button class="side-link" data-target="bannerSection">메인 페이지 배너</button>
+      <button class="side-link active" data-target="bannerSection">메인 페이지 배너</button>
       <button class="side-link" data-target="vodSection">VOD 강좌</button>
       <button class="side-link" data-target="introSection">학습소개</button>
       <button class="side-link" data-target="certSection">합격 인증</button>
@@ -37,120 +36,49 @@
 
   <div class="main-wrap">
     <header>
-      <h1 id="sectionTitle">메인 페이지</h1>
+      <h1 id="sectionTitle">메인 페이지 배너</h1>
       <form method="POST" action="/admin/logout"><button type="submit">로그아웃</button></form>
     </header>
 
     <main>
 
-      <section id="homeSection" class="admin-section active">
-
-        <div class="card">
-          <h2>온라인 클래스</h2>
-          <div class="field-row">
-            <label class="field-label">뱃지같은 제목</label>
-            <input type="text" id="home-oc-badge" placeholder="예: ONLINE CLASS · 현강을 그대로">
-          </div>
-          <div class="field-row">
-            <label class="field-label">제목</label>
-            <input type="text" id="home-oc-title" placeholder="예: 강의실에 오지 못해도, 합격까지는 조금도 멀지 않습니다">
-          </div>
-          <div class="field-row">
-            <label class="field-label">내용</label>
-            <textarea id="home-oc-body" rows="2"></textarea>
-          </div>
-          <label class="field-label">카드 목록</label>
-          <ul class="drag-list" id="home-oc-cards"></ul>
-          <button class="btn-outline" id="home-oc-add" type="button">+ 카드 추가</button>
-          <button class="btn" id="home-oc-save" type="button" style="margin-top:14px;">저장</button>
-          <div class="status-text" id="home-oc-status"></div>
-        </div>
-
-        <div class="card">
-          <h2>합격 인증</h2>
-          <div class="field-row">
-            <label class="field-label">뱃지같은 제목</label>
-            <input type="text" id="home-cert-badge" placeholder="예: CERTIFIED PASS">
-          </div>
-          <div class="field-row">
-            <label class="field-label">제목</label>
-            <input type="text" id="home-cert-title" placeholder="예: 합격생들의 생생한 인증">
-          </div>
-          <p class="field-hint">갤러리 이미지는 "합격 인증" 관리 메뉴에서 등록한 이미지를 그대로 가져옵니다.</p>
-          <button class="btn" id="home-cert-save" type="button">저장</button>
-          <div class="status-text" id="home-cert-status"></div>
-        </div>
-
-        <div class="card">
-          <h2>VOD 클래스</h2>
-          <div class="field-row">
-            <label class="field-label">뱃지같은 제목</label>
-            <input type="text" id="home-vl-badge" placeholder="예: VOD CLASS">
-          </div>
-          <div class="field-row">
-            <label class="field-label">제목</label>
-            <input type="text" id="home-vl-title" placeholder="예: 지금 수강 가능한 VOD 강좌">
-          </div>
-          <p class="field-hint">배치순서·카드·커리큘럼·가격은 "VOD강좌" 관리 메뉴의 데이터를 그대로 가져옵니다.</p>
-          <button class="btn" id="home-vl-save" type="button">저장</button>
-          <div class="status-text" id="home-vl-status"></div>
-        </div>
-
-        <div class="card">
-          <h2>독편사 VOD소개</h2>
-          <div class="field-row">
-            <label class="field-label">제목</label>
-            <input type="text" id="home-why-title" placeholder="예: 왜 독편사 VOD인가">
-          </div>
-          <div class="field-row">
-            <label class="field-label">버튼 텍스트</label>
-            <input type="text" id="home-why-cta" placeholder="예: 입학 TEST 신청 →">
-          </div>
-          <label class="field-label">카드 목록</label>
-          <ul class="drag-list" id="home-why-cards"></ul>
-          <button class="btn-outline" id="home-why-add" type="button">+ 카드 추가</button>
-          <button class="btn" id="home-why-save" type="button" style="margin-top:14px;">저장</button>
-          <div class="status-text" id="home-why-status"></div>
-        </div>
-
-        <div class="card">
-          <h2>리뷰</h2>
-          <div class="field-row">
-            <label class="field-label">뱃지같은 제목</label>
-            <input type="text" id="home-reviews-badge" placeholder="예: REVIEWS">
-          </div>
-          <div class="field-row">
-            <label class="field-label">제목</label>
-            <input type="text" id="home-reviews-title" placeholder="예: 수강생들이 남긴 이야기">
-          </div>
-          <label class="field-label">카드 (3개 고정)</label>
-          <div class="field-grid">
-            <div class="field-row full">
-              <label class="field-label">카드 1 — 후기 내용</label>
-              <textarea id="home-reviews-quote-0" rows="2"></textarea>
-              <label class="field-label" style="margin-top:8px;">작성자 표기</label>
-              <input type="text" id="home-reviews-author-0" placeholder="예: 연세대 편입 합격 · 2026">
-            </div>
-            <div class="field-row full">
-              <label class="field-label">카드 2 — 후기 내용</label>
-              <textarea id="home-reviews-quote-1" rows="2"></textarea>
-              <label class="field-label" style="margin-top:8px;">작성자 표기</label>
-              <input type="text" id="home-reviews-author-1">
-            </div>
-            <div class="field-row full">
-              <label class="field-label">카드 3 — 후기 내용</label>
-              <textarea id="home-reviews-quote-2" rows="2"></textarea>
-              <label class="field-label" style="margin-top:8px;">작성자 표기</label>
-              <input type="text" id="home-reviews-author-2">
-            </div>
-          </div>
-          <button class="btn" id="home-reviews-save" type="button" style="margin-top:14px;">저장</button>
-          <div class="status-text" id="home-reviews-status"></div>
-        </div>
-
-      </section>
-
       <section id="vodSection" class="admin-section">
+        <div class="card">
+          <div class="card-head-row">
+            <h2>VOD 페이지 인트로</h2>
+            <button class="row-btn" id="vod-intro-toggle" type="button">펼치기</button>
+          </div>
+          <div id="vod-intro-body" style="display:none;">
+            <p class="field-hint">수강신청(vod.html) 페이지 맨 위의 이미지·소개 영상 영역입니다. 권장 이미지 가로 크기 1280px (세로는 자유, 가로에 맞춰 비율대로 표시됩니다).</p>
+            <div class="image-picker" style="margin-top:12px;">
+              <div class="image-picker-preview" id="vod-intro-hero-preview" style="width:260px; height:110px;">
+                <img class="preview-img" src="" style="display:none;">
+                <div class="empty-note">이미지 없음</div>
+              </div>
+              <div class="image-picker-controls">
+                <label class="field-label">상단 이미지</label>
+                <div class="file-row"><input type="file" id="vod-intro-hero-file" accept="image/*"></div>
+                <div class="status-text" id="vod-intro-hero-status"></div>
+              </div>
+            </div>
+            <div class="field-row" style="margin-top:14px;">
+              <label class="field-label">영상 위 문구</label>
+              <textarea id="vod-intro-caption" rows="3" placeholder="예: 0강 연고대&#10;편입논술 OT&#10;- 황성찬 T -"></textarea>
+              <p class="field-hint">줄바꿈한 그대로 표시됩니다.</p>
+            </div>
+            <div class="field-row">
+              <label class="field-label">소개 영상</label>
+              <div class="searchable-select" id="vod-intro-video-select">
+                <input type="text" class="ss-input" placeholder="영상 선택">
+                <div class="ss-dropdown"></div>
+              </div>
+              <p class="field-hint">"영상 업로드"에 등록된 영상 중 하나를 고릅니다.</p>
+            </div>
+            <button class="btn" id="vod-intro-save" type="button" style="margin-top:10px;">저장</button>
+            <div class="status-text" id="vod-intro-status"></div>
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-head-row">
             <h2>VOD 카테고리</h2>
@@ -494,16 +422,6 @@
           <div class="status-text" id="cert-chart-status"></div>
         </div>
 
-        <div class="card">
-          <div class="card-head-row">
-            <h2>인증 갤러리</h2>
-            <div class="file-row"><input type="file" id="cert-gallery-file" accept="image/*"></div>
-          </div>
-          <p class="field-hint" style="margin-bottom:6px;">홈 화면의 합격 인증 슬라이더에 노출됩니다. (합격인증 페이지는 아래 게시판을 사용합니다)</p>
-          <div class="status-text" id="cert-gallery-upload-status"></div>
-          <ul class="drag-list" id="cert-gallery-list" style="margin-top:10px;"></ul>
-        </div>
-
         <div class="card" id="certPostWriteCard">
           <div class="card-head-row">
             <h2 id="certPostFormTitle" style="display:none;">새 인증글 작성</h2>
@@ -693,6 +611,20 @@
 
       <section id="noticeSection" class="admin-section">
         <div class="card">
+          <h2>타이틀</h2>
+          <div class="field-row">
+            <label class="field-label">제목</label>
+            <input type="text" id="notice-hero-title" placeholder="예: NOTICE">
+          </div>
+          <div class="field-row">
+            <label class="field-label">내용</label>
+            <textarea id="notice-hero-body" rows="2"></textarea>
+          </div>
+          <button class="btn" id="notice-hero-save" type="button">저장</button>
+          <div class="status-text" id="notice-hero-status"></div>
+        </div>
+
+        <div class="card">
           <div class="card-head-row">
             <h2>공지사항 카테고리</h2>
             <button class="row-btn" id="notice-cat-toggle" type="button">펼치기</button>
@@ -814,8 +746,28 @@
         </div>
       </section>
 
-      <section id="bannerSection" class="admin-section">
-        <p class="field-hint" style="margin-bottom:14px;">프론트 페이지에 노출되는 배너 5종을 관리합니다. 목록 상단의 "+ 배너 추가"로 새로 등록하고, 순서는 드래그로 바꿀 수 있습니다.</p>
+      <section id="bannerSection" class="admin-section active">
+        <p class="field-hint" style="margin-bottom:14px;">프론트 페이지에 노출되는 배너 7종을 관리합니다. 목록 상단의 "+ 배너 추가"로 새로 등록하고, 순서는 드래그로 바꿀 수 있습니다.</p>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h2>헤더배너(좌) (<span id="bannerTotal-header-left">0</span>개)</h2>
+            <button class="btn" type="button" data-banner-add="header-left">+ 배너 추가</button>
+          </div>
+          <p class="field-hint" style="margin-bottom:10px;">모든 페이지 상단 로고 <strong>왼쪽</strong> 자리 · 권장 이미지 크기 230×80px · 여러 장 등록하면 4초마다 자동 전환됩니다.</p>
+          <ul class="drag-list" id="banner-header-left-list"></ul>
+          <div class="status-text" id="banner-header-left-list-status"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h2>헤더배너(우) (<span id="bannerTotal-header-right">0</span>개)</h2>
+            <button class="btn" type="button" data-banner-add="header-right">+ 배너 추가</button>
+          </div>
+          <p class="field-hint" style="margin-bottom:10px;">모든 페이지 상단 로고 <strong>오른쪽</strong> 자리 · 권장 이미지 크기 230×80px · 좌/우가 같은 박자로 함께 넘어갑니다.</p>
+          <ul class="drag-list" id="banner-header-right-list"></ul>
+          <div class="status-text" id="banner-header-right-list-status"></div>
+        </div>
 
         <div class="card">
           <div class="card-head-row">
@@ -1158,7 +1110,6 @@
   </div>
 </div>
 <script src="/admin/cms.js"></script>
-<script src="/admin/home.js"></script>
 <script src="/admin/vod.js"></script>
 <script src="/admin/intro.js"></script>
 <script src="/admin/cert.js"></script>

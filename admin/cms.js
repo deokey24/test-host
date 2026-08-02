@@ -31,6 +31,36 @@ function setStatus(el, message, kind) {
   if (kind) el.classList.add(kind);
 }
 
+// ── 페이지 상단 "타이틀"(hero) 카드 공용 초기화 ──
+// `<prefix>-title` / `<prefix>-body` / `<prefix>-save` / `<prefix>-status` 4개 요소가 있다고 가정하고
+// site_sections(page, 'hero')에 {title, body}로 저장한다. 프론트는 data-cms="hero.title|hero.body"로 읽는다.
+function initSiteHeroCard(page, prefix) {
+  const saveBtn = document.getElementById(`${prefix}-save`);
+  const titleEl = document.getElementById(`${prefix}-title`);
+  const bodyEl = document.getElementById(`${prefix}-body`);
+  if (!saveBtn || !titleEl || !bodyEl) return;
+
+  apiFetch(`/admin/api/site/${page}/hero`)
+    .then(data => {
+      titleEl.value = data.title || '';
+      bodyEl.value = data.body || '';
+    })
+    .catch(() => { /* 아직 저장된 값이 없으면 빈 칸 — 프론트는 하드코딩 기본값을 그대로 쓴다 */ });
+
+  saveBtn.addEventListener('click', async () => {
+    const status = document.getElementById(`${prefix}-status`);
+    try {
+      await apiFetch(`/admin/api/site/${page}/hero`, {
+        method: 'PUT',
+        body: JSON.stringify({ title: titleEl.value.trim(), body: bodyEl.value.trim() })
+      });
+      setStatus(status, '저장되었습니다.', 'ok');
+    } catch (err) {
+      setStatus(status, err.message, 'error');
+    }
+  });
+}
+
 // ── 범용 이미지 업로드 (presign → PUT → URL 반환) ──
 async function uploadImage(file, scope, resourceId) {
   const { key, uploadUrl, url } = await apiFetch('/admin/api/site/upload/presign', {
@@ -93,35 +123,6 @@ function initAspectImagePicker(containerEl, { scope, resourceId, initial, onChan
 
   render();
   return { getState: () => ({ ...state }), setState: (next) => { Object.assign(state, next); render(); } };
-}
-
-// ── ColorPaletteField: 프리셋 스와치 + 커스텀 hex ──
-const CMS_COLOR_PRESETS = ['#a98254', '#e3cdaf', '#fee500', '#ffffff', '#15191c'];
-
-function initColorPaletteField(containerEl, { initial, onChange }) {
-  let value = initial || CMS_COLOR_PRESETS[0];
-  const swatchWrap = containerEl.querySelector('.swatch-wrap');
-  const customInput = containerEl.querySelector('input[type="color"]');
-  const hexLabel = containerEl.querySelector('.hex-label');
-
-  function render() {
-    swatchWrap.querySelectorAll('.color-swatch').forEach(sw => {
-      sw.classList.toggle('selected', sw.dataset.color.toLowerCase() === value.toLowerCase());
-    });
-    customInput.value = /^#[0-9a-f]{6}$/i.test(value) ? value : '#a98254';
-    hexLabel.textContent = value;
-  }
-
-  swatchWrap.innerHTML = CMS_COLOR_PRESETS.map(c =>
-    `<button type="button" class="color-swatch" data-color="${c}" style="background:${c};"></button>`
-  ).join('');
-  swatchWrap.querySelectorAll('.color-swatch').forEach(sw => {
-    sw.addEventListener('click', () => { value = sw.dataset.color; render(); onChange && onChange(value); });
-  });
-  customInput.addEventListener('input', () => { value = customInput.value; render(); onChange && onChange(value); });
-
-  render();
-  return { getValue: () => value, setValue: (v) => { value = v; render(); } };
 }
 
 // ── SearchableSelect: 텍스트 입력으로 실시간 검색되는 드롭다운 (VOD 커리큘럼 영상 연결 등) ──

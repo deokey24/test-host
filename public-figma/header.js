@@ -20,33 +20,47 @@
   //    전환 속도(.6s ease)와 주기(4초)는 홈 상단/중간 배너와 동일하게 맞춘다.
   //    index.html이 노출하는 마스터 클럭(window.bannerTicker)이 있으면 거기에 올라타서 박자까지 공유한다.
   //    방향은 항상 우→좌 고정 — 다음 장을 오른쪽(100%)에 대기시켰다가 한 칸 밀어넣는다(index.html의 DOCK NEWS와 같은 방식).
+  //
+  //    실제 내용은 관리자 "메인 페이지 배너 → 헤더배너(좌/우)"(content_banners의 header-left/header-right)에서 온다.
+  //    다만 이 파일은 헤더를 동기로 그려 넣어야 해서(레이아웃 흔들림 방지) 아래 기본값으로 먼저 렌더한 뒤,
+  //    /api/content-banners 응답이 오면 그때 배너 부분만 다시 그린다. DB가 비었거나 요청이 실패하면 기본값이 그대로 남는다.
   const BANNER_W = 230;
   const BANNER_INTERVAL = 4000;
-  const BANNERS = {
+  const FALLBACK_BANNERS = {
     left: [
-      ['assets/home/header-banner-l1.webp', '연고대 논술 대비 8월 신규반 안내 · 마지막 충원 기간'],
-      ['assets/home/header-banner-l2.webp', 'dockpass 홈페이지 신설']
+      { image_url: 'assets/home/header-banner-l1.webp', label: '연고대 논술 대비 8월 신규반 안내 · 마지막 충원 기간' },
+      { image_url: 'assets/home/header-banner-l2.webp', label: 'dockpass 홈페이지 신설' }
     ],
     right: [
-      ['assets/home/header-banner-r1.webp', '연세대 대관 모의논술 11월 초 시행 예정'],
-      ['assets/home/header-banner-r2.webp', '고려대 대관 모의논술 11월 초 시행 예정']
+      { image_url: 'assets/home/header-banner-r1.webp', label: '연세대 대관 모의논술 11월 초 시행 예정' },
+      { image_url: 'assets/home/header-banner-r2.webp', label: '고려대 대관 모의논술 11월 초 시행 예정' }
     ]
   };
+  let banners = FALLBACK_BANNERS;
+
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   const ARROW_SVG = {
     prev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
     next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>'
   };
 
+  // 링크가 있으면 슬라이드 자체를 <a>로, 없으면 <span>으로 만든다(둘 다 .hbanner__slide로 위치·전환을 담당).
+  function bannerSlideHtml(item, index) {
+    const img = `<img src="${esc(item.image_url)}" alt="${esc(item.label || '')}" width="230" height="80">`;
+    const style = index ? ' style="transform:translateX(100%)"' : ''; // 첫 장만 제자리, 나머지는 오른쪽 밖에 대기
+    if (!item.link_url) return `<span class="hbanner__slide"${style}>${img}</span>`;
+    // 사이트 내부 경로는 같은 탭, 외부 URL만 새 탭 (홈 배너 wrapBannerLink와 같은 규칙)
+    const target = /^https?:\/\//i.test(item.link_url) ? ' target="_blank" rel="noopener"' : '';
+    return `<a class="hbanner__slide" href="${esc(item.link_url)}"${target}${style}>${img}</a>`;
+  }
+
   function bannerHtml(side) {
-    const items = BANNERS[side];
+    const items = banners[side];
     if (!items || !items.length) return '';
-    // 첫 장만 제자리, 나머지는 오른쪽 밖에 대기시켜 둔다.
-    const imgs = items.map(([src, alt], i) =>
-      `<img src="${src}" alt="${alt}" width="230" height="80"${i ? ' style="transform:translateX(100%)"' : ''}>`).join('');
     return `<div class="hbanner-group hbanner-group--${side}">`
       + `<button class="hbanner__arrow" type="button" data-dir="-1" aria-label="이전 배너">${ARROW_SVG.prev}</button>`
-      + `<div class="hbanner">${imgs}</div>`
+      + `<div class="hbanner">${items.map(bannerSlideHtml).join('')}</div>`
       + `<button class="hbanner__arrow" type="button" data-dir="1" aria-label="다음 배너">${ARROW_SVG.next}</button>`
       + '</div>';
   }
@@ -92,7 +106,8 @@
       // 배너 이미지가 자체 라운드 코너를 갖고 있어서 wrapper에는 radius를 주지 않는다(모서리가 이중으로 깎임).
       + '.hbanner{position:relative;width:' + BANNER_W + 'px;height:80px;overflow:hidden;flex:0 0 auto}'
       // 슬라이드를 겹쳐 놓고 각자 translate — 나가는 장은 -100%, 들어오는 장은 100%→0 (항상 우→좌)
-      + '.hbanner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s ease;will-change:transform}'
+      + '.hbanner__slide{position:absolute;inset:0;display:block;transition:transform .6s ease;will-change:transform}'
+      + '.hbanner__slide img{width:100%;height:100%;object-fit:cover;display:block}'
       // 배너 양옆 화살표: 배경/테두리 없이 얇은 셰브론만
       + '.hbanner__arrow{flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--muted,#73737a);cursor:pointer;transition:color .2s,background .2s}'
       + '.hbanner__arrow:hover{color:var(--text,#172033);background:rgba(23,32,51,.06)}'
@@ -119,8 +134,18 @@
       // 한 줄 헤더로 떨어져 나오면 위 여백 축소가 필요 없어진다 — 같은 총 높이(41px)를 위아래로 나눠 메뉴를 세로 중앙에 둔다.
       + '.header--stuck .header__nav-row .nav a{padding:20.5px 0}'
       + '.header--stuck .header__nav-row .nav a.active:after,.header--stuck .header__nav-row .nav a:hover:after{bottom:9px}}'
-      // 배너 2개(230*2) + 로고가 한 줄에 들어가지 않는 폭에서는 배너를 숨기고 로고만 가운데 남긴다.
-      + '@media(max-width:900px){.hbanner-group{display:none}.header__brand-inner{grid-template-columns:1fr}.header__brand-link{grid-column:1}}'
+      // 배너 2개(230*2) + 로고가 한 줄에 들어가지 않는 폭에서는 2줄로 접는다 —
+      // 1줄: 로고(가운데), 2줄: 좌/우 배너를 절반씩 나눠 나란히. 배너는 폭에 맞춰 줄되 23:8 비율과 230px 상한은 유지.
+      + '@media(max-width:900px){'
+        + '.header__brand-inner{grid-template-columns:1fr 1fr;gap:10px}'
+        + '.header__brand-link{grid-column:1/-1;grid-row:1}'
+        + '.hbanner-group{grid-row:2;justify-content:center}'
+        + '.hbanner-group--left{grid-column:1;justify-self:stretch}'
+        + '.hbanner-group--right{grid-column:2;justify-self:stretch}'
+        + '.hbanner{flex:1 1 auto;width:auto;min-width:0;max-width:' + BANNER_W + 'px;height:auto;aspect-ratio:' + BANNER_W + '/80}'
+      + '}'
+      // 좁은 폭에서는 화살표(각 24px+gap)가 배너 폭을 크게 갉아먹어 글자가 안 보인다 → 자동 순환만 남긴다.
+      + '@media(max-width:560px){.header__brand-inner{gap:8px 6px}.hbanner__arrow{display:none}}'
       // 모바일: 햄버거를 좌측 끝으로 이동(header__actions 플렉스 흐름에서 절대배치로 빼냄) + 드롭다운을 헤더 전체가 아니라
       // header__nav-row(버튼 줄) 바로 아래(top:100%)에 붙여서, 페이지마다 다른 헤더 높이(76px/64px 등)에 안전하게 대응.
       // 좌측 끝은 햄버거가 쓰므로 한 줄 헤더의 로고는 가운데로 보낸다.
@@ -141,13 +166,11 @@
   });
 
   // ── 좌/우 배너 동시 슬라이드 (홈 index.html의 initBannerSlider와 같은 방식) ──
-  (function startBannerSlides() {
-    const groups = Array.from(header.querySelectorAll('.hbanner-group'));
-    const panelSets = groups.map(g => Array.from(g.querySelectorAll('.hbanner img'))).filter(p => p.length);
-    const count = Math.max(BANNERS.left.length, BANNERS.right.length);
-    if (!panelSets.length) return;
-    if (count < 2) { groups.forEach(g => g.classList.add('hbanner-group--static')); return; }
-
+  // refresh()로 DOM을 다시 읽는다 — 관리자 데이터가 도착해 배너를 다시 그린 뒤에도 같은 컨트롤러를 계속 쓴다.
+  const bannerSlider = (function startBannerSlides() {
+    let groups = [];
+    let panelSets = [];
+    let count = 0;
     let current = 0;
     let paused = false;
     let ownTimer = null;
@@ -155,6 +178,7 @@
     // 자동재생이든 화살표든 항상 같은 방향(우→좌)으로만 넘어간다.
     // 되돌아가는 ‹ 버튼도 "이전 장이 오른쪽에서 들어오는" 모습으로 보인다.
     function goTo(i) {
+      if (count < 2) return;
       const next = (i + count) % count;
       if (next === current) return;
       panelSets.forEach(panels => {
@@ -186,14 +210,53 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attachClock, { once: true });
     else attachClock();
 
-    groups.forEach(group => {
-      group.addEventListener('mouseenter', () => { paused = true; });
-      group.addEventListener('mouseleave', () => { paused = false; });
-      group.querySelectorAll('.hbanner__arrow').forEach(btn => btn.addEventListener('click', () => {
-        goTo(current + Number(btn.dataset.dir));
-        resetClock(); // 수동 조작 → 홈 배너들과 함께 이 순간부터 다시 4초
-      }));
-    });
+    // 현재 DOM에 그려져 있는 배너를 다시 읽어 슬라이드 상태를 처음부터 잡는다.
+    // (배너를 다시 그리면 이전 노드는 통째로 버려지므로 리스너를 따로 떼어낼 필요가 없다)
+    function refresh() {
+      groups = Array.from(header.querySelectorAll('.hbanner-group'));
+      panelSets = groups.map(g => Array.from(g.querySelectorAll('.hbanner__slide'))).filter(p => p.length);
+      count = panelSets.reduce((max, panels) => Math.max(max, panels.length), 0);
+      current = 0;
+      groups.forEach(group => {
+        group.classList.toggle('hbanner-group--static', count < 2); // 1장뿐이면 화살표를 숨긴다
+        group.addEventListener('mouseenter', () => { paused = true; });
+        group.addEventListener('mouseleave', () => { paused = false; });
+        group.querySelectorAll('.hbanner__arrow').forEach(btn => btn.addEventListener('click', () => {
+          goTo(current + Number(btn.dataset.dir));
+          resetClock(); // 수동 조작 → 홈 배너들과 함께 이 순간부터 다시 4초
+        }));
+      });
+    }
+
+    refresh();
+    return { refresh };
+  })();
+
+  // ── 관리자에 등록된 헤더배너(content_banners의 header-left/header-right)로 교체 ──
+  // 헤더는 이미 기본값으로 그려져 있으므로, 등록된 배너가 있을 때만 좌/우 그룹을 다시 그린다.
+  (function loadHeaderBanners() {
+    const brandInner = header.querySelector('.header__brand-inner');
+    const logo = header.querySelector('.header__brand-link');
+    if (!brandInner || !logo) return;
+
+    const signature = (data) => ['left', 'right']
+      .map(side => (data[side] || []).map(b => `${b.image_url}|${b.link_url || ''}|${b.label || ''}`).join(','))
+      .join('//');
+
+    fetch('/api/content-banners')
+      .then(r => r.ok ? r.json() : [])
+      .then(rows => {
+        const pick = (type) => rows.filter(b => b.banner_type === type);
+        const next = { left: pick('header-left'), right: pick('header-right') };
+        if (!next.left.length && !next.right.length) return;   // 등록된 게 없으면 기본값 유지
+        if (signature(next) === signature(banners)) return;    // 기본값과 같은 내용이면 다시 그릴 이유가 없다
+        banners = next;
+        header.querySelectorAll('.hbanner-group').forEach(g => g.remove());
+        logo.insertAdjacentHTML('beforebegin', bannerHtml('left'));
+        logo.insertAdjacentHTML('afterend', bannerHtml('right'));
+        bannerSlider.refresh();
+      })
+      .catch(() => { /* DB 미연결 등 — 기본값 그대로 */ });
   })();
 
   // ── 로고 줄이 화면 밖으로 나가면 nav 줄만 상단 고정(한 줄 헤더).

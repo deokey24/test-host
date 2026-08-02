@@ -1,8 +1,11 @@
-// ── 배너 관리 (상단/중간/콘텐츠/사이드/하단 5종 공용 로직, 추가/수정은 공용 모달로 처리) ──
-const BANNER_TYPES = ['top', 'middle', 'content', 'side', 'bottom'];
+// ── 배너 관리 (헤더 좌/우, 상단/중간/콘텐츠/사이드/하단 7종 공용 로직, 추가/수정은 공용 모달로 처리) ──
+const BANNER_TYPES = ['header-left', 'header-right', 'top', 'middle', 'content', 'side', 'bottom'];
 // mobileImage: 모바일 전용 이미지 슬롯을 쓰는 타입(상단/중간). 원본이 1280×180처럼 납작해서
 // 모바일 폭에 맞추면 글자가 너무 작아지기 때문에, 세로가 긴 모바일용 이미지를 따로 받는다.
 const BANNER_TYPE_META = {
+  // 헤더배너: 모든 페이지 상단 로고 좌/우 자리(각 230×80). 좌우가 같은 박자로 함께 넘어간다(public-figma/header.js).
+  'header-left':  { title: '헤더배너(좌)', sizeHint: '(권장 230×80px)', thumbWidth: '150px', ratio: '230/80' },
+  'header-right': { title: '헤더배너(우)', sizeHint: '(권장 230×80px)', thumbWidth: '150px', ratio: '230/80' },
   top:     { title: '상단배너',   sizeHint: '(권장 1280×180px)', thumbWidth: '220px', ratio: '1280/180',
              mobileImage: true, mobileSizeHint: '(권장 1080×720px — 2:1보다 세로가 긴 비율)', mobileThumbWidth: '120px', mobileRatio: '1080/720' },
   middle:  { title: '중간배너',   sizeHint: '(권장 1280×100px)', thumbWidth: '220px', ratio: '1280/100',

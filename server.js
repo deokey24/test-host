@@ -208,7 +208,7 @@ app.get('/admin/v1', requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'admin', 'v1.html'));
 });
 
-// 관리자 셸의 정적 자산(cms.css/cms.js/home.js 등). 위의 명시적 /admin, /admin/v1, /admin/api/* 라우트가
+// 관리자 셸의 정적 자산(cms.css/cms.js/banners.js 등). 위의 명시적 /admin, /admin/v1, /admin/api/* 라우트가
 // 먼저 매칭되므로 이 미들웨어는 그 외의 admin/ 하위 파일 요청만 처리한다.
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 
@@ -418,12 +418,45 @@ app.get('/admin/api/videos/:id/stream/key', wrapAsync(async (req, res) => {
   sendHlsKey(res, video?.hls_key_base64);
 }));
 
-// vod.html 상단 인트로 영상 — 로그인 없이 누구나 볼 수 있는 유일한 공개 강의(0강 연고대 편입논술 OT).
+// vod.html 상단 인트로 영상 — 로그인 없이 누구나 볼 수 있는 유일한 공개 강의(기본: 0강 연고대 편입논술 OT).
 // enrollment 확인 없이 항상 이 한 영상만 내려주므로 :id 파라미터를 받지 않는다(임의 lecture_videos.id 스트리밍 노출 방지).
-const PUBLIC_VOD_INTRO_LECTURE_ID = 24;
+// 어떤 영상을 쓸지는 관리자 "VOD 강좌 → VOD 페이지 인트로"에서 고른 값(site_sections)을 따른다.
+//
+// 공개 여부는 lecture_videos.is_public 플래그가 최종 권한을 갖는다. 인트로 영상을 저장할 때마다
+// syncPublicIntroVideo()가 "고른 영상만 1, 나머지는 전부 0"으로 맞추므로, 영상을 바꾸면
+// 이전 영상은 그 즉시 다시 회원 전용으로 잠긴다. 플래그를 직접 0으로 내리는 것만으로도 공개가 끊긴다.
+const PUBLIC_VOD_INTRO_LECTURE_ID = 24; // 관리자가 아직 지정하지 않았을 때의 기본값
+
+function parseIntroVideoId(content) {
+  try {
+    const id = Number(JSON.parse(content).lectureVideoId);
+    return Number.isInteger(id) && id > 0 ? id : PUBLIC_VOD_INTRO_LECTURE_ID;
+  } catch {
+    return PUBLIC_VOD_INTRO_LECTURE_ID;
+  }
+}
+
+async function getPublicVodIntroVideoId() {
+  const [rows] = await getPool().query(
+    "SELECT content FROM site_sections WHERE page = 'vod' AND section_key = 'intro'"
+  );
+  return rows[0] ? parseIntroVideoId(rows[0].content) : PUBLIC_VOD_INTRO_LECTURE_ID;
+}
+
+// 인트로에 걸린 영상 하나만 공개로 남긴다. 지금은 공개 노출 자리가 인트로뿐이라
+// "나머지 전부 0"으로 되돌리는 게 곧 이전 영상 자동 잠금이다.
+// 공개 자리가 늘어나면 여기서 다른 자리에 쓰이는 영상을 제외해야 한다.
+async function syncPublicIntroVideo(lectureVideoId) {
+  const publicId = parseIntroVideoId(JSON.stringify({ lectureVideoId }));
+  await getPool().query('UPDATE lecture_videos SET is_public = 0 WHERE is_public = 1 AND id <> ?', [publicId]);
+  await getPool().query('UPDATE lecture_videos SET is_public = 1 WHERE id = ? AND is_public = 0', [publicId]);
+}
 
 app.get('/api/stream/vod-intro/master.m3u8', wrapAsync(async (req, res) => {
-  const [[video]] = await getPool().query('SELECT final_r2_key FROM lecture_videos WHERE id = ?', [PUBLIC_VOD_INTRO_LECTURE_ID]);
+  const [[video]] = await getPool().query(
+    'SELECT final_r2_key FROM lecture_videos WHERE id = ? AND is_public = 1',
+    [await getPublicVodIntroVideoId()]
+  );
   if (!video || !isHlsKey(video.final_r2_key)) {
     res.status(404).json({ error: '영상을 찾을 수 없습니다.' });
     return;
@@ -439,7 +472,11 @@ app.get('/api/stream/vod-intro/key', wrapAsync(async (req, res) => {
     res.status(403).json({ error: '유효하지 않거나 만료된 요청입니다.' });
     return;
   }
-  const [[video]] = await getPool().query('SELECT hls_key_base64 FROM lecture_videos WHERE id = ?', [PUBLIC_VOD_INTRO_LECTURE_ID]);
+  // 매니페스트와 같은 조건으로 다시 확인 — 공개를 내린 뒤 이미 발급된 서명 키 URL로 계속 받아가는 걸 막는다.
+  const [[video]] = await getPool().query(
+    'SELECT hls_key_base64 FROM lecture_videos WHERE id = ? AND is_public = 1',
+    [await getPublicVodIntroVideoId()]
+  );
   sendHlsKey(res, video?.hls_key_base64);
 }));
 
@@ -2466,7 +2503,7 @@ app.delete('/api/members/devices/:id', requireMember, wrapAsync(async (req, res)
 // ══════════════════════════════════════════════════════════════════
 
 const ALLOWED_UPLOAD_SCOPES = [
-  'home-online-class', 'home-why', 'vod-course', 'cert-gallery', 'cert-post', 'notice', 'instructor', 'popup', 'intro', 'content-banner'
+  'vod-course', 'cert-post', 'notice', 'instructor', 'popup', 'intro', 'content-banner'
 ];
 
 app.post('/admin/api/site/upload/presign', requireAdminApi, wrapAsync(async (req, res) => {
@@ -2515,6 +2552,11 @@ app.put('/admin/api/site/:page/:section', requireAdminApi, wrapAsync(async (req,
      ON DUPLICATE KEY UPDATE content = VALUES(content)`,
     [req.params.page, req.params.section, content]
   );
+  // VOD 페이지 인트로에 고른 영상은 로그인 없이 열리므로, 저장과 동시에 공개 플래그를 맞춘다
+  // (새로 고른 영상 공개 + 직전 영상 자동 잠금). 자세한 규칙은 syncPublicIntroVideo 주석 참고.
+  if (req.params.page === 'vod' && req.params.section === 'intro') {
+    await syncPublicIntroVideo(req.body?.lectureVideoId);
+  }
   res.json({ ok: true });
 }));
 
@@ -3686,11 +3728,12 @@ app.delete('/admin/api/popup-banners/:id', requireAdminApi, wrapAsync(async (req
   res.json({ ok: true });
 }));
 
-// ── content_banners (관리자 "배너 관리" — 상단/중간/콘텐츠/사이드/하단 5종) ──
+// ── content_banners (관리자 "메인 페이지 배너" — 헤더 좌/우, 상단/중간/콘텐츠/사이드/하단 7종) ──
+// header-left/header-right: 모든 페이지 공통 헤더의 로고 좌/우 배너(각 230×80, public-figma/header.js).
 // top/middle: 홈 상단 슬라이더. content/side: DOCK NEWS 섹션 좌(탭+이미지)/우(고정 이미지).
 // bottom: 홈 맨 아래 FAQ 옆 CTA 자리 슬라이더(PC 1080×500 / 모바일 720×600, mobile_image_url 사용).
 // content 타입의 label은 프론트에서 DOCK NEWS 탭 버튼 이름으로 쓰인다.
-const BANNER_TYPES = ['top', 'middle', 'content', 'side', 'bottom'];
+const BANNER_TYPES = ['header-left', 'header-right', 'top', 'middle', 'content', 'side', 'bottom'];
 const BANNER_MOBILE_FOCUS = ['left', 'center', 'right'];
 
 // mobile_image_url/mobile_focus는 나중에 추가된 컬럼(infra/schema.sql 하단 ALTER).
