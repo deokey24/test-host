@@ -25,6 +25,7 @@
       <button class="side-link" data-target="instructorSection">강사 목록</button>
       <button class="side-link" data-target="noticeSection">공지사항</button>
       <button class="side-link" data-target="popupSection">팝업배너</button>
+      <button class="side-link" data-target="couponSection">쿠폰관리</button>
       <button class="side-link" data-target="qnaSection">Q&amp;A 관리</button>
       <button class="side-link" data-target="settingsSection">사이트 설정</button>
       <div class="sidebar-divider"></div>
@@ -746,6 +747,76 @@
         </div>
       </section>
 
+      <section id="couponSection" class="admin-section">
+        <div class="card">
+          <div class="card-head-row">
+            <h2>쿠폰 발급</h2>
+          </div>
+          <p class="field-hint" style="margin-bottom:10px;">16자리 코드가 자동 생성됩니다. 발급 후 학생에게 카카오톡/문자 등으로 코드를 전달하면, 학생이 마이페이지에서 코드를 입력해 등록합니다.</p>
+          <div class="field-grid">
+            <div class="field-row">
+              <label class="field-label">대상 강좌</label>
+              <select id="coupon-vod-select">
+                <option value="">전체 강좌 공통(범용 쿠폰)</option>
+              </select>
+            </div>
+            <div class="field-row">
+              <label class="field-label">할인 방식</label>
+              <select id="coupon-discount-type">
+                <option value="fixed">정액 할인 (원)</option>
+                <option value="percent">정률 할인 (%)</option>
+              </select>
+            </div>
+            <div class="field-row">
+              <label class="field-label" id="coupon-discount-value-label">할인 금액 (원)</label>
+              <input type="number" id="coupon-discount-value" min="1" placeholder="예: 10000">
+            </div>
+            <div class="field-row">
+              <label class="field-label">발급 수량</label>
+              <input type="number" id="coupon-quantity" min="1" max="50" value="1">
+            </div>
+            <div class="field-row full">
+              <label class="field-label">쿠폰명</label>
+              <input type="text" id="coupon-label" placeholder="예: 8월 오프라인 수강생 프로모션">
+            </div>
+          </div>
+          <button class="btn" id="couponIssueBtn" type="button" style="margin-top:10px;">발급하기</button>
+          <div class="status-text" id="couponIssueStatus"></div>
+          <div id="couponIssueResult" style="display:none; margin-top:14px;">
+            <p class="field-hint" style="margin-bottom:8px;">발급된 쿠폰 코드</p>
+            <div id="couponIssueResultCodes" class="coupon-code-list"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h2>발급된 쿠폰 (<span id="couponTotal">0</span>개)</h2>
+          </div>
+          <div class="field-row" style="display:flex; gap:8px; flex-wrap:wrap;">
+            <input type="text" id="couponSearch" placeholder="코드, 쿠폰명, 회원명, 강좌명으로 검색" style="flex:1; min-width:220px;">
+            <select id="couponStatusFilter">
+              <option value="">전체 상태</option>
+              <option value="미등록">미등록</option>
+              <option value="등록됨">등록됨</option>
+              <option value="사용완료">사용완료</option>
+            </select>
+            <button class="btn-outline" id="couponSearchBtn" type="button">검색</button>
+          </div>
+          <table>
+            <thead>
+              <tr><th>코드</th><th>대상 강좌</th><th>할인</th><th>쿠폰명</th><th>상태</th><th>등록 회원</th><th>발급일시</th><th>사용일시</th><th>관리</th></tr>
+            </thead>
+            <tbody id="couponList"></tbody>
+          </table>
+          <div style="display:flex; align-items:center; gap:10px; margin-top:14px; font-size:13px; color:var(--text-soft);">
+            <button class="row-btn" id="couponPrevBtn" type="button">이전</button>
+            <span id="couponPageInfo"></span>
+            <button class="row-btn" id="couponNextBtn" type="button">다음</button>
+          </div>
+          <div class="status-text" id="couponListStatus"></div>
+        </div>
+      </section>
+
       <section id="bannerSection" class="admin-section active">
         <p class="field-hint" style="margin-bottom:14px;">프론트 페이지에 노출되는 배너 7종을 관리합니다. 목록 상단의 "+ 배너 추가"로 새로 등록하고, 순서는 드래그로 바꿀 수 있습니다.</p>
 
@@ -1118,6 +1189,7 @@
 <script src="/admin/instructors.js"></script>
 <script src="/admin/notice.js"></script>
 <script src="/admin/popup.js"></script>
+<script src="/admin/coupons.js"></script>
 <script src="/admin/banners.js"></script>
 <script src="/admin/qna.js"></script>
 <script src="/admin/settings.js"></script>

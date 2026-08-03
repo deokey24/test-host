@@ -215,6 +215,37 @@ CREATE TABLE IF NOT EXISTS payments (
   CONSTRAINT fk_payment_vod_course FOREIGN KEY (vod_course_id) REFERENCES vod_courses(id) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- 오프라인 발급 쿠폰(관리자페이지 "쿠폰관리"). 관리자가 16자리 코드를 발급해 학생에게 오프라인으로 전달하면,
+-- 학생이 마이페이지에서 코드를 입력해 자기 계정에 귀속(등록)시키고, 이후 주문/결제 확인 페이지에서 골라 쓴다.
+-- vod_course_id가 NULL이면 강좌 무관 범용 쿠폰, 값이 있으면 그 강좌 전용 쿠폰 — 결제 확인 페이지 쿠폰
+-- 드롭다운은 "이 강좌 전용 쿠폰 OR 범용 쿠폰"만 보여준다.
+-- discount_value는 discount_type에 따라 의미가 다르다: fixed면 할인되는 금액(원), percent면 할인율(%) —
+-- 최종 결제금액이 아니라 "얼마나 깎아줄지"를 저장하고, 실제 차감은 /api/payments/init이 그 시점의
+-- new_price 기준으로 서버가 직접 계산한다(클라이언트가 보낸 금액은 신뢰하지 않음).
+-- status 흐름: 미등록(발급 직후) → 등록됨(학생이 마이페이지에서 코드 입력) → 사용완료(결제 승인 완료).
+CREATE TABLE IF NOT EXISTS coupons (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  code CHAR(16) NOT NULL,
+  vod_course_id BIGINT DEFAULT NULL,
+  discount_type ENUM('fixed', 'percent') NOT NULL,
+  discount_value INT NOT NULL,
+  label VARCHAR(100),
+  status ENUM('미등록', '등록됨', '사용완료') NOT NULL DEFAULT '미등록',
+  member_id BIGINT DEFAULT NULL,
+  claimed_at DATETIME DEFAULT NULL,
+  used_at DATETIME DEFAULT NULL,
+  payment_id BIGINT DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_coupon_code (code),
+  CONSTRAINT fk_coupon_course FOREIGN KEY (vod_course_id) REFERENCES vod_courses(id) ON DELETE CASCADE,
+  CONSTRAINT fk_coupon_member FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE SET NULL,
+  CONSTRAINT fk_coupon_payment FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE SET NULL
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 결제 건에 어떤 쿠폰이 적용됐는지 기록(환불/문의 대응용 추적). 쿠폰 없이 결제하면 NULL.
+ALTER TABLE payments
+  ADD COLUMN IF NOT EXISTS coupon_id BIGINT DEFAULT NULL;
+
 -- 클래스별 강의 커리큘럼 (R2 courses/{course}/lectures/{번호 3자리}/video/ 경로와 1:1 대응)
 CREATE TABLE IF NOT EXISTS class_lectures (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,

@@ -107,4 +107,4 @@ PAYUP_API_KEY=...
 
 - **모바일 `returnUrl` 전달 방식**: 필드명(`transactionId`/`orderNumber`/`amount`)은 PayUp 공식 문서와 일치하지만, 정확히 GET 쿼리스트링인지 POST body인지는 문서에 명시가 없다. 2026-07-28 실기기 테스트에서 POST로 도착하는 것을 확인해서 `server.js`에 `app.post('/payupReturn.html', ...)`를 추가했고, `req.body`와 `req.query`를 모두 확인하도록 방어적으로 짰다.
 - **PayUp에 거래 조회(inquiry) API가 없다**: 공식 문서(`api.html`)에 토큰발행/재발행/결제승인/전액취소/부분취소 5개 엔드포인트만 있고, 상태 조회 API가 없다. 즉 브라우저가 승인 라운드트립을 완주하지 못하면(카드 승인은 났는데 우리 서버가 응답을 못 받는 경우) 자동으로 재확인할 방법이 없고, 관리자 콘솔 확인 + 수동승인이 유일한 복구 수단이다.
-- 구매 진입점이 `classDetail.html` 하나뿐. `vodDetail.html`은 아직 실제 강좌 id에 연동되지 않은 정적 목업이라 결제 버튼을 붙이지 않았다.
+- 구매 진입점은 `classDetail.html`과 `vodDetail.html`(`#pcBuyBtn`) 둘 다 실제 `vod_courses`에 연동되어 있다(`vodDetail_v2.html`만 아직 `href="#"` 정적 목업). 두 진입점 모두 `site-content.js`의 `wireVodCourseBuyButton()`을 공유하므로, 구매 버튼 관련 함수를 리네임/삭제할 때는 이 파일 하나만 보지 말고 `grep -r wireVodCourseBuyButton public-figma/`로 전체 호출부를 확인해야 한다(2026-08 orderConfirm.html 도입 때 `wireVodCoursePayment`를 지우면서 vodDetail.html 쪽 호출부를 놓쳐 구매 버튼이 죽었던 적이 있음).

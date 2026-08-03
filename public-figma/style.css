@@ -1106,66 +1106,44 @@ a {
 
 .vod-course-thumb {
   position: relative;
-  height: 170px;
+  aspect-ratio: 16 / 9;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: var(--dark);
+  background: linear-gradient(135deg, var(--navy-900), var(--navy-700));
 }
 
-.vod-course-thumb.green { background: var(--green); }
-
-.vod-course-thumb img.decor {
+.vod-course-thumb .thumb-photo {
   position: absolute;
-  right: -30px;
-  bottom: -40px;
-  width: 150px;
-  height: 150px;
-  opacity: 0.09;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.vod-course-thumb .eng {
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: 0.88px;
-  color: var(--white);
+.vod-course-thumb .thumb-ico {
+  color: var(--beige-400);
   opacity: 0.92;
-  max-width: calc(100% - 32px);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.vod-course-thumb .tag {
-  position: absolute;
-  left: 16px;
-  top: 14px;
-  max-width: calc(100% - 90px);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.66px;
-  color: var(--white);
-  opacity: 0.8;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.vod-course-thumb .badge-best {
-  position: absolute;
-  right: 14px;
-  top: 12px;
-  background: var(--green-light);
-  color: var(--dark);
-  font-size: 11px;
-  font-weight: 800;
-  padding: 5px 11px;
-  border-radius: 6px;
+.vod-course-thumb .thumb-ico img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
 }
 
 .vod-course-body {
   padding: 24px 26px 26px;
+}
+
+.vod-course-body .tag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  color: var(--beige-700);
+  margin-bottom: 8px;
 }
 
 .vod-course-body h3 {

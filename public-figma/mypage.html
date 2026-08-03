@@ -81,6 +81,7 @@
         <button type="button" class="active" data-tab="mpMyCourses">내 강좌</button>
         <button type="button" data-tab="mpInfo">내 정보</button>
         <button type="button" data-tab="mpDevices">기기 관리</button>
+        <button type="button" data-tab="mpCoupons">쿠폰</button>
         <button type="button" data-tab="mpPassword">비밀번호 변경</button>
         <button type="button" id="mpLogoutBtn" class="mp-logout-btn">로그아웃</button>
       </div>
@@ -96,12 +97,11 @@
           <template>
             <div class="vod-course-card">
               <div class="vod-course-thumb">
-                <img class="decor" src="assets/vod/decor.png" alt="">
-                <span class="badge-best">BEST</span>
-                <span class="tag"></span>
-                <span class="eng"></span>
+                <img class="thumb-photo" alt="">
+                <span class="thumb-ico"><img src="assets/icons/icon-notebook-pen.png" alt=""></span>
               </div>
               <div class="vod-course-body">
+                <span class="tag"></span>
                 <h3></h3>
                 <p class="desc"></p>
                 <div class="meta"></div>
@@ -171,6 +171,28 @@
             <span class="count"><strong id="mpDeviceCount">0</strong> / 3</span>
           </div>
           <div id="mpDeviceList"></div>
+        </div>
+
+        <!-- 쿠폰 -->
+        <div id="mpCoupons" style="display:none;">
+          <div class="vod-info-card">
+            <div class="label">쿠폰 등록</div>
+            <form id="mpCouponClaimForm" style="margin-top:16px;">
+              <div class="auth-field">
+                <label for="mpCouponCode">쿠폰 코드</label>
+                <input type="text" id="mpCouponCode" maxlength="16" placeholder="16자리 코드를 입력해주세요" autocomplete="off" style="text-transform:uppercase; letter-spacing:.06em;" required>
+              </div>
+              <div class="auth-error-msg" id="mpCouponErrorMsg" style="display:none;"></div>
+              <div class="auth-error-msg" id="mpCouponSuccessMsg" style="display:none; color:var(--green);"></div>
+              <button type="submit" class="btn-fill auth-submit-btn" id="mpCouponSubmitBtn">쿠폰 등록</button>
+            </form>
+          </div>
+
+          <div class="vod-info-card" style="margin-top:16px;">
+            <div class="label">내 쿠폰</div>
+            <div id="mpCouponList" style="margin-top:16px;"></div>
+            <div class="mp-empty" id="mpCouponEmpty" style="display:none;">등록된 쿠폰이 없습니다.</div>
+          </div>
         </div>
 
         <!-- 비밀번호 변경 -->
@@ -249,12 +271,17 @@
         courses.forEach(course => {
           const isExpired = course.access_state === 'expired';
           const node = template.content.firstElementChild.cloneNode(true);
-          const thumb = node.querySelector('.vod-course-thumb');
-          if (thumb && course.color_variant === 'green') thumb.classList.add('green');
-          const bestBadge = node.querySelector('.badge-best');
-          if (bestBadge) { if (course.is_best) bestBadge.style.display = ''; else bestBadge.remove(); }
-          node.querySelector('.tag').textContent = course.category_label || '';
-          node.querySelector('.eng').textContent = course.tag || '';
+          const photoImg = node.querySelector('.thumb-photo');
+          const iconEl = node.querySelector('.thumb-ico');
+          if (course.thumbnail_url) {
+            photoImg.src = course.thumbnail_url;
+            photoImg.alt = course.title || '';
+            if (iconEl) iconEl.remove();
+          } else {
+            photoImg.remove();
+          }
+          const tagEl = node.querySelector('.tag');
+          if (course.category_label) tagEl.textContent = course.category_label; else tagEl.remove();
           node.querySelector('h3').textContent = course.title || '';
           node.querySelector('.desc').textContent = course.description || '';
           node.querySelector('.meta').textContent = course.meta_text || '';
@@ -376,6 +403,60 @@
       } catch { /* no-op */ }
     }
 
+    async function loadMyCoupons() {
+      const listEl = document.getElementById('mpCouponList');
+      const emptyEl = document.getElementById('mpCouponEmpty');
+      try {
+        const res = await fetch('/api/members/coupons');
+        if (!res.ok) return;
+        const coupons = await res.json();
+        emptyEl.style.display = coupons.length ? 'none' : '';
+        listEl.innerHTML = coupons.map(c => {
+          const isUsed = c.status === '사용완료';
+          const statusBadge = isUsed
+            ? '<span class="badge-current" style="color:var(--muted,#73737a); background:rgba(115,115,122,.12);">사용완료</span>'
+            : '<span class="badge-current">사용 가능</span>';
+          return `
+            <div class="device-card">
+              <div>
+                <div class="label">${c.code} ${statusBadge}</div>
+                <div class="meta">${c.label}${c.usedAt ? ` · 사용일 ${new Date(c.usedAt).toLocaleDateString('ko-KR')}` : ''}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch { /* 목록 비워둠 */ }
+    }
+
+    async function submitCouponClaim(e) {
+      e.preventDefault();
+      const code = document.getElementById('mpCouponCode').value.trim();
+      const errEl = document.getElementById('mpCouponErrorMsg');
+      const okEl = document.getElementById('mpCouponSuccessMsg');
+      errEl.style.display = 'none';
+      okEl.style.display = 'none';
+      try {
+        const res = await fetch('/api/members/coupons/claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          errEl.textContent = data.error || '쿠폰 등록에 실패했습니다.';
+          errEl.style.display = 'block';
+          return;
+        }
+        okEl.textContent = '쿠폰이 등록되었습니다.';
+        okEl.style.display = 'block';
+        document.getElementById('mpCouponCode').value = '';
+        loadMyCoupons();
+      } catch {
+        errEl.textContent = '서버와 통신 중 오류가 발생했습니다.';
+        errEl.style.display = 'block';
+      }
+    }
+
     async function submitChangePassword(e) {
       e.preventDefault();
       const currentPassword = document.getElementById('mpCurrentPassword').value;
@@ -428,10 +509,11 @@
       document.querySelectorAll('#mpTabs button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       const tab = btn.dataset.tab;
-      ['mpMyCourses', 'mpInfo', 'mpDevices', 'mpPassword'].forEach(id => {
+      ['mpMyCourses', 'mpInfo', 'mpDevices', 'mpCoupons', 'mpPassword'].forEach(id => {
         document.getElementById(id).style.display = id === tab ? '' : 'none';
       });
       if (tab === 'mpDevices') loadMyDevices();
+      if (tab === 'mpCoupons') loadMyCoupons();
     });
 
     document.getElementById('mpDeviceList').addEventListener('click', (e) => {
@@ -440,6 +522,7 @@
     });
 
     document.getElementById('mpPasswordForm').addEventListener('submit', submitChangePassword);
+    document.getElementById('mpCouponClaimForm').addEventListener('submit', submitCouponClaim);
 
     document.getElementById('mpPostalSearchBtn').addEventListener('click', searchMpAddress);
     document.getElementById('mpPostalCode').addEventListener('click', searchMpAddress);

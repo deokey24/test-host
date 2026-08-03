@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>주문/결제 확인 · 독편사 DOCK PASS</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="stylesheet" href="style.css">
+<style>
+:root{
+  --navy-950:#020918;--navy-900:#031228;--navy-850:#071a34;--navy-800:#0e1c30;--navy-700:#162844;
+  --beige-700:#a98254;--beige-500:#d7bf9f;--beige-400:#e3cdaf;--beige-100:#f1e6d7;--beige-50:#f8f2ea;
+  --ivory:#f7f4f1;--warm-white:#fbfaf9;--text:#172033;--muted:#73737a;--line:#e1e1df;
+  --shadow-sm:0 4px 16px rgba(2,9,24,.06);
+}
+body{background:var(--warm-white)}
+.container{width:min(1280px,calc(100% - 40px));margin:auto}
+.header{position:sticky;top:0;z-index:50;background:rgba(3,18,40,.96);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.08)}
+.header__inner{height:76px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.header .logo{display:flex;align-items:center;gap:10px;color:#fff;font-weight:900}
+.header .nav{display:flex;gap:36px;color:#eef2f7;font-weight:700}
+.header .nav a{position:relative;padding:27px 0}
+.header .nav a.active:after,.header .nav a:hover:after{content:"";position:absolute;left:0;right:0;bottom:15px;height:2px;background:var(--beige-400)}
+.header__actions{display:flex;gap:9px}
+.header__actions .btn{border:0;border-radius:10px;padding:13px 20px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.2s}
+.header__actions .btn:hover{transform:translateY(-1px)}
+.header__actions .btn--primary{background:linear-gradient(135deg,var(--beige-400),#f0d8b5);color:#14213a;box-shadow:0 8px 22px rgba(215,191,159,.22)}
+.header__actions .btn--ghost-dark{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.28)}
+.header .mobile-toggle{display:none;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:8px 10px}
+
+.oc-wrap{min-height:calc(100vh - 76px - 260px);padding:44px 48px 90px}
+.oc-breadcrumb{font-size:12.5px;color:var(--muted);font-weight:700;margin-bottom:16px}
+/* align-items:stretch(기본값) — 좌/우 칼럼이 같은 행 높이로 늘어나 오른쪽 결제 패널이 왼쪽 강좌 정보와
+   항상 같은 전체 높이를 갖는다(오른쪽 내용이 짧을 때는 .oc-actions가 margin-top:auto로 바닥에 붙는다). */
+.oc-layout{display:grid;grid-template-columns:1.4fr 1fr;gap:32px}
+.oc-main{display:flex;flex-direction:column}
+
+/* ── 강좌 카드 — 홈(index.html) "지금 수강 가능한 VOD" .course-card와 같은 시각언어. 왼쪽(넓은) 컬럼에 배치 ── */
+.oc-course{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff;box-shadow:var(--shadow-sm)}
+/* 실제 업로드되는 썸네일 원본이 16:9라 여기서도 같은 비율을 써야 object-fit:cover가 위아래를 잘라내지 않는다 */
+.oc-course-thumb{position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,var(--navy-900),var(--navy-700));overflow:hidden;display:flex;align-items:center;justify-content:center}
+.oc-course-thumb .oc-thumb-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.oc-course-thumb .oc-thumb-fallback{color:rgba(255,255,255,.55);font-size:15px;font-weight:800;letter-spacing:.02em}
+.oc-badge{position:absolute;top:16px;left:16px;padding:5px 11px;border-radius:999px;background:var(--beige-400);color:#15213a;font-size:10.5px;font-weight:900;display:none;z-index:1}
+.oc-course-body{padding:26px 28px;background:#fff}
+.oc-course-tag{display:inline-block;padding:4px 11px;border-radius:999px;background:var(--beige-100);color:var(--beige-700);font-size:11.5px;font-weight:800;margin-bottom:12px}
+.oc-course-body h1{margin:0 0 18px;font-size:22px;font-weight:800;color:var(--text);line-height:1.4}
+.oc-spec{display:flex;flex-wrap:wrap;gap:10px 28px;font-size:13.5px;margin-bottom:18px}
+.oc-spec-row{display:flex;gap:8px;align-items:center}
+.oc-spec-row .k{color:var(--muted)}
+.oc-spec-row span:last-child{color:var(--text);font-weight:700}
+.oc-desc{font-size:13.5px;color:#56606f;line-height:1.8;margin:0;padding-top:18px;border-top:1px solid var(--line)}
+
+.oc-extra{background:#fff;border:1px solid var(--line);border-radius:16px;padding:26px 28px;margin-top:24px;box-shadow:var(--shadow-sm)}
+.oc-extra h2{margin:0 0 16px;font-size:16px;font-weight:800;color:var(--text)}
+
+/* ── 오른쪽 결제 패널 — classDetail.html의 .cd-panel(sticky)과 같은 패턴.
+   flex column + height:100%로 늘어난 만큼을 차지하고, .oc-actions를 margin-top:auto로 바닥에 고정해서
+   왼쪽 칼럼과 항상 같은 전체 높이로 보이면서도 버튼 위치가 어색하게 붕 뜨지 않게 한다. ── */
+.oc-panel{position:sticky;top:24px;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow-sm);padding:32px;box-sizing:border-box}
+.oc-title{font-size:19px;font-weight:800;color:var(--text);margin:0 0 22px}
+
+.oc-row{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13.5px;padding:13px 0;border-bottom:1px solid var(--line)}
+.oc-row span:first-child{color:var(--muted);flex:none}
+.oc-row span:last-child{color:var(--text);font-weight:700;text-align:right}
+.oc-row--total{border-bottom:0}
+.oc-row--total span{font-size:18px;font-weight:800}
+.oc-row--total span:last-child{color:var(--beige-700)}
+
+.oc-price-value{display:flex;align-items:baseline;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.oc-old-price{color:var(--muted);font-size:12px;font-weight:600;text-decoration:line-through}
+.oc-discount-pct{color:var(--beige-700);font-size:13px;font-weight:800}
+#ocBasePrice{color:var(--text);font-weight:700}
+
+.oc-coupon-block{padding:14px 0;border-bottom:1px solid var(--line)}
+.oc-coupon-label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:9px}
+.oc-coupon-select{width:100%;box-sizing:border-box;padding:13px 14px;border:1px solid var(--line);border-radius:10px;font-size:14px;color:var(--text);background:#fff;cursor:pointer}
+.oc-coupon-select:focus{outline:2px solid var(--beige-400);outline-offset:1px}
+.oc-coupon-empty{font-size:12.5px;color:var(--muted);margin:0}
+
+.oc-actions{display:flex;flex-direction:column;gap:10px;margin-top:auto;padding-top:22px}
+.oc-actions .btn-fill{width:100%;display:block;text-align:center;box-sizing:border-box;padding:16px;border-radius:12px;font-size:15px}
+/* 결제하기 버튼 — 사이트 전역 .btn-fill 기본색(그린) 대신, 헤더/CTA와 같은 베이지 포인트 컬러를 쓴다 */
+#ocPayBtn{background:linear-gradient(135deg,var(--beige-400),#f0d8b5);color:#14213a;font-weight:800;box-shadow:0 10px 26px rgba(169,130,84,.28);transition:transform .2s,box-shadow .2s}
+#ocPayBtn:hover{transform:translateY(-1px);box-shadow:0 12px 30px rgba(169,130,84,.36)}
+.oc-actions .btn-outline-link{width:100%;display:block;text-align:center;padding:14px;border-radius:12px;border:1px solid var(--line);color:var(--text);font-weight:700;text-decoration:none;box-sizing:border-box}
+.oc-actions .btn-outline-link:hover{background:var(--ivory)}
+
+@media(max-width:900px){
+  .oc-layout{grid-template-columns:1fr}
+  .oc-panel{position:static}
+}
+
+.footer{background:var(--navy-950);color:#d7dde8;padding:38px 0 26px}
+.footer__grid{display:grid;grid-template-columns:1fr 1.4fr .8fr;gap:30px}
+.footer small{color:#9ba7b8}
+.footer .phone{font-size:28px;color:#fff;font-weight:900}.footer .hours{font-size:12.5px;color:#9ba7b8;margin-top:4px}
+.footer .social{display:flex;gap:8px;margin-top:14px}
+.footer .social a{width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.28);display:grid;place-items:center;color:#d7dde8;transition:.2s}
+.footer .social a:hover{background:rgba(255,255,255,.12)}
+.footer .social svg{width:15px;height:15px}.social a.blog{font-size:9px;font-weight:900;letter-spacing:-.04em}
+.footer__bottom{display:flex;justify-content:space-between;align-items:center;margin-top:28px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:#9ba7b8}
+.footer__bottom a{margin-left:16px;color:#c3ccd9}.btn--kakao{background:#fee500;color:#191600;border:0;box-shadow:none}
+
+@media(max-width:760px){
+  .header__inner{height:64px}
+  .header .nav{display:none;position:absolute;left:12px;right:12px;top:70px;background:var(--navy-900);padding:16px;border-radius:12px;flex-direction:column;gap:0}
+  .header .nav.open{display:flex}
+  .header .nav a{padding:12px}
+  .header .nav a.active:after,.header .nav a:hover:after{display:none}
+  .header .mobile-toggle{display:block}
+  .header__actions .btn{padding:10px 13px}
+  .oc-wrap{padding:24px 20px 60px}
+  .oc-course-body,.oc-extra{padding:20px}
+  .oc-panel{padding:24px 20px}
+  .footer__grid{grid-template-columns:1fr}
+  .footer__bottom{flex-direction:column;gap:10px;align-items:flex-start}
+  .footer__bottom a{margin:0 16px 0 0}
+}
+</style>
+<!-- 페이업 표준결제 SDK — 지금은 실서버(ssmin2가 live 계정이라 테스트서버 계정이 따로 없음). 테스트서버 발급되면 아래 두 줄을 바꾼다. -->
+<!-- <script src="https://standard.testpayup.co.kr/assets/js/payup_standard_dev-1.0.js"></script> -->
+<script src="https://standard.payup.co.kr/assets/js/payup_standard-1.0.js"></script>
+</head>
+<body data-page="orderConfirm">
+<div class="page">
+
+  <div id="site-header"></div><script src="header.js?v=20260731-3"></script>
+
+  <main class="oc-wrap">
+    <div class="oc-breadcrumb" id="ocBreadcrumb">HOME / VOD 강좌 / 주문·결제 확인</div>
+    <div class="oc-layout" id="ocCard">
+
+      <div class="oc-main">
+        <div class="oc-course">
+          <div class="oc-course-thumb" id="ocThumb">
+            <span class="oc-badge" id="ocBadge">BEST</span>
+            <img class="oc-thumb-photo" id="ocThumbPhoto" alt="">
+            <span class="oc-thumb-fallback" id="ocThumbFallback">DOCK PASS</span>
+          </div>
+          <div class="oc-course-body">
+            <span class="oc-course-tag" id="ocCategoryTag" style="display:none;"></span>
+            <h1 id="ocItemName">-</h1>
+            <div class="oc-spec">
+              <div class="oc-spec-row"><span class="k">강의 수</span><span id="ocLectureCount">-</span></div>
+              <div class="oc-spec-row"><span class="k">학습시간</span><span id="ocDuration">-</span></div>
+              <div class="oc-spec-row"><span class="k">수강 기간</span><span id="ocAccessPeriod">-</span></div>
+            </div>
+            <p class="oc-desc" id="ocDesc"></p>
+          </div>
+        </div>
+
+        <div class="oc-extra" id="ocChecklistBlock" style="display:none;">
+          <h2 id="ocChecklistHeading">체크리스트</h2>
+          <ul class="cd-check-list" id="ocChecklist"></ul>
+        </div>
+
+        <div class="oc-extra" id="ocTagBlock" style="display:none;">
+          <h2 id="ocTagHeading">추천 대상</h2>
+          <div class="cd-tag-grid" id="ocTagGrid"></div>
+        </div>
+      </div>
+
+      <aside class="oc-panel">
+        <h2 class="oc-title">주문/결제 확인</h2>
+
+        <div class="oc-row"><span>강좌명</span><span id="ocPanelItemName">-</span></div>
+        <div class="oc-row">
+          <span>강좌 금액</span>
+          <span class="oc-price-value">
+            <span class="oc-old-price" id="ocOldPrice" style="display:none;"></span>
+            <span class="oc-discount-pct" id="ocDiscountPct" style="display:none;"></span>
+            <span id="ocBasePrice">-</span>
+          </span>
+        </div>
+
+        <div class="oc-coupon-block">
+          <label class="oc-coupon-label" for="ocCouponSelect">쿠폰 적용</label>
+          <select class="oc-coupon-select" id="ocCouponSelect">
+            <option value="">쿠폰을 적용하지 않음</option>
+          </select>
+          <p class="oc-coupon-empty" id="ocCouponEmpty" style="display:none;">적용 가능한 쿠폰이 없습니다.</p>
+        </div>
+
+        <div class="oc-row"><span>할인 금액</span><span id="ocDiscountAmount">-</span></div>
+        <div class="oc-row oc-row--total"><span>최종 결제금액</span><span id="ocFinalAmount">-</span></div>
+
+        <div class="oc-actions">
+          <a href="#" class="btn-fill" id="ocPayBtn">결제하기 →</a>
+          <a href="vod.html" class="btn-outline-link" id="ocBackLink">돌아가기</a>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <footer class="footer"><div class="container footer__grid">
+    <div>
+      <a class="logo" href="index.html"><img src="assets/home/footer-logo.png" alt="DOCK PASS" style="height:39px;width:auto;display:block"></a>
+      <p>DOCKPASS(독편사편입논술학원)은<br> 결과로 증명합니다.</p>
+      <div class="social">
+        <a href="https://pf.kakao.com/_axiEiG" target="_blank" rel="noopener" aria-label="카카오톡" title="KakaoTalk"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.477 3 2 6.582 2 11c0 2.743 1.593 5.167 4.032 6.668L5.04 21l4.775-2.56C10.517 18.806 11.247 18.857 12 18.857 17.523 18.857 22 15.275 22 11S17.523 3 12 3z"/></svg></a>
+        <a href="https://www.youtube.com/@hwangsungchan_1" target="_blank" rel="noopener" aria-label="유튜브" title="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+        <a href="https://m.blog.naver.com/sociology-?tab=1" target="_blank" rel="noopener" class="blog" aria-label="블로그" title="Blog">blog</a>
+        <a href="https://www.instagram.com/p/DZwzOCJESfX/?utm_source=ig_web_copy_link&amp;igsh=MzRlODBiNWFlZA==" target="_blank" rel="noopener" aria-label="인스타그램" title="Instagram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>
+      </div>
+    </div>
+    <div><small class="footer-desc">(주)독패스 | 대표이사 김독패<br>사업자등록번호 000-00-00000 | 통신판매업신고 2020-서울강남-00000<br>서울특별시 서대문구 신촌로 221, 2층<br>학원설립·운영등록번호 제2020-0006호 | 사업자등록번호 104-94-47747<br>평일 운영 14:00~22:00 · 상담 운영 15:00~20:00</small></div>
+    <div>
+      <a class="btn btn--kakao" href="#" data-kakao-link>카카오톡 상담</a>
+    </div>
+  </div>
+  <div class="container footer__bottom">
+    <span class="copyright">© DOCK PASS. All rights reserved.</span>
+    <span><a href="terms.html">이용약관</a><a href="privacy.html">개인정보처리방침</a></span>
+  </div>
+  </footer>
+
+  <a class="kakao-float" href="#" target="_blank" rel="noopener">카카오톡 상담</a>
+
+  <div class="auth-modal-overlay" id="loginModalOverlay">
+    <div class="auth-modal-box">
+      <button type="button" class="auth-modal-close" id="loginModalCloseBtn" aria-label="닫기">✕</button>
+      <h3 class="auth-modal-title">로그인</h3>
+      <form id="loginForm">
+        <div class="auth-field">
+          <label for="loginEmail">이메일</label>
+          <input type="email" id="loginEmail" placeholder="이메일을 입력해주세요" autocomplete="username" required>
+        </div>
+        <div class="auth-field">
+          <label for="loginPassword">비밀번호</label>
+          <input type="password" id="loginPassword" placeholder="비밀번호를 입력해주세요" autocomplete="current-password" required>
+        </div>
+        <label class="auth-check-row">
+          <input type="checkbox" id="loginKeepLoggedIn"> 로그인 유지
+        </label>
+        <div class="auth-error-msg" id="loginErrorMsg" style="display:none;"></div>
+        <button type="submit" class="btn-fill auth-submit-btn">로그인</button>
+      </form>
+      <div class="auth-modal-divider"></div>
+      <div class="auth-modal-links">
+        <a href="join.html" id="goSignupLink">회원가입</a>
+        <span class="auth-links-sep">·</span>
+        <a href="#" id="goForgotPwLink">비밀번호 찾기</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script src="site-content.js?v=20260803"></script>
+<script src="auth.js?v=20260728"></script>
+</body>
+</html>

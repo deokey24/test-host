@@ -565,7 +565,7 @@ async function hydrateClassDetail() {
   if (oldPriceEl) { if (course.old_price) oldPriceEl.textContent = course.old_price; else oldPriceEl.remove(); }
   const newPriceEl = document.getElementById('cdNewPrice'); if (newPriceEl) newPriceEl.textContent = course.new_price || '';
 
-  wireVodCoursePayment(courseId, 'cdBuyBtn', course);
+  wireVodCourseBuyButton(courseId, 'cdBuyBtn');
 }
 
 // ── VOD 수강기간(access_days) / 강좌 종료일(ends_at) 공용 계산 ──
@@ -652,9 +652,10 @@ function confirmVodPurchasePeriod(course) {
   });
 }
 
-// ── PayUp 표준결제 (VOD 강좌 구매) — classDetail.html(#cdBuyBtn)/vodDetail.html(#pcBuyBtn) 공용, 결제 완료/실패 결과는 paymentComplete.html에서 보여준다 ──
-// course를 넘기면 결제창 직전에 수강기간/종료일 확인 모달을 띄운다 (필요한 경우에만).
-function wireVodCoursePayment(vodCourseId, buttonId = 'cdBuyBtn', course = null) {
+// ── VOD 강좌 구매 버튼 — classDetail.html(#cdBuyBtn) 전용. 결제창을 바로 띄우지 않고
+// 주문/결제 확인 페이지(orderConfirm.html)로 이동시킨다. 실제 결제 시작(쿠폰 적용 + PayUp 결제창)은
+// 그 페이지의 wireOrderConfirmPayButton()이 담당한다.
+function wireVodCourseBuyButton(vodCourseId, buttonId = 'cdBuyBtn') {
   const buyBtn = document.getElementById(buttonId);
   if (!buyBtn) return;
   // 페이지 로드 직후(비동기 fetch로 courseId를 확정하기 전) 버튼이 눌려도
@@ -663,18 +664,140 @@ function wireVodCoursePayment(vodCourseId, buttonId = 'cdBuyBtn', course = null)
   buyBtn.removeAttribute('aria-disabled');
   buyBtn.style.opacity = '';
   buyBtn.style.pointerEvents = '';
-  buyBtn.addEventListener('click', async (e) => {
+  buyBtn.href = `orderConfirm.html?id=${vodCourseId}`;
+  buyBtn.addEventListener('click', (e) => {
+    const trigger = document.getElementById('loginTrigger');
+    if (trigger && trigger.dataset.loggedIn !== 'true') { e.preventDefault(); openLoginModal(); }
+  });
+}
+
+// "210,000원" 같은 표시용 가격 문자열에서 숫자만 뽑아낸다 — 서버의 parseKoreanWonPrice와 동일 로직.
+function parseKoreanWonPriceClient(priceText) {
+  const digits = String(priceText || '').replace(/[^0-9]/g, '');
+  return digits ? parseInt(digits, 10) : 0;
+}
+
+// ── 주문/결제 확인 페이지(orderConfirm.html) — 강좌 요약을 보여주고, 로그인한 회원이 자격을 갖춘
+// 오프라인 수강생 할인 쿠폰이 있으면 드롭다운으로 골라 적용할 수 있게 한다. "결제하기"를 눌러야
+// 비로소 /api/payments/init → PayUp 결제창으로 넘어간다(기존에는 classDetail 버튼 클릭 즉시 넘어갔음).
+async function hydrateOrderConfirm() {
+  const courseId = new URLSearchParams(location.search).get('id');
+  const card = document.getElementById('ocCard');
+  if (!courseId) { if (card) card.innerHTML = '<p class="faq-footnote">강좌 정보를 찾을 수 없습니다.</p>'; return; }
+
+  const course = await fetch(`/api/vod-courses/${courseId}`).then(r => r.ok ? r.json() : null).catch(() => null);
+  if (!course) { if (card) card.innerHTML = '<p class="faq-footnote">강좌 정보를 찾을 수 없습니다.</p>'; return; }
+
+  document.title = `주문 확인 · ${course.title} · 독편사 DOCK PASS`;
+  document.getElementById('ocItemName').textContent = course.title || '';
+  document.getElementById('ocPanelItemName').textContent = course.title || '';
+  document.getElementById('ocBackLink').href = `classDetail.html?id=${courseId}`;
+
+  // 강좌 카드 — 홈 "지금 수강 가능한 VOD" 카드와 같은 정보(썸네일/배지/스펙/설명)를 보여준다.
+  const badgeEl = document.getElementById('ocBadge');
+  if (badgeEl) badgeEl.style.display = course.is_best ? 'inline-block' : 'none';
+  const thumbPhoto = document.getElementById('ocThumbPhoto');
+  const thumbFallback = document.getElementById('ocThumbFallback');
+  if (course.thumbnail_url && thumbPhoto) {
+    thumbPhoto.src = course.thumbnail_url;
+    thumbPhoto.alt = course.title || '';
+    thumbPhoto.style.display = 'block';
+    if (thumbFallback) thumbFallback.style.display = 'none';
+  } else if (thumbFallback) {
+    thumbFallback.textContent = course.category_label || course.tag || 'DOCK PASS';
+  }
+  const categoryTag = document.getElementById('ocCategoryTag');
+  if (categoryTag) {
+    if (course.category_label) { categoryTag.textContent = course.category_label; categoryTag.style.display = ''; }
+    else categoryTag.style.display = 'none';
+  }
+  document.getElementById('ocLectureCount').textContent = course.lecture_count ? `${course.lecture_count}강` : '-';
+  document.getElementById('ocDuration').textContent = course.total_duration_text || '-';
+  const win = computeVodAccessWindow(course);
+  document.getElementById('ocAccessPeriod').textContent = win.accessDays ? `${win.accessDays}일` : '무제한';
+  const descEl = document.getElementById('ocDesc');
+  if (descEl) { if (course.description) descEl.textContent = course.description; else descEl.style.display = 'none'; }
+
+  // 왼쪽 컬럼 여백을 채우는 부가 정보 — classDetail.html 상세 소개와 같은 데이터(체크리스트/추천 대상)를
+  // GET /api/vod-courses/:id가 이미 같이 내려주므로 별도 fetch 없이 그대로 재사용한다.
+  const checklistBlock = document.getElementById('ocChecklistBlock');
+  if (checklistBlock && course.checklistItems && course.checklistItems.length) {
+    document.getElementById('ocChecklistHeading').textContent = course.intro_heading || '체크리스트';
+    document.getElementById('ocChecklist').innerHTML = course.checklistItems
+      .map(item => `<li>${escapeCmsHtml(item.content)}</li>`).join('');
+    checklistBlock.style.display = '';
+  }
+  const tagBlock = document.getElementById('ocTagBlock');
+  if (tagBlock && course.tags && course.tags.length) {
+    document.getElementById('ocTagHeading').textContent = course.recommended_heading || '추천 대상';
+    document.getElementById('ocTagGrid').innerHTML = course.tags
+      .map(tag => `<span class="cd-tag">${escapeCmsHtml(tag.label)}</span>`).join('');
+    tagBlock.style.display = '';
+  }
+
+  const basePrice = parseKoreanWonPriceClient(course.new_price);
+  document.getElementById('ocBasePrice').textContent = basePrice ? `${basePrice.toLocaleString('ko-KR')}원` : '-';
+
+  // 정가/할인가 — vod_courses.old_price가 있고 실제로 new_price보다 클 때만 할인율을 계산해 보여준다
+  // (vodDetail.html의 hasDiscount 판정과 동일한 규칙).
+  const oldPrice = parseKoreanWonPriceClient(course.old_price);
+  const oldPriceEl = document.getElementById('ocOldPrice');
+  const discountPctEl = document.getElementById('ocDiscountPct');
+  const hasDiscount = !!(course.old_price && oldPrice && basePrice && oldPrice > basePrice);
+  if (hasDiscount) {
+    oldPriceEl.textContent = course.old_price;
+    oldPriceEl.style.display = 'inline';
+    discountPctEl.textContent = `${Math.round((1 - basePrice / oldPrice) * 100)}% 할인`;
+    discountPctEl.style.display = 'inline';
+  }
+
+  const select = document.getElementById('ocCouponSelect');
+  const emptyMsg = document.getElementById('ocCouponEmpty');
+  let coupons = [];
+  try {
+    const res = await fetch(`/api/payments/coupons?vodCourseId=${courseId}`);
+    if (res.ok) coupons = await res.json();
+  } catch { /* 비로그인 등 — 쿠폰 없이 진행 */ }
+
+  if (coupons.length) {
+    select.innerHTML = '<option value="">쿠폰을 적용하지 않음</option>'
+      + coupons.map(c => `<option value="${c.id}">${escapeCmsHtml(c.label)} (-${Number(c.discountAmount).toLocaleString('ko-KR')}원)</option>`).join('');
+  } else {
+    select.style.display = 'none';
+    emptyMsg.style.display = '';
+  }
+
+  const discountAmountEl = document.getElementById('ocDiscountAmount');
+  const finalAmountEl = document.getElementById('ocFinalAmount');
+  function updateTotal() {
+    const selected = coupons.find(c => String(c.id) === select.value);
+    const discount = selected ? Number(selected.discountAmount) : 0;
+    const finalPrice = Math.max(0, basePrice - discount);
+    discountAmountEl.textContent = selected ? `-${discount.toLocaleString('ko-KR')}원` : '-';
+    finalAmountEl.textContent = `${finalPrice.toLocaleString('ko-KR')}원`;
+  }
+  select.addEventListener('change', updateTotal);
+  updateTotal();
+
+  wireOrderConfirmPayButton(courseId, course, select);
+}
+
+// course를 넘겨 결제창 직전에 수강기간/종료일 확인 모달을 띄운다(필요한 경우에만).
+function wireOrderConfirmPayButton(vodCourseId, course, couponSelect) {
+  const payBtn = document.getElementById('ocPayBtn');
+  if (!payBtn) return;
+  payBtn.addEventListener('click', async (e) => {
     e.preventDefault();
     const trigger = document.getElementById('loginTrigger');
     if (trigger && trigger.dataset.loggedIn !== 'true') { openLoginModal(); return; }
     if (typeof goPayupPay !== 'function') { alert('결제 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.'); return; }
-    if (course && !(await confirmVodPurchasePeriod(course))) return;
-    buyBtn.style.pointerEvents = 'none';
+    if (!(await confirmVodPurchasePeriod(course))) return;
+    payBtn.style.pointerEvents = 'none';
     try {
       const res = await fetch('/api/payments/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vodCourseId })
+        body: JSON.stringify({ vodCourseId, couponId: couponSelect.value || undefined })
       });
       const payData = await res.json();
       if (!res.ok) { alert(payData.error || '결제 준비 중 오류가 발생했습니다.'); return; }
@@ -682,7 +805,7 @@ function wireVodCoursePayment(vodCourseId, buttonId = 'cdBuyBtn', course = null)
     } catch {
       alert('서버와 통신 중 오류가 발생했습니다.');
     } finally {
-      buyBtn.style.pointerEvents = '';
+      payBtn.style.pointerEvents = '';
     }
   });
 }
@@ -698,7 +821,7 @@ function payupPaymentSubmit(payForm) {
 
 // 결제창을 닫았을 때(결제 취소) 호출되는 콜백 — 함수명 고정(변경 금지).
 function payupPaymentClose() {
-  ['cdBuyBtn', 'pcBuyBtn'].forEach(id => {
+  ['cdBuyBtn', 'pcBuyBtn', 'ocPayBtn'].forEach(id => {
     const buyBtn = document.getElementById(id);
     if (buyBtn) buyBtn.style.pointerEvents = '';
   });
@@ -1066,6 +1189,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (page === 'notice') { hydrateFaqList(); hydrateNoticeList(); }
   if (page === 'reviews') hydrateReviewList();
   if (page === 'classDetail') hydrateClassDetail();
+  if (page === 'orderConfirm') hydrateOrderConfirm();
   if (page === 'lecturePlayer') hydrateLecturePlayer();
 
   if (page) {

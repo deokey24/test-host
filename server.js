@@ -1418,6 +1418,50 @@ function makeOrderNumber(memberId) {
   return `${ts}M${memberId}${rand}`;
 }
 
+// 쿠폰(coupons) — 관리자페이지 "쿠폰관리"에서 발급한 16자리 코드를 마이페이지에서 등록(claim)한 회원만
+// 자기 쿠폰을 쓸 수 있다. vod_course_id가 NULL이면 강좌 무관 범용 쿠폰, 있으면 그 강좌 전용.
+// 주문확인 페이지 쿠폰 드롭다운과 /api/payments/init 서버측 금액 재검증이 이 함수 하나를 공유해야
+// "화면에 안 보이던 쿠폰을 id만 조작해서 적용" 같은 우회가 막힌다.
+async function getEligibleCoupons(memberId, vodCourseId) {
+  const [rows] = await getPool().query(
+    `SELECT id, code, vod_course_id, discount_type, discount_value, label
+     FROM coupons
+     WHERE member_id = ? AND status = '등록됨' AND (vod_course_id IS NULL OR vod_course_id = ?)
+     ORDER BY created_at ASC`,
+    [memberId, vodCourseId]
+  );
+  return rows;
+}
+
+// discount_value의 의미가 fixed(원)/percent(%)로 갈리므로, "이 금액에 적용하면 실제로 얼마나 깎이는지"는
+// 매번 이 함수로 계산한다 — 쿠폰이 강좌 가격보다 큰 정액이거나 반올림 오차가 있어도 절대 원가를 넘지 않는다.
+function computeCouponDiscountAmount(amount, coupon) {
+  if (coupon.discount_type === 'percent') {
+    return Math.min(amount, Math.round(amount * coupon.discount_value / 100));
+  }
+  return Math.min(amount, coupon.discount_value);
+}
+
+function couponDisplayLabel(coupon) {
+  if (coupon.label) return coupon.label;
+  return coupon.discount_type === 'percent'
+    ? `${coupon.discount_value}% 할인 쿠폰`
+    : `${Number(coupon.discount_value).toLocaleString('ko-KR')}원 할인 쿠폰`;
+}
+
+app.get('/api/payments/coupons', requireMember, wrapAsync(async (req, res) => {
+  const vodCourseId = parseInt(req.query.vodCourseId, 10);
+  if (!vodCourseId) { res.status(400).json({ error: 'vodCourseId가 필요합니다.' }); return; }
+  const [[course]] = await getPool().query('SELECT new_price FROM vod_courses WHERE id = ?', [vodCourseId]);
+  const basePrice = course ? parseKoreanWonPrice(course.new_price) : 0;
+  const coupons = await getEligibleCoupons(req.session.memberId, vodCourseId);
+  res.json(coupons.map(c => ({
+    id: c.id,
+    label: couponDisplayLabel(c),
+    discountAmount: computeCouponDiscountAmount(basePrice, c)
+  })));
+}));
+
 app.post('/api/payments/init', requireMember, wrapAsync(async (req, res) => {
   const vodCourseId = parseInt(req.body.vodCourseId, 10);
   if (!vodCourseId) { res.status(400).json({ error: 'vodCourseId가 필요합니다.' }); return; }
@@ -1430,16 +1474,28 @@ app.post('/api/payments/init', requireMember, wrapAsync(async (req, res) => {
   // 종료된 강좌는 결제해도 바로 시청 불가라 결제창 발급 자체를 막는다 (프론트에서 버튼을 막는 것과 이중 방어).
   if (course.is_ended) { res.status(409).json({ error: '종료된 강좌는 구매할 수 없습니다.' }); return; }
 
-  const amount = parseKoreanWonPrice(course.new_price);
-  if (!amount) { res.status(400).json({ error: '이 강좌는 가격이 설정되어 있지 않습니다.' }); return; }
+  const baseAmount = parseKoreanWonPrice(course.new_price);
+  if (!baseAmount) { res.status(400).json({ error: '이 강좌는 가격이 설정되어 있지 않습니다.' }); return; }
+
+  let amount = baseAmount;
+  let couponId = null;
+  const requestedCouponId = parseInt(req.body.couponId, 10);
+  if (requestedCouponId) {
+    // 프론트가 보낸 할인 금액은 신뢰하지 않고, 회원이 실제로 등록한 쿠폰인지 다시 조회해 서버가 직접 금액을 정한다.
+    const eligibleCoupons = await getEligibleCoupons(req.session.memberId, vodCourseId);
+    const coupon = eligibleCoupons.find(c => c.id === requestedCouponId);
+    if (!coupon) { res.status(400).json({ error: '적용할 수 없는 쿠폰입니다.' }); return; }
+    amount = Math.max(0, baseAmount - computeCouponDiscountAmount(baseAmount, coupon));
+    couponId = coupon.id;
+  }
 
   const [[member]] = await getPool().query('SELECT name FROM members WHERE id = ?', [req.session.memberId]);
   const orderNumber = makeOrderNumber(req.session.memberId);
 
   await getPool().query(
-    `INSERT INTO payments (member_id, vod_course_id, order_number, item_name, amount, status)
-     VALUES (?, ?, ?, ?, ?, 'pending')`,
-    [req.session.memberId, vodCourseId, orderNumber, course.title, amount]
+    `INSERT INTO payments (member_id, vod_course_id, order_number, item_name, amount, status, coupon_id)
+     VALUES (?, ?, ?, ?, ?, 'pending', ?)`,
+    [req.session.memberId, vodCourseId, orderNumber, course.title, amount, couponId]
   );
 
   res.json({
@@ -1488,6 +1544,12 @@ async function settlePayment({ orderNumber, transactionId, amount, memberId }) {
       [transactionId, data.responseCode || null, data.responseMsg || null, orderNumber]
     );
     await enrollMemberInVod(memberId, payment.vod_course_id, 'payment');
+    if (payment.coupon_id) {
+      await getPool().query(
+        `UPDATE coupons SET status = '사용완료', used_at = NOW(), payment_id = ? WHERE id = ? AND member_id = ?`,
+        [payment.id, payment.coupon_id, memberId]
+      );
+    }
     return { ok: true, redirect: paymentCompleteRedirect(payment, true) };
   }
 
@@ -1623,6 +1685,95 @@ app.post('/admin/api/payments/:id/manual-approve', requireAdminApi, wrapAsync(as
     [transactionId || null, `관리자 수동승인${note ? `: ${note}` : ''}`, req.params.id]
   );
   await enrollMemberInVod(payment.member_id, payment.vod_course_id, 'payment');
+  res.json({ ok: true });
+}));
+
+// ── 관리자 쿠폰 관리 (coupons 테이블 발급/조회/회수) ──
+// 0/O, 1/I/L처럼 사람이 옮겨 적을 때 헷갈리는 문자는 코드 알파벳에서 아예 뺀다.
+const COUPON_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function generateCouponCode() {
+  const bytes = crypto.randomBytes(16);
+  let code = '';
+  for (let i = 0; i < 16; i++) code += COUPON_CODE_CHARS[bytes[i] % COUPON_CODE_CHARS.length];
+  return code;
+}
+
+app.post('/admin/api/coupons', requireAdminApi, wrapAsync(async (req, res) => {
+  const vodCourseId = req.body.vodCourseId ? parseInt(req.body.vodCourseId, 10) : null;
+  const discountType = req.body.discountType === 'percent' ? 'percent' : 'fixed';
+  const discountValue = parseInt(req.body.discountValue, 10);
+  const label = (req.body.label || '').trim() || null;
+  const quantity = Math.min(50, Math.max(1, parseInt(req.body.quantity, 10) || 1));
+
+  if (!discountValue || discountValue <= 0) { res.status(400).json({ error: '할인 값을 입력해주세요.' }); return; }
+  if (discountType === 'percent' && discountValue > 100) { res.status(400).json({ error: '할인율은 100을 넘을 수 없습니다.' }); return; }
+  if (!label) { res.status(400).json({ error: '쿠폰명을 입력해주세요.' }); return; }
+
+  const codes = [];
+  for (let i = 0; i < quantity; i++) {
+    // 코드 유일성은 UNIQUE 제약이 최종 보장 — 극히 낮은 확률의 충돌만 재시도로 흡수한다.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const code = generateCouponCode();
+      try {
+        await getPool().query(
+          `INSERT INTO coupons (code, vod_course_id, discount_type, discount_value, label) VALUES (?, ?, ?, ?, ?)`,
+          [code, vodCourseId, discountType, discountValue, label]
+        );
+        codes.push(code);
+        break;
+      } catch (err) {
+        if (err.code !== 'ER_DUP_ENTRY' || attempt === 4) throw err;
+      }
+    }
+  }
+  res.json({ ok: true, codes });
+}));
+
+app.get('/admin/api/coupons', requireAdminApi, wrapAsync(async (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const pageSize = Math.min(200, Math.max(1, parseInt(req.query.pageSize, 10) || 30));
+  const offset = (page - 1) * pageSize;
+  const status = (req.query.status || '').trim();
+  const search = (req.query.search || '').trim();
+
+  const conditions = [];
+  const params = [];
+  if (status) { conditions.push('c.status = ?'); params.push(status); }
+  if (search) {
+    conditions.push('(c.code LIKE ? OR c.label LIKE ? OR m.name LIKE ? OR m.username LIKE ? OR v.title LIKE ?)');
+    params.push(...Array(5).fill(`%${search}%`));
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const [[{ total }]] = await getPool().query(
+    `SELECT COUNT(*) AS total FROM coupons c
+     LEFT JOIN members m ON m.id = c.member_id
+     LEFT JOIN vod_courses v ON v.id = c.vod_course_id
+     ${where}`,
+    params
+  );
+
+  const [rows] = await getPool().query(
+    `SELECT c.id, c.code, c.discount_type, c.discount_value, c.label, c.status,
+            c.claimed_at, c.used_at, c.created_at,
+            v.title AS vod_course_title,
+            m.name AS member_name, m.username AS member_username
+     FROM coupons c
+     LEFT JOIN members m ON m.id = c.member_id
+     LEFT JOIN vod_courses v ON v.id = c.vod_course_id
+     ${where}
+     ORDER BY c.created_at DESC
+     LIMIT ? OFFSET ?`,
+    [...params, pageSize, offset]
+  );
+
+  res.json({ total, page, pageSize, rows });
+}));
+
+app.delete('/admin/api/coupons/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  // 이미 학생이 등록했거나 사용한 쿠폰은 회수하지 않는다(아직 아무도 안 쓴 코드만 삭제 가능).
+  const [result] = await getPool().query(`DELETE FROM coupons WHERE id = ? AND status = '미등록'`, [req.params.id]);
+  if (result.affectedRows === 0) { res.status(409).json({ error: '이미 등록되었거나 사용된 쿠폰은 삭제할 수 없습니다.' }); return; }
   res.json({ ok: true });
 }));
 
@@ -2495,6 +2646,46 @@ app.delete('/api/members/devices/:id', requireMember, wrapAsync(async (req, res)
     [req.session.memberId, device.device_id]
   );
   await getPool().query('DELETE FROM member_devices WHERE id = ?', [req.params.id]);
+  res.json({ ok: true });
+}));
+
+// ── 마이페이지 쿠폰 — 관리자가 발급한 16자리 코드를 입력해 내 계정에 등록하고, 등록된 쿠폰 목록을 본다 ──
+app.get('/api/members/coupons', requireMember, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT c.id, c.code, c.discount_type, c.discount_value, c.label, c.status, c.claimed_at, c.used_at,
+            v.title AS vod_course_title
+     FROM coupons c
+     LEFT JOIN vod_courses v ON v.id = c.vod_course_id
+     WHERE c.member_id = ?
+     ORDER BY c.claimed_at DESC`,
+    [req.session.memberId]
+  );
+  res.json(rows.map(r => ({
+    id: r.id,
+    code: r.code,
+    label: couponDisplayLabel(r),
+    courseTitle: r.vod_course_title || null,
+    status: r.status,
+    claimedAt: r.claimed_at,
+    usedAt: r.used_at
+  })));
+}));
+
+// 코드 존재 여부와 상태를 먼저 확인해 구분되는 에러 메시지를 주되, 실제 귀속은 UPDATE의 status='미등록'
+// 조건 하나로 원자적으로 처리한다 — 동시에 같은 코드를 등록 시도해도 affectedRows로 승자만 가려진다.
+app.post('/api/members/coupons/claim', requireMember, wrapAsync(async (req, res) => {
+  const code = String(req.body.code || '').trim().toUpperCase();
+  if (!code) { res.status(400).json({ error: '쿠폰 코드를 입력해주세요.' }); return; }
+
+  const [[coupon]] = await getPool().query('SELECT id, status FROM coupons WHERE code = ?', [code]);
+  if (!coupon) { res.status(404).json({ error: '존재하지 않는 쿠폰 코드입니다.' }); return; }
+  if (coupon.status !== '미등록') { res.status(409).json({ error: '이미 등록되었거나 사용된 쿠폰입니다.' }); return; }
+
+  const [result] = await getPool().query(
+    `UPDATE coupons SET status = '등록됨', member_id = ?, claimed_at = NOW() WHERE id = ? AND status = '미등록'`,
+    [req.session.memberId, coupon.id]
+  );
+  if (result.affectedRows === 0) { res.status(409).json({ error: '이미 등록되었거나 사용된 쿠폰입니다.' }); return; }
   res.json({ ok: true });
 }));
 
