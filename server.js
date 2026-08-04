@@ -2997,6 +2997,32 @@ app.post('/admin/api/vod-courses', requireAdminApi, wrapAsync(async (req, res) =
   res.json({ ok: true, id: result.insertId });
 }));
 
+// 강좌 카드 노출 순서 일괄 재정렬(관리자 목록 드래그). PUT /:id는 VOD_COURSE_FIELDS 전체를 덮어쓰는 라우트라
+// "순서만" 바꿀 수 없어 별도 라우트를 둔다. PUT이 아니라 POST인 이유: PUT /admin/api/vod-courses/:id가
+// :id="reorder"로 이 요청을 먼저 삼키는 함정을 라우트 선언 순서에 의존하지 않고 피할 수 있다(POST에는 /:id가 없음).
+// 받은 배열의 인덱스를 그대로 sort_order로 다시 쓰므로, 강좌 삭제로 생긴 순번 구멍도 정렬할 때마다 0..n-1로 정리된다.
+app.post('/admin/api/vod-courses/reorder', requireAdminApi, wrapAsync(async (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(id => parseInt(id, 10)) : null;
+  if (!ids || !ids.length || ids.some(id => Number.isNaN(id))) {
+    res.status(400).json({ error: 'ids는 강좌 id 배열이어야 합니다.' });
+    return;
+  }
+  const conn = await getPool().getConnection();
+  try {
+    await conn.beginTransaction();
+    for (const [idx, id] of ids.entries()) {
+      await conn.query('UPDATE vod_courses SET sort_order = ? WHERE id = ?', [idx, id]);
+    }
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+  res.json({ ok: true });
+}));
+
 app.put('/admin/api/vod-courses/:id', requireAdminApi, wrapAsync(async (req, res) => {
   const error = validateVodCourseBody(req.body);
   if (error) { res.status(400).json({ error }); return; }

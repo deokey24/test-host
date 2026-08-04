@@ -101,11 +101,13 @@
             <h2>VOD 강좌 목록 (<span id="vodTotal">0</span>개)</h2>
             <button class="btn" id="vodAddBtn" type="button">+ 강좌 추가</button>
           </div>
-          <p class="field-hint" style="margin-bottom:14px;">영상 파일 업로드는 <strong>영상 업로드</strong> 메뉴에서 먼저 진행한 뒤, 수정 화면의 "커리큘럼" 탭에서 완료된 영상을 강의에 연결하세요.</p>
+          <p class="field-hint" style="margin-bottom:14px;">영상 파일 업로드는 <strong>영상 업로드</strong> 메뉴에서 먼저 진행한 뒤, 수정 화면의 "커리큘럼" 탭에서 완료된 영상을 강의에 연결하세요.<br>
+            ☰ 핸들을 드래그하면 순서를 바꿀 수 있습니다. 이 순서가 VOD 강좌 페이지·홈 미리보기의 카드 노출 순서입니다.</p>
           <table>
             <thead><tr><th>순서</th><th>제목</th><th>카테고리</th><th>가격</th><th>노출</th><th>관리</th></tr></thead>
             <tbody id="vodList"></tbody>
           </table>
+          <div class="status-text" id="vodListStatus"></div>
         </div>
       </section>
 

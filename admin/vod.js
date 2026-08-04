@@ -127,9 +127,12 @@ let vodThumbnailUrl = '';
 async function loadVodCourses() {
   vodCache = await apiFetch('/admin/api/vod-courses');
   document.getElementById('vodTotal').textContent = vodCache.length;
-  document.getElementById('vodList').innerHTML = vodCache.map(c => `
-    <tr>
-      <td>${c.sort_order}</td>
+  const listEl = document.getElementById('vodList');
+  // 순서 칸은 raw sort_order 대신 화면상 순번(1부터)을 보여준다 — 삭제로 순번에 구멍이 나 있어도
+  // 관리자가 보는 숫자와 실제 노출 순서가 어긋나지 않는다.
+  listEl.innerHTML = vodCache.map((c, idx) => `
+    <tr class="drag-item" data-id="${c.id}">
+      <td><span class="drag-cell"><span class="drag-handle">☰</span>${idx + 1}</span></td>
       <td>${escapeHtml(c.title)}</td>
       <td>${escapeHtml(c.category_label || '')}</td>
       <td>${escapeHtml(c.new_price)}</td>
@@ -142,6 +145,18 @@ async function loadVodCourses() {
       </td>
     </tr>
   `).join('');
+  // 하위 항목들처럼 PUT을 항목당 한 번씩 보내지 않고 일괄 라우트를 쓴다 — 강좌 PUT은 전체 필드를 덮어쓰기 때문.
+  attachDragReorder(listEl, async (ids) => {
+    const status = document.getElementById('vodListStatus');
+    try {
+      await apiFetch('/admin/api/vod-courses/reorder', { method: 'POST', body: JSON.stringify({ ids }) });
+      await loadVodCourses();   // 서버가 확정한 순서로 다시 그려 순번 표시까지 맞춘다
+      setStatus(status, '순서가 저장되었습니다.', 'ok');
+    } catch (err) {
+      await loadVodCourses();   // 실패 시 화면만 바뀐 상태로 두지 않고 저장된 순서로 되돌린다
+      setStatus(status, err.message, 'error');
+    }
+  });
 }
 
 // ── 빠른 추가 모달 ──

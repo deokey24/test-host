@@ -287,12 +287,17 @@ textarea { resize: vertical; min-height: 70px; }
 
 /* ── drag-reorder list ── */
 .drag-list { list-style: none; margin: 0; padding: 0; }
-.drag-item {
+/* 카드형 li 전용 레이아웃이라 .drag-list 안으로 한정한다 — VOD 강좌 목록처럼 <tr class="drag-item">로
+   같은 드래그 헬퍼를 쓰는 경우 display:flex가 걸리면 표 레이아웃이 무너진다. */
+.drag-list .drag-item {
   display: flex; align-items: flex-start; gap: 10px;
   background: var(--grey-bg); border: 1px solid var(--border); border-radius: 10px;
   padding: 14px; margin-bottom: 10px;
 }
 .drag-item.dragging { opacity: 0.6; background: rgba(14,169,104,0.08); }
+/* 표 행을 드래그로 정렬할 때의 첫 칸(핸들 + 현재 순번) */
+.drag-cell { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+tr.drag-item .drag-handle { width: 20px; height: 20px; }
 .drag-handle {
   flex-shrink: 0; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
   cursor: grab; touch-action: none; color: var(--text-soft); font-size: 15px; user-select: none;
