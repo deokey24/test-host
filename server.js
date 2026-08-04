@@ -1703,12 +1703,64 @@ app.post('/admin/api/coupons', requireAdminApi, wrapAsync(async (req, res) => {
   const discountType = req.body.discountType === 'percent' ? 'percent' : 'fixed';
   const discountValue = parseInt(req.body.discountValue, 10);
   const label = (req.body.label || '').trim() || null;
-  const quantity = Math.min(50, Math.max(1, parseInt(req.body.quantity, 10) || 1));
 
   if (!discountValue || discountValue <= 0) { res.status(400).json({ error: '할인 값을 입력해주세요.' }); return; }
   if (discountType === 'percent' && discountValue > 100) { res.status(400).json({ error: '할인율은 100을 넘을 수 없습니다.' }); return; }
   if (!label) { res.status(400).json({ error: '쿠폰명을 입력해주세요.' }); return; }
 
+  // 학생 지정 발급: 코드 입력(등록) 단계를 건너뛰고 처음부터 해당 회원에게 귀속시킨다.
+  const memberIds = Array.isArray(req.body.memberIds)
+    ? [...new Set(req.body.memberIds.map(id => parseInt(id, 10)).filter(Boolean))]
+    : null;
+
+  if (memberIds) {
+    if (!memberIds.length) { res.status(400).json({ error: '학생을 선택해주세요.' }); return; }
+    if (memberIds.length > 200) { res.status(400).json({ error: '한 번에 최대 200명까지 발급할 수 있습니다.' }); return; }
+
+    const conn = await getPool().getConnection();
+    try {
+      await conn.beginTransaction();
+      const [members] = await conn.query(
+        `SELECT id, name, username FROM members WHERE id IN (${memberIds.map(() => '?').join(',')})`,
+        memberIds
+      );
+      if (members.length !== memberIds.length) {
+        await conn.rollback();
+        res.status(400).json({ error: '존재하지 않는 회원이 포함되어 있습니다.' });
+        return;
+      }
+
+      const issued = [];
+      for (const m of members) {
+        let code = null;
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const candidate = generateCouponCode();
+          try {
+            await conn.query(
+              `INSERT INTO coupons (code, vod_course_id, discount_type, discount_value, label, status, member_id, claimed_at)
+               VALUES (?, ?, ?, ?, ?, '등록됨', ?, NOW())`,
+              [candidate, vodCourseId, discountType, discountValue, label, m.id]
+            );
+            code = candidate;
+            break;
+          } catch (err) {
+            if (err.code !== 'ER_DUP_ENTRY' || attempt === 4) throw err;
+          }
+        }
+        issued.push({ memberId: m.id, name: m.name, username: m.username, code });
+      }
+      await conn.commit();
+      res.json({ ok: true, issued });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+    return;
+  }
+
+  const quantity = Math.min(50, Math.max(1, parseInt(req.body.quantity, 10) || 1));
   const codes = [];
   for (let i = 0; i < quantity; i++) {
     // 코드 유일성은 UNIQUE 제약이 최종 보장 — 극히 낮은 확률의 충돌만 재시도로 흡수한다.
@@ -1774,6 +1826,41 @@ app.delete('/admin/api/coupons/:id', requireAdminApi, wrapAsync(async (req, res)
   // 이미 학생이 등록했거나 사용한 쿠폰은 회수하지 않는다(아직 아무도 안 쓴 코드만 삭제 가능).
   const [result] = await getPool().query(`DELETE FROM coupons WHERE id = ? AND status = '미등록'`, [req.params.id]);
   if (result.affectedRows === 0) { res.status(409).json({ error: '이미 등록되었거나 사용된 쿠폰은 삭제할 수 없습니다.' }); return; }
+  res.json({ ok: true });
+}));
+
+// ── 쿠폰 발급 템플릿 (반복되는 발급 조합을 이름 붙여 저장/재사용) ──
+app.get('/admin/api/coupon-templates', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    `SELECT t.id, t.name, t.vod_course_id, t.discount_type, t.discount_value, t.label,
+            v.title AS vod_course_title
+     FROM coupon_templates t
+     LEFT JOIN vod_courses v ON v.id = t.vod_course_id
+     ORDER BY t.created_at DESC`
+  );
+  res.json({ rows });
+}));
+
+app.post('/admin/api/coupon-templates', requireAdminApi, wrapAsync(async (req, res) => {
+  const name = (req.body.name || '').trim();
+  const vodCourseId = req.body.vodCourseId ? parseInt(req.body.vodCourseId, 10) : null;
+  const discountType = req.body.discountType === 'percent' ? 'percent' : 'fixed';
+  const discountValue = parseInt(req.body.discountValue, 10);
+  const label = (req.body.label || '').trim() || null;
+
+  if (!name) { res.status(400).json({ error: '템플릿 이름을 입력해주세요.' }); return; }
+  if (!discountValue || discountValue <= 0) { res.status(400).json({ error: '할인 값을 입력해주세요.' }); return; }
+  if (discountType === 'percent' && discountValue > 100) { res.status(400).json({ error: '할인율은 100을 넘을 수 없습니다.' }); return; }
+
+  const [result] = await getPool().query(
+    `INSERT INTO coupon_templates (name, vod_course_id, discount_type, discount_value, label) VALUES (?, ?, ?, ?, ?)`,
+    [name, vodCourseId, discountType, discountValue, label]
+  );
+  res.json({ ok: true, id: result.insertId });
+}));
+
+app.delete('/admin/api/coupon-templates/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  await getPool().query(`DELETE FROM coupon_templates WHERE id = ?`, [req.params.id]);
   res.json({ ok: true });
 }));
 

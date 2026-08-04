@@ -246,6 +246,20 @@ CREATE TABLE IF NOT EXISTS coupons (
 ALTER TABLE payments
   ADD COLUMN IF NOT EXISTS coupon_id BIGINT DEFAULT NULL;
 
+-- 반복되는 쿠폰 발급 조합(강좌/할인/쿠폰명)을 이름 붙여 저장해두고 발급 폼에서 바로 불러다 쓰는 프리셋.
+-- coupons와 달리 vod_course_id는 ON DELETE SET NULL — 강좌가 삭제돼도 템플릿 자체는 "범용"으로 남아 재사용 가능해야 한다
+-- (실제 발급된 쿠폰은 그 강좌에 묶여있어야 의미가 있어 CASCADE지만, 템플릿은 미래에 다른 값으로도 계속 쓸 사전설정이라 다르다).
+CREATE TABLE IF NOT EXISTS coupon_templates (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  vod_course_id BIGINT DEFAULT NULL,
+  discount_type ENUM('fixed', 'percent') NOT NULL,
+  discount_value INT NOT NULL,
+  label VARCHAR(100),
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_coupon_template_course FOREIGN KEY (vod_course_id) REFERENCES vod_courses(id) ON DELETE SET NULL
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- 클래스별 강의 커리큘럼 (R2 courses/{course}/lectures/{번호 3자리}/video/ 경로와 1:1 대응)
 CREATE TABLE IF NOT EXISTS class_lectures (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,

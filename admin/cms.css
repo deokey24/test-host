@@ -492,6 +492,10 @@ th { color: var(--text-soft); font-weight: 700; font-size: 12px; }
 .qna-detail-box .qna-detail-body { white-space: pre-wrap; margin-bottom: 10px; }
 .qna-detail-box .qna-detail-answer { white-space: pre-wrap; border-top: 1px solid var(--border); padding-top: 10px; }
 
+/* ── 쿠폰관리: 발급 방식 토글 / 학생 지정 발급 ── */
+.coupon-mode-toggle { display: flex; gap: 18px; font-size: 13px; font-weight: 600; }
+.coupon-mode-toggle label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
 /* ── 쿠폰관리: 발급 직후 코드 목록 ── */
 .coupon-code-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .coupon-code-chip {
