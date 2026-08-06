@@ -184,6 +184,13 @@ function hydrateCmsListItem(node, item, index) {
   if (p && item.body !== undefined) p.textContent = item.body;
 }
 
+// vod.html 인트로 재생 버튼 색상 — .vod-intro__play의 --vod-play-color를 관리자 지정값으로 덮어쓴다(없으면 CSS 기본값 유지)
+function applyVodIntroPlayColor(intro) {
+  if (!intro || !intro.playButtonColor) return;
+  const playBtn = document.querySelector('.vod-intro__play');
+  if (playBtn) playBtn.style.setProperty('--vod-play-color', intro.playButtonColor);
+}
+
 function applyCmsData(data) {
   document.querySelectorAll('[data-cms]').forEach(el => {
     const value = resolveCmsPath(data, el.dataset.cms);
@@ -1200,6 +1207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (data && typeof data === 'object') {
           applyCmsData(data);
           if (page === 'cert') applyCertChartData(data.chart);
+          if (page === 'vod') applyVodIntroPlayColor(data.intro);
         }
       }
     } catch { /* 하드코딩된 값 폴백 유지 */ }

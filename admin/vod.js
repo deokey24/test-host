@@ -761,17 +761,23 @@ function expandLectureContent(lectureId) {
 }
 
 // ── VOD 페이지 인트로 (vod.html 상단 이미지 + 공개 소개 영상) ──
-// site_sections(page='vod', section_key='intro')에 {heroImage, caption, lectureVideoId}로 저장한다.
+// site_sections(page='vod', section_key='intro')에 {heroImage, thumbnail, playButtonColor, lectureVideoId}로 저장한다.
 // 소개 영상은 로그인 없이 열리는 유일한 영상이라 서버가 이 값으로만 스트리밍 대상을 정한다.
+// thumbnail은 영상 재생 전 플레이스홀더에 표시되는 이미지, playButtonColor는 그 위에 뜨는 재생 버튼(링+삼각형) 색상이다
+// (문구를 직접 입력하던 옛 caption 필드를 대체함).
 //
 // 아직 저장된 값이 없을 때는 지금 사이트에 실제로 나가고 있는 값(vod.html의 하드코딩 기본값과
 // server.js의 PUBLIC_VOD_INTRO_LECTURE_ID)을 그대로 채워 넣는다 — 관리자 화면이 빈 칸으로 보이면
 // "인트로가 비어 있다"고 오해하게 되고, 한 항목만 고쳐 저장했을 때 나머지가 날아간 것처럼 보인다.
 const VOD_INTRO_DEFAULTS = {
   heroImage: '/assets/vod/hero.jpg',
-  caption: '0강 연고대\n편입논술 OT\n- 황성찬 T -',
+  thumbnail: '/assets/vod/hero.jpg',
+  playButtonColor: '#a98254', // vod.html .vod-intro__play 기본값(--vod-play-color)과 동일
   lectureVideoId: 24 // 0강 연고대 편입논술 OT
 };
+
+// 재생 버튼 색상 팔레트 — 브랜드 골드 계열 + 무채색 몇 가지를 프리셋으로 제공, input[type=color]로 임의 색상도 가능
+const VOD_INTRO_PLAY_COLOR_PRESETS = ['#a98254', '#e3cdaf', '#0e1c30', '#ffffff', '#d64545'];
 
 // VOD 카테고리 카드와 같은 방식의 접기/펼치기 (기본 접힘)
 function initVodIntroToggle() {
@@ -789,10 +795,16 @@ async function initVodIntroCard() {
   const saveBtn = document.getElementById('vod-intro-save');
   if (!saveBtn) return;
 
-  const captionEl = document.getElementById('vod-intro-caption');
+  const thumbPreviewEl = document.getElementById('vod-intro-thumb-preview');
+  const thumbFileEl = document.getElementById('vod-intro-thumb-file');
   const previewEl = document.getElementById('vod-intro-hero-preview');
   const fileEl = document.getElementById('vod-intro-hero-file');
+  const colorFieldEl = document.getElementById('vod-intro-play-color-field');
+  const colorInputEl = document.getElementById('vod-intro-play-color-input');
+  const colorHexEl = document.getElementById('vod-intro-play-color-hex');
   let heroImage = '';
+  let thumbnail = '';
+  let playButtonColor = VOD_INTRO_DEFAULTS.playButtonColor;
   let lectureVideoId = '';
 
   function renderHero() {
@@ -803,6 +815,35 @@ async function initVodIntroCard() {
     note.style.display = heroImage ? 'none' : '';
   }
 
+  function renderThumb() {
+    const img = thumbPreviewEl.querySelector('.preview-img');
+    const note = thumbPreviewEl.querySelector('.empty-note');
+    img.src = thumbnail || '';
+    img.style.display = thumbnail ? '' : 'none';
+    note.style.display = thumbnail ? 'none' : '';
+  }
+
+  function setPlayColor(color) {
+    playButtonColor = color;
+    colorInputEl.value = color;
+    colorHexEl.textContent = color;
+    colorFieldEl.querySelectorAll('.color-swatch').forEach(btn => {
+      btn.classList.toggle('selected', btn.dataset.color.toLowerCase() === color.toLowerCase());
+    });
+  }
+
+  VOD_INTRO_PLAY_COLOR_PRESETS.forEach(color => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'color-swatch';
+    btn.style.background = color;
+    btn.dataset.color = color;
+    btn.title = color;
+    btn.addEventListener('click', () => setPlayColor(color));
+    colorFieldEl.insertBefore(btn, colorInputEl);
+  });
+  colorInputEl.addEventListener('input', () => setPlayColor(colorInputEl.value));
+
   const [data, videos, folders] = await Promise.all([
     apiFetch('/admin/api/site/vod/intro').catch(() => ({})),
     apiFetch('/admin/api/videos?all=1').catch(() => []),
@@ -810,8 +851,10 @@ async function initVodIntroCard() {
   ]);
   heroImage = data.heroImage || VOD_INTRO_DEFAULTS.heroImage;
   lectureVideoId = data.lectureVideoId || VOD_INTRO_DEFAULTS.lectureVideoId;
-  captionEl.value = data.caption || VOD_INTRO_DEFAULTS.caption;
+  thumbnail = data.thumbnail || VOD_INTRO_DEFAULTS.thumbnail;
   renderHero();
+  renderThumb();
+  setPlayColor(data.playButtonColor || VOD_INTRO_DEFAULTS.playButtonColor);
 
   const videoOptions = videos
     .filter(v => v.status === 'done' && v.final_r2_key)
@@ -841,12 +884,29 @@ async function initVodIntroCard() {
     }
   });
 
+  thumbFileEl.addEventListener('change', async () => {
+    const file = thumbFileEl.files[0];
+    if (!file) return;
+    const status = document.getElementById('vod-intro-thumb-status');
+    setStatus(status, '업로드 중...');
+    try {
+      const { url } = await uploadImage(file, 'vod-course', 'intro-thumb');
+      thumbnail = url;
+      renderThumb();
+      setStatus(status, '업로드되었습니다. 저장을 눌러 반영하세요.', 'ok');
+    } catch (err) {
+      setStatus(status, err.message, 'error');
+    } finally {
+      thumbFileEl.value = '';
+    }
+  });
+
   saveBtn.addEventListener('click', async () => {
     const status = document.getElementById('vod-intro-status');
     try {
       await apiFetch('/admin/api/site/vod/intro', {
         method: 'PUT',
-        body: JSON.stringify({ heroImage, caption: captionEl.value, lectureVideoId: lectureVideoId || '' })
+        body: JSON.stringify({ heroImage, thumbnail, playButtonColor, lectureVideoId: lectureVideoId || '' })
       });
       setStatus(status, '저장되었습니다.', 'ok');
     } catch (err) {

@@ -62,10 +62,25 @@
                 <div class="status-text" id="vod-intro-hero-status"></div>
               </div>
             </div>
+            <div class="image-picker" style="margin-top:14px;">
+              <div class="image-picker-preview" id="vod-intro-thumb-preview" style="width:260px; height:146px;">
+                <img class="preview-img" src="" style="display:none;">
+                <div class="empty-note">이미지 없음</div>
+              </div>
+              <div class="image-picker-controls">
+                <label class="field-label">영상 썸네일</label>
+                <div class="file-row"><input type="file" id="vod-intro-thumb-file" accept="image/*"></div>
+                <p class="field-hint">재생 전 영상 영역에 표시되는 이미지입니다. 위에 재생 버튼이 자동으로 뜹니다. 권장 비율 16:9.</p>
+                <div class="status-text" id="vod-intro-thumb-status"></div>
+              </div>
+            </div>
             <div class="field-row" style="margin-top:14px;">
-              <label class="field-label">영상 위 문구</label>
-              <textarea id="vod-intro-caption" rows="3" placeholder="예: 0강 연고대&#10;편입논술 OT&#10;- 황성찬 T -"></textarea>
-              <p class="field-hint">줄바꿈한 그대로 표시됩니다.</p>
+              <label class="field-label">재생 버튼 색상</label>
+              <div class="color-field" id="vod-intro-play-color-field">
+                <input type="color" id="vod-intro-play-color-input">
+                <span class="hex-label" id="vod-intro-play-color-hex"></span>
+              </div>
+              <p class="field-hint">썸네일 위에 뜨는 재생 버튼(링+삼각형)의 색상입니다.</p>
             </div>
             <div class="field-row">
               <label class="field-label">소개 영상</label>
