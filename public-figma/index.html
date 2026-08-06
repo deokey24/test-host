@@ -79,10 +79,11 @@
    높이는 더 이상 __viewport 폭(=전체 화면 폭)에서 비율로 뽑을 수 없어(그러면 화면이 넓을수록 배너가 커진다),
    JS(fitBannerAspect)가 1280px 기준폭으로 계산한 px 높이를 직접 넣어준다. */
 .banner-slider--top{height:auto}.banner-slider--top .banner-slider__viewport{width:100%;aspect-ratio:1280/180;overflow:hidden}
-.banner-slider--top .banner-slider__slide-inner{width:100%;max-width:1280px;height:100%;margin:0 auto;display:flex;align-items:center;justify-content:center}
-/* 슬라이드 자신의 배경색 — 기본값은 기존 고정색(navy-950), JS(fitBannerAspect)가 로드된 이미지의 코너 색을 읽어 배너별로 덮어쓴다.
-   슬라이드는 트랙(전체 폭)의 자식이라 이 색도 슬라이드 전환과 함께 그대로 밀려간다. */
-.banner-slider--top .banner-slider__slide{background:var(--navy-950)}
+.banner-slider--top .banner-slider__slide-inner{width:100%;max-width:1280px;height:100%;margin:0 auto;display:flex;align-items:center;justify-content:center;position:relative;z-index:1}
+/* 좌우 여백 — 같은 배너 이미지를 확대+블러해 깔아서 이미지와 색이 이어지는 것처럼 보이게 한다(단색 추정보다 항상 안전).
+   JS(fitBannerAspect)가 --slide-bg-img로 이미지 URL만 꽂아주면 되고, 픽셀을 읽는 게 아니라서 교차출처 이미지에도 안전하다. */
+.banner-slider--top .banner-slider__slide{background:var(--navy-950);position:relative;overflow:hidden}
+.banner-slider--top .banner-slider__slide::before{content:'';position:absolute;inset:-10%;background-image:var(--slide-bg-img);background-size:cover;background-position:center;filter:blur(40px);transform:scale(1.2)}
 .banner-slider__slide{flex:0 0 100%;height:100%;display:flex;align-items:center;justify-content:center}.banner-slider__slide picture{display:contents}.banner-slider__slide img{width:100%;height:100%;object-fit:contain;display:block;-webkit-user-drag:none;pointer-events:none}
 /* JS(fitBannerAspect)가 실제 이미지 비율로 다시 잡기 전의 기본값 — 모바일에선 납작한 원본을 확대 크롭 */
 @media(max-width:600px){.banner-slider--top .banner-slider__viewport{aspect-ratio:2.6}.banner-slider--mid{aspect-ratio:3.6}.banner-slider__slide img{object-fit:cover}}
@@ -426,19 +427,6 @@ function buildBannerSlides(root, items){
 const BANNER_MOBILE_MAX_RATIO = { top: 2.6, mid: 3.6 };
 function bannerImgRatio(img){ return img.naturalWidth && img.naturalHeight ? img.naturalWidth/img.naturalHeight : 0; }
 
-// 상단배너 레터박스 배색 — object-fit:contain으로 남는 위아래 여백을 그 배너 자신의 색과 맞춘다.
-// 배너 이미지는 보통 여백까지 이어지는 단색 배경을 쓰므로, 코너 픽셀을 캔버스로 샘플링하면 충분히 근사한 색이 나온다.
-// R2 등 교차출처 이미지는 캔버스가 오염돼 픽셀을 못 읽을 수 있어(getImageData 예외) 실패하면 조용히 기본색(navy-950)을 유지한다.
-function sampleBannerCornerColor(img){
-  try{
-    const c=document.createElement('canvas');
-    c.width=c.height=4;
-    const ctx=c.getContext('2d');
-    ctx.drawImage(img,0,0,4,4);
-    const [r,g,b]=ctx.getImageData(0,0,1,1).data;
-    return `rgb(${r},${g},${b})`;
-  }catch(e){ return null; }
-}
 // 슬라이드 이미지의 실제 비율에 맞춰 슬라이더 높이를 잡아 레터박스(위아래 여백)를 없앤다.
 // 비율이 섞여 있으면 가장 세로로 긴 이미지 기준 — 잘리는 부분 없이 남는 여백만 최소화.
 function fitBannerAspect(root){
@@ -471,21 +459,13 @@ function fitBannerAspect(root){
       img.style.objectPosition=crop ? `${img.dataset.mobileFocus || 'center'} center` : '';
       if(isTop){
         const slide=img.closest('.banner-slider__slide');
-        // cover로 꽉 채운 경우엔 여백이 없으니 색을 새로 입힐 필요가 없다(기본색 그대로 둬도 안 보임)
+        // cover로 꽉 채운 경우엔 여백이 없으니 배경을 새로 입힐 필요가 없다
         if(slide && !crop){
-          const color=sampleBannerCornerColor(img);
-          if(color) slide.style.backgroundColor=color;
+          const src=img.currentSrc||img.src;
+          if(src) slide.style.setProperty('--slide-bg-img', `url("${src.replace(/"/g,'%22')}")`);
         }
       }
     });
-    // 무한루프용 클론(첫 슬라이드를 복제해 트랙 끝에 붙여둔 것, initBannerSlider)은 원본 이미지 로드보다
-    // 먼저 만들어져 배경색을 못 받은 채로 남을 수 있다 — 매 apply()마다 첫 슬라이드 색을 그대로 옮겨준다.
-    if(isTop){
-      const track=root.querySelector('.banner-slider__track');
-      const first=track && track.firstElementChild;
-      const clone=track && track.querySelector(':scope > .banner-slider__slide[aria-hidden="true"]');
-      if(clone && first && clone!==first) clone.style.backgroundColor=first.style.backgroundColor;
-    }
   };
   apply();
   imgs.forEach(img => {
