@@ -210,7 +210,12 @@ app.get('/admin/v1', requireAdmin, (req, res) => {
 
 // 관리자 셸의 정적 자산(cms.css/cms.js/banners.js 등). 위의 명시적 /admin, /admin/v1, /admin/api/* 라우트가
 // 먼저 매칭되므로 이 미들웨어는 그 외의 admin/ 하위 파일 요청만 처리한다.
-app.use('/admin', express.static(path.join(__dirname, 'admin')));
+// 캐시를 막는 이유: 스크립트 파일에 버전 쿼리스트링이 없어서, 배포 직후 HTML은 새 버전인데 브라우저가
+// 예전에 캐싱해둔 JS를 계속 쓰면 새 HTML의 엘리먼트 id를 옛날 JS가 못 찾아 초기화 도중 예외를 던지고
+// 멈춘다 — 그 결과 이미지 미리보기 등이 채워지지 않은 빈 슬롯 상태로 남는다.
+app.use('/admin', express.static(path.join(__dirname, 'admin'), {
+  setHeaders: (res) => res.set('Cache-Control', 'no-store')
+}));
 
 app.get('/admin/api/videos', requireAdminApi, wrapAsync(async (req, res) => {
   const { folderId, all } = req.query;
