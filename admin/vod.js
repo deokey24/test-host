@@ -761,10 +761,10 @@ function expandLectureContent(lectureId) {
 }
 
 // ── VOD 페이지 인트로 (vod.html 상단 이미지 + 공개 소개 영상) ──
-// site_sections(page='vod', section_key='intro')에 {heroImage, thumbnail, playButtonColor, lectureVideoId}로 저장한다.
+// site_sections(page='vod', section_key='intro')에 {heroImage, thumbnail, playButtonEnabled, playButtonColor, lectureVideoId}로 저장한다.
 // 소개 영상은 로그인 없이 열리는 유일한 영상이라 서버가 이 값으로만 스트리밍 대상을 정한다.
-// thumbnail은 영상 재생 전 플레이스홀더에 표시되는 이미지, playButtonColor는 그 위에 뜨는 재생 버튼(링+삼각형) 색상이다
-// (문구를 직접 입력하던 옛 caption 필드를 대체함).
+// thumbnail은 영상 재생 전 플레이스홀더에 표시되는 이미지, playButtonEnabled/playButtonColor는 그 위에 뜨는
+// 재생 버튼(링+삼각형)의 표시 여부·색상이다 (문구를 직접 입력하던 옛 caption 필드를 대체함).
 //
 // 아직 저장된 값이 없을 때는 지금 사이트에 실제로 나가고 있는 값(vod.html의 하드코딩 기본값과
 // server.js의 PUBLIC_VOD_INTRO_LECTURE_ID)을 그대로 채워 넣는다 — 관리자 화면이 빈 칸으로 보이면
@@ -772,6 +772,7 @@ function expandLectureContent(lectureId) {
 const VOD_INTRO_DEFAULTS = {
   heroImage: '/assets/vod/hero.jpg',
   thumbnail: '/assets/vod/hero.jpg',
+  playButtonEnabled: true,
   playButtonColor: '#a98254', // vod.html .vod-intro__play 기본값(--vod-play-color)과 동일
   lectureVideoId: 24 // 0강 연고대 편입논술 OT
 };
@@ -802,6 +803,7 @@ async function initVodIntroCard() {
   const colorFieldEl = document.getElementById('vod-intro-play-color-field');
   const colorInputEl = document.getElementById('vod-intro-play-color-input');
   const colorHexEl = document.getElementById('vod-intro-play-color-hex');
+  const playToggleEl = document.getElementById('vod-intro-play-toggle');
   let heroImage = '';
   let thumbnail = '';
   let playButtonColor = VOD_INTRO_DEFAULTS.playButtonColor;
@@ -855,6 +857,7 @@ async function initVodIntroCard() {
   renderHero();
   renderThumb();
   setPlayColor(data.playButtonColor || VOD_INTRO_DEFAULTS.playButtonColor);
+  playToggleEl.checked = data.playButtonEnabled !== undefined ? data.playButtonEnabled : VOD_INTRO_DEFAULTS.playButtonEnabled;
 
   const videoOptions = videos
     .filter(v => v.status === 'done' && v.final_r2_key)
@@ -906,7 +909,7 @@ async function initVodIntroCard() {
     try {
       await apiFetch('/admin/api/site/vod/intro', {
         method: 'PUT',
-        body: JSON.stringify({ heroImage, thumbnail, playButtonColor, lectureVideoId: lectureVideoId || '' })
+        body: JSON.stringify({ heroImage, thumbnail, playButtonEnabled: playToggleEl.checked, playButtonColor, lectureVideoId: lectureVideoId || '' })
       });
       setStatus(status, '저장되었습니다.', 'ok');
     } catch (err) {

@@ -184,11 +184,14 @@ function hydrateCmsListItem(node, item, index) {
   if (p && item.body !== undefined) p.textContent = item.body;
 }
 
-// vod.html 인트로 재생 버튼 색상 — .vod-intro__play의 --vod-play-color를 관리자 지정값으로 덮어쓴다(없으면 CSS 기본값 유지)
-function applyVodIntroPlayColor(intro) {
-  if (!intro || !intro.playButtonColor) return;
+// vod.html 인트로 재생 버튼 — 관리자가 끄면(playButtonEnabled===false) 버튼을 숨기고(영상 재생 자체는 그대로 동작),
+// 켜져 있으면 색상(--vod-play-color)을 지정값으로 덮어쓴다(없으면 CSS 기본값 유지)
+function applyVodIntroPlayButton(intro) {
+  if (!intro) return;
   const playBtn = document.querySelector('.vod-intro__play');
-  if (playBtn) playBtn.style.setProperty('--vod-play-color', intro.playButtonColor);
+  if (!playBtn) return;
+  if (intro.playButtonEnabled === false) { playBtn.style.display = 'none'; return; }
+  if (intro.playButtonColor) playBtn.style.setProperty('--vod-play-color', intro.playButtonColor);
 }
 
 function applyCmsData(data) {
@@ -1207,7 +1210,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (data && typeof data === 'object') {
           applyCmsData(data);
           if (page === 'cert') applyCertChartData(data.chart);
-          if (page === 'vod') applyVodIntroPlayColor(data.intro);
+          if (page === 'vod') applyVodIntroPlayButton(data.intro);
         }
       }
     } catch { /* 하드코딩된 값 폴백 유지 */ }
