@@ -181,6 +181,10 @@ async function requireMemberOrApiToken(req, res, next) {
 }
 
 app.get('/admin', (req, res) => {
+  // no-store: 아래 admin/*.js 정적 서빙과 마찬가지로, sendFile 기본 캐시 헤더(max-age=0 revalidate)에
+  // 기대지 않고 매 요청 새로 받게 강제한다 — 이 라우트가 HTML 자체를 내려주는 진입점이라
+  // 여기가 캐시되면 최신 JS를 받아도 옛 마크업(엘리먼트 id 불일치)과 맞물려 초기화가 깨진다.
+  res.set('Cache-Control', 'no-store');
   if (req.session.isAdmin) {
     res.sendFile(path.join(__dirname, 'admin', 'index.html'));
     return;
