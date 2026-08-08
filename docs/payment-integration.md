@@ -64,12 +64,21 @@ JSON 라우트)는 혹시 GET+쿼리스트링으로 오는 환경이 있을 경�
 
 ```
 id, member_id, vod_course_id, order_number(UNIQUE), item_name, amount,
-status ENUM('pending','approved','failed','canceled'),
+status ENUM('pending','approved','failed','canceled','expired'),
 transaction_id, response_code, response_msg,
 created_at, approved_at, canceled_at
 ```
 - `order_number`는 `init` 시점에 서버가 발급(`makeOrderNumber`, 형식 `YYYYMMDDHHMISS + M + memberId + 랜덤6자리`). UNIQUE 제약으로 중복 승인 방지.
 - `approve`/`approve-mobile`은 승인 시점 금액을 `init` 때 기록해둔 `payments.amount`와 대조해서 위변조를 막는다.
+- **`pending`은 결제 성사와 무관하다.** `init`이 결제창을 띄우기 *직전에* 행을 선기록하므로 "결제하기"를 누른 횟수만큼 행이 쌓인다. 한 회원이 한 번 실패하고 다시 눌러 성공하면 버려진 `pending` 1건 + `approved` 1건이 같이 남는데, 실제 청구는 `approved` 한 건뿐이다(`enrollMemberInVod()`도 승인 성공 경로에서만 호출된다).
+
+## 방치된 pending 만료 처리
+
+`expireStalePendingPayments()`(`server.js`)가 기동 직후 + 10분마다 돌면서, 생성된 지 `PAYMENT_PENDING_EXPIRE_MINUTES`(기본 30분)이 지나도록 `transaction_id`가 붙지 않은 `pending` 행을 `expired`로 내린다. 관리자 화면에는 **"만료"** 배지 + "결제창 이탈(미결제)" 안내로 표시된다.
+
+- **만료는 "승인되지 않았다"는 판정이 아니라 대기열 정리다.** `settlePayment()`와 관리자 수동승인 모두 현재 status를 조건으로 걸지 않으므로, 만료된 뒤에 뒤늦게 승인 콜백이 도착해도 정상적으로 `approved`까지 간다. 이 불변식이 깨지지 않게 두 경로에 status 조건을 추가하지 말 것(각각 주석으로 명시해 뒀다).
+- **`transaction_id`가 있는 `pending`은 일부러 만료시키지 않는다.** 승인 요청이 서버까지 도달했다는 뜻이라 "카드 승인은 났는데 우리가 결과를 못 받은" 진짜 사고 후보이고, 관리자 화면에서 빨간 "승인 응답 누락 의심 — 확인 필요"로 강조된다. (현재 코드 경로상 `approve` 요청이 오면 즉시 `approved`/`failed`로 갈리므로 이 조합은 사실상 생기지 않지만, 만료 스윕이 사고 후보를 조용히 덮어버리지 않도록 걸어둔 안전장치다.)
+- 이전에는 "30분 이상 대기 — 확인 필요"를 모든 오래된 `pending`에 빨갛게 띄웠는데, 정상적인 결제창 이탈이 대부분이라 경고가 노이즈가 됐다(2026-08-08 기준 pending 12건 중 대부분이 테스트/이탈 건). 이탈 건을 `expired`로 걷어내고, 경고는 위의 진짜 후보에만 남겼다.
 
 ## 환경변수 (`.env`)
 
@@ -100,7 +109,7 @@ PAYUP_API_KEY=...
 - **목록/검색**: `GET /admin/api/payments` — 주문번호/거래번호/회원명/강좌명 검색, 상태 필터. `admin/payments.js`가 렌더링.
 - **전액취소**: `POST /admin/api/payments/:id/cancel` — `payup.cancelPayment()` 호출 성공 시에만 `status='canceled'`로 갱신.
 - **부분취소**: `POST /admin/api/payments/:id/partial-cancel` — `payup.partialCancelPayment()`(`/api/v1/partCancel`) 호출. VOD는 단건 상품이라 부분취소해도 `status`는 `approved`로 유지하고(강좌 접근권 유지) `response_msg`에 취소 이력만 남긴다.
-- **수동승인**: `POST /admin/api/payments/:id/manual-approve` — PayUp에는 거래 조회(inquiry) API가 없어서, 브라우저 라운드트립이 중간에 끊겨 `pending`으로 멈춘 결제를 서버가 스스로 재확인할 방법이 없다. 관리자가 PayUp 가맹점 콘솔(`cp.payup.co.kr`)에서 실제 승인 여부를 확인한 뒤 수동으로 `approved` 처리 + `enrollMemberInVod()` 실행하는 예외 경로. `admin/payments.js`는 생성된 지 30분 넘게 `pending`인 건을 화면에서 빨간색으로 강조해 이 케이스를 발견하기 쉽게 한다(자동 탐지가 아니라 관리자가 눈으로 확인하는 방식 — 이게 현재로선 유일한 수단).
+- **수동승인**: `POST /admin/api/payments/:id/manual-approve` — PayUp에는 거래 조회(inquiry) API가 없어서, 브라우저 라운드트립이 중간에 끊긴 결제를 서버가 스스로 재확인할 방법이 없다. 관리자가 PayUp 가맹점 콘솔(`cp.payup.co.kr`)에서 실제 승인 여부를 확인한 뒤 수동으로 `approved` 처리 + `enrollMemberInVod()` 실행하는 예외 경로. `expired`로 정리된 건과 "승인 응답 누락 의심" 건 모두에 버튼이 뜬다(자동 탐지가 아니라 관리자가 눈으로 확인하는 방식 — 이게 현재로선 유일한 수단).
 - 어떤 경로로도 결제 취소가 `member_vod_enrollments`를 자동으로 제거하지는 않는다(`scripts/cancel-payment.js`와 동일한 기존 동작 유지) — 환불 시 수강 접근을 바로 끊을지는 별도 정책 결정이 필요하다.
 
 ## 알려진 가정/한계

@@ -203,7 +203,9 @@ CREATE TABLE IF NOT EXISTS payments (
   order_number VARCHAR(128) NOT NULL,
   item_name VARCHAR(300) NOT NULL,
   amount INT NOT NULL,
-  status ENUM('pending', 'approved', 'failed', 'canceled') NOT NULL DEFAULT 'pending',
+  -- pending은 "결제창을 띄우기 직전"에 선기록되는 상태라 결제 성사 여부와 무관하다(버튼을 누른 횟수만큼 쌓인다).
+  -- 회원이 결제창을 닫고 이탈하면 그대로 남으므로, expired가 그 버려진 행을 정리하는 종착 상태다(server.js의 expireStalePendingPayments).
+  status ENUM('pending', 'approved', 'failed', 'canceled', 'expired') NOT NULL DEFAULT 'pending',
   transaction_id VARCHAR(20),
   response_code VARCHAR(20),
   response_msg VARCHAR(255),
@@ -405,14 +407,15 @@ CREATE TABLE IF NOT EXISTS popup_banners (
   INDEX idx_popup_banners_visible_dates (visible, start_date, end_date)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- 배너 관리 (관리자 "메인 페이지 배너" 메뉴 — 헤더 좌/우, 상단/중간/콘텐츠/사이드/하단 7종)
+-- 배너 관리 (관리자 "메인 페이지 배너" 메뉴 — 헤더 좌/우, 상단/중간/콘텐츠/사이드/미니 좌우/하단 9종)
 -- header-left/header-right: 모든 페이지 공통 헤더의 로고 좌/우 배너(각 230×80, public-figma/header.js).
 -- top/middle: 홈 상단 슬라이더(.banner-slider--top/--mid). content/side: DOCK NEWS 섹션 좌(탭+이미지)/우(고정 이미지).
+-- mini-left/mini-right: DOCK NEWS 아래 "DOCKPASS학원" 미니배너 좌/우 자리(각 540×70, .banner-slider--mini).
 -- bottom: 홈 맨 아래 FAQ 옆 CTA 자리 슬라이더(.banner-slider--bottom). PC 1080×500 / 모바일 720×600.
 -- content 타입의 label은 DOCK NEWS 탭 버튼 이름으로 쓰인다.
 CREATE TABLE IF NOT EXISTS content_banners (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  banner_type ENUM('header-left', 'header-right', 'top', 'middle', 'content', 'side', 'bottom') NOT NULL,
+  banner_type ENUM('header-left', 'header-right', 'top', 'middle', 'content', 'side', 'mini-left', 'mini-right', 'bottom') NOT NULL,
   label VARCHAR(200),
   image_url VARCHAR(500) NOT NULL,
   -- 모바일 전용 이미지(top/middle만 사용). NULL이면 image_url을 확대 크롭해서 노출 — 파일 하단 ALTER 주석 참고.
@@ -1012,3 +1015,19 @@ ALTER TABLE lecture_videos
 -- 마이그레이션 시점에 이미 인트로로 나가고 있던 영상을 공개로 표시해 둔다(server.js의 PUBLIC_VOD_INTRO_LECTURE_ID).
 -- 관리자가 인트로를 한 번이라도 저장하면 그 뒤로는 syncPublicIntroVideo()가 계속 맞춰준다.
 UPDATE lecture_videos SET is_public = 1 WHERE id = 24;
+
+-- ── 미니배너 슬롯 추가 (2026-08) ──
+-- 홈 DOCK NEWS 섹션 아래 "DOCKPASS학원" 미니배너(각 540×70, .banner-slider--mini) 좌/우 자리를 관리자 배너로 전환.
+-- 헤더배너와 마찬가지로 좌/우가 같은 박자로 함께 넘어가지만 서로 독립된 목록이라 타입을 둘로 나눈다.
+-- ENUM은 멱등 문법이 없어 MODIFY로 전체를 덮어쓴다(기존 값 유지 + 신규 2종 추가).
+ALTER TABLE content_banners
+  MODIFY COLUMN banner_type ENUM('header-left', 'header-right', 'top', 'middle', 'content', 'side', 'mini-left', 'mini-right', 'bottom') NOT NULL;
+
+-- ── 방치된 pending 결제 만료 상태 추가 (2026-08) ──
+-- /api/payments/init은 결제창을 띄우기 직전에 payments 행을 pending으로 선기록한다. 즉 "결제하기"를 누른
+-- 횟수만큼 행이 생기고, 결제창을 닫고 나가면 그 행은 영원히 pending으로 남는다(관리자 화면에서 30분 넘은
+-- pending을 빨갛게 강조하던 탓에 정상 이탈까지 장애처럼 보였다).
+-- expired는 "승인 요청이 서버에 도달한 적 없는 채로 시간이 지난 행"을 담는 종착 상태다.
+-- 승인 여부를 단정하는 게 아니라 대기열에서 내리는 것뿐이라, 만료된 뒤에도 수동승인/뒤늦은 승인 콜백은 그대로 통한다.
+ALTER TABLE payments
+  MODIFY COLUMN status ENUM('pending', 'approved', 'failed', 'canceled', 'expired') NOT NULL DEFAULT 'pending';

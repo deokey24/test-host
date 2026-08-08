@@ -1539,6 +1539,8 @@ async function settlePayment({ orderNumber, transactionId, amount, memberId }) {
   if (payment.status === 'approved') {
     return { ok: true, redirect: paymentCompleteRedirect(payment, true) };
   }
+  // 여기서 status를 pending으로 한정하면 안 된다 — expireStalePendingPayments()가 이미 expired로 내려놓은
+  // 행이라도 뒤늦게 승인 응답이 도착하면 정상적으로 approved까지 가야 한다(만료는 대기열 정리일 뿐이다).
   if (String(payment.amount) !== String(amount)) {
     return { ok: false, redirect: paymentCompleteRedirect(payment, false, '결제 금액이 일치하지 않습니다.') };
   }
@@ -1607,6 +1609,42 @@ app.post('/payupReturn.html', wrapAsync(async (req, res) => {
   const result = await settlePayment({ orderNumber, transactionId, amount, memberId: payment.member_id });
   res.redirect('/' + result.redirect);
 }));
+
+// ── 방치된 pending 결제 만료 처리 ──
+// /api/payments/init은 결제창을 띄우기 직전에 payments 행을 pending으로 선기록한다. 그래서 pending은
+// "결제하기를 눌렀다"는 뜻일 뿐 결제가 됐다는 뜻이 아니고, 회원이 결제창을 닫고 나가면 그대로 남는다
+// (한 사람이 두 번 눌러 재시도하면 성공한 행 하나 + 버려진 행 하나가 같이 쌓인다).
+// 이 행들을 계속 pending으로 두면 관리자 화면의 "확인 필요" 경고가 정상 이탈 건으로 뒤덮여 정작
+// 진짜 확인이 필요한 건을 못 찾게 되므로, 일정 시간이 지나면 expired로 내려 대기열에서 뺀다.
+//
+// transaction_id가 있는 행은 건드리지 않는다 — 승인 요청이 서버까지는 도달했다는 뜻이라
+// "카드 승인은 났는데 우리가 결과를 못 받은" 진짜 사고 후보이므로 pending으로 남겨 눈에 띄게 한다.
+// 만료는 "승인되지 않았다"는 판정이 아니라 대기열 정리일 뿐이라, expired가 된 뒤에도
+// settlePayment()의 뒤늦은 승인 콜백과 관리자 수동승인은 그대로 통한다(둘 다 status를 조건으로 걸지 않음).
+const PAYMENT_PENDING_EXPIRE_MINUTES = Number(process.env.PAYMENT_PENDING_EXPIRE_MINUTES || 30);
+const PAYMENT_EXPIRE_SWEEP_INTERVAL_MS = 10 * 60 * 1000;
+
+async function expireStalePendingPayments() {
+  const [result] = await getPool().query(
+    `UPDATE payments SET status = 'expired'
+      WHERE status = 'pending' AND transaction_id IS NULL
+        AND created_at < NOW() - INTERVAL ? MINUTE`,
+    [PAYMENT_PENDING_EXPIRE_MINUTES]
+  );
+  if (result.affectedRows) {
+    console.log(`[payments] 방치된 pending ${result.affectedRows}건을 expired로 정리`);
+  }
+  return result.affectedRows;
+}
+
+// 기동 직후 한 번 + 주기적으로. unref()로 이 타이머가 프로세스 종료를 붙잡지 않게 한다.
+function startPaymentExpirySweep() {
+  const sweep = () => expireStalePendingPayments().catch(err =>
+    console.error('[payments] pending 만료 처리 실패:', err.message)
+  );
+  sweep();
+  setInterval(sweep, PAYMENT_EXPIRE_SWEEP_INTERVAL_MS).unref();
+}
 
 // ── 관리자 결제 관리 (payments 테이블 조회/취소/부분취소/수동승인) ──
 app.get('/admin/api/payments', requireAdminApi, wrapAsync(async (req, res) => {
@@ -1682,6 +1720,7 @@ app.post('/admin/api/payments/:id/partial-cancel', requireAdminApi, wrapAsync(as
 // 수동승인 — PayUp에 거래 조회 API가 없어서(문서에 미제공) 브라우저 라운드트립이 끊겨 pending으로 멈춘 건을
 // 자동으로 재확인할 방법이 없다. 관리자가 PayUp 가맹점 콘솔(cp.payup.co.kr)에서 실제 승인 여부를 눈으로 확인한
 // 뒤 수동으로 승인 처리하는 예외 경로 — transactionId/사유를 response_msg에 남겨 회계 추적이 되게 한다.
+// expired로 정리된 건도 대상이다(만료는 승인되지 않았다는 판정이 아니라 대기열 정리일 뿐).
 app.post('/admin/api/payments/:id/manual-approve', requireAdminApi, wrapAsync(async (req, res) => {
   const { transactionId, note } = req.body;
   const [[payment]] = await getPool().query('SELECT * FROM payments WHERE id = ?', [req.params.id]);
@@ -4041,12 +4080,13 @@ app.delete('/admin/api/popup-banners/:id', requireAdminApi, wrapAsync(async (req
   res.json({ ok: true });
 }));
 
-// ── content_banners (관리자 "메인 페이지 배너" — 헤더 좌/우, 상단/중간/콘텐츠/사이드/하단 7종) ──
+// ── content_banners (관리자 "메인 페이지 배너" — 헤더 좌/우, 상단/중간/콘텐츠/사이드/미니 좌우/하단 9종) ──
 // header-left/header-right: 모든 페이지 공통 헤더의 로고 좌/우 배너(각 230×80, public-figma/header.js).
 // top/middle: 홈 상단 슬라이더. content/side: DOCK NEWS 섹션 좌(탭+이미지)/우(고정 이미지).
+// mini-left/mini-right: DOCK NEWS 아래 "DOCKPASS학원" 미니배너 좌/우 자리(각 540×70, .banner-slider--mini).
 // bottom: 홈 맨 아래 FAQ 옆 CTA 자리 슬라이더(PC 1080×500 / 모바일 720×600, mobile_image_url 사용).
 // content 타입의 label은 프론트에서 DOCK NEWS 탭 버튼 이름으로 쓰인다.
-const BANNER_TYPES = ['header-left', 'header-right', 'top', 'middle', 'content', 'side', 'bottom'];
+const BANNER_TYPES = ['header-left', 'header-right', 'top', 'middle', 'content', 'side', 'mini-left', 'mini-right', 'bottom'];
 const BANNER_MOBILE_FOCUS = ['left', 'center', 'right'];
 
 // mobile_image_url/mobile_focus는 나중에 추가된 컬럼(infra/schema.sql 하단 ALTER).
@@ -4250,4 +4290,5 @@ async function warmUploadsWebpCache() {
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
   setTimeout(warmUploadsWebpCache, 3000); // 기동 직후 요청 처리와 겹치지 않게 잠깐 미룬 뒤 시작
+  startPaymentExpirySweep();
 });

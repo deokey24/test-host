@@ -5,33 +5,41 @@ let paymentSearch = '';
 let paymentStatusFilterVal = '';
 let paymentSearchDebounce = null;
 
-const PAYMENT_STATUS_LABEL = { pending: '대기중', approved: '승인완료', failed: '실패', canceled: '취소됨' };
-const PAYMENT_STATUS_BADGE = { pending: 'badge-uploading', approved: 'badge-done', failed: 'badge-failed', canceled: 'badge-off' };
-// PayUp에는 거래 조회 API가 없어서, 브라우저 라운드트립이 중간에 끊긴 pending 건을 서버가 스스로 재확인할
-// 방법이 없다. 생성된 지 30분이 지나도 여전히 pending이면 "결제창은 인증됐는데 승인 응답을 못 받은" 것으로
-// 의심하고 화면에서 강조 표시한다 — 이게 사실상 유일한 탐지 수단이라 관리자가 눈으로 보고 처리해야 한다.
-const PENDING_STALE_MS = 30 * 60 * 1000;
+const PAYMENT_STATUS_LABEL = { pending: '대기중', approved: '승인완료', failed: '실패', canceled: '취소됨', expired: '만료' };
+const PAYMENT_STATUS_BADGE = { pending: 'badge-uploading', approved: 'badge-done', failed: 'badge-failed', canceled: 'badge-off', expired: 'badge-off' };
+
+// pending은 "결제하기 버튼을 눌러 결제창이 열렸다"는 뜻일 뿐이라, 결제창을 닫고 나간 회원의 행도 여기 남는다.
+// 서버(expireStalePendingPayments)가 일정 시간 뒤 그런 행을 expired로 내려주므로, 화면에 계속 대기중으로
+// 보이는 건 "방금 결제창을 연 회원"뿐이다 — 그래서 대기중 자체는 경고 없이 그대로 보여준다.
+//
+// 반대로 pending인 채로 transaction_id가 붙은 행은 서버가 만료시키지 않고 남긴다(승인 요청이 도달했다는 뜻).
+// 이건 "카드 승인은 났는데 우리가 결과를 못 받은" 진짜 사고 후보라 빨갛게 강조해서 관리자 눈에 띄게 한다.
+function isSuspectPayment(p) {
+  return p.status === 'pending' && !!p.transaction_id;
+}
 
 function paymentRowHtml(p) {
   const createdAt = new Date(p.created_at);
-  const isStalePending = p.status === 'pending' && (Date.now() - createdAt.getTime() > PENDING_STALE_MS);
+  const suspect = isSuspectPayment(p);
   const actions = [];
   if (p.status === 'approved') {
     actions.push(`<button class="row-btn" data-payment-partial="${p.id}" type="button">부분취소</button>`);
     actions.push(`<button class="row-btn danger" data-payment-cancel="${p.id}" type="button">취소</button>`);
   }
-  if (isStalePending) {
+  // 만료된 건도 수동승인 대상 — PayUp 콘솔에 승인내역이 있으면 여기서 되살린다.
+  if (p.status === 'expired' || suspect) {
     actions.push(`<button class="row-btn" data-payment-manual="${p.id}" type="button">수동승인</button>`);
   }
   return `
-    <tr${isStalePending ? ' style="background:var(--danger-bg);"' : ''}>
+    <tr${suspect ? ' style="background:var(--danger-bg);"' : ''}>
       <td>${escapeHtml(p.order_number)}</td>
       <td>${escapeHtml(p.member_name)} <span class="field-hint">(${escapeHtml(p.member_username)})</span></td>
       <td>${escapeHtml(p.item_name)}</td>
       <td>${Number(p.amount).toLocaleString('ko-KR')}원</td>
       <td>
         <span class="badge ${PAYMENT_STATUS_BADGE[p.status] || ''}">${PAYMENT_STATUS_LABEL[p.status] || p.status}</span>
-        ${isStalePending ? '<span class="field-hint" style="color:var(--danger); display:block;">30분 이상 대기 — 확인 필요</span>' : ''}
+        ${suspect ? '<span class="field-hint" style="color:var(--danger); display:block;">승인 응답 누락 의심 — 확인 필요</span>' : ''}
+        ${p.status === 'expired' ? '<span class="field-hint" style="display:block;">결제창 이탈(미결제)</span>' : ''}
       </td>
       <td>${escapeHtml(p.transaction_id || '-')}</td>
       <td>${createdAt.toLocaleString('ko-KR')}</td>

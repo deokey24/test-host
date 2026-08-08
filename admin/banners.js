@@ -1,5 +1,5 @@
-// ── 배너 관리 (헤더 좌/우, 상단/중간/콘텐츠/사이드/하단 7종 공용 로직, 추가/수정은 공용 모달로 처리) ──
-const BANNER_TYPES = ['header-left', 'header-right', 'top', 'middle', 'content', 'side', 'bottom'];
+// ── 배너 관리 (헤더 좌/우, 상단/중간/콘텐츠/사이드/미니 좌우/하단 9종 공용 로직, 추가/수정은 공용 모달로 처리) ──
+const BANNER_TYPES = ['header-left', 'header-right', 'top', 'middle', 'content', 'side', 'mini-left', 'mini-right', 'bottom'];
 // mobileImage: 모바일 전용 이미지 슬롯을 쓰는 타입(상단/중간). 원본이 1280×180처럼 납작해서
 // 모바일 폭에 맞추면 글자가 너무 작아지기 때문에, 세로가 긴 모바일용 이미지를 따로 받는다.
 const BANNER_TYPE_META = {
@@ -12,6 +12,9 @@ const BANNER_TYPE_META = {
              mobileImage: true, mobileSizeHint: '(권장 1080×400px — 3:1보다 세로가 긴 비율)', mobileThumbWidth: '150px', mobileRatio: '1080/400' },
   content: { title: '콘텐츠배너', sizeHint: '(권장 600×325px)',  thumbWidth: '150px', ratio: '600/325', labelRequired: true, labelHint: '(DOCK NEWS 탭 이름으로 표시됩니다)' },
   side:    { title: '사이드배너', sizeHint: '(권장 320×325px)',  thumbWidth: '130px', ratio: '320/325' },
+  // 미니배너: DOCK NEWS 아래 "DOCKPASS학원" 섹션 좌/우 자리(표시 크기 540×70, 레티나 대비 1080×140px 원본 권장).
+  'mini-left':  { title: '미니배너(좌)', sizeHint: '(권장 1080×140px)', thumbWidth: '220px', ratio: '540/70' },
+  'mini-right': { title: '미니배너(우)', sizeHint: '(권장 1080×140px)', thumbWidth: '220px', ratio: '540/70' },
   // 하단배너는 PC/모바일 비율이 2.16:1 ↔ 1.2:1로 크게 달라 모바일 전용 이미지를 반드시 따로 받는 편이 좋다.
   bottom:  { title: '하단배너',   sizeHint: '(권장 1080×500px)', thumbWidth: '200px', ratio: '1080/500',
              mobileImage: true, mobileSizeHint: '(권장 720×600px — 세로가 긴 비율)', mobileThumbWidth: '120px', mobileRatio: '720/600' }

@@ -866,7 +866,7 @@
       </section>
 
       <section id="bannerSection" class="admin-section active">
-        <p class="field-hint" style="margin-bottom:14px;">프론트 페이지에 노출되는 배너 7종을 관리합니다. 목록 상단의 "+ 배너 추가"로 새로 등록하고, 순서는 드래그로 바꿀 수 있습니다.</p>
+        <p class="field-hint" style="margin-bottom:14px;">프론트 페이지에 노출되는 배너 9종을 관리합니다. 목록 상단의 "+ 배너 추가"로 새로 등록하고, 순서는 드래그로 바꿀 수 있습니다.</p>
 
         <div class="card">
           <div class="card-head-row">
@@ -926,6 +926,26 @@
           <p class="field-hint" style="margin-bottom:10px;">권장 이미지 크기 320×325px · 맨 위 항목(순서 1번) 하나만 프론트에 노출됩니다.</p>
           <ul class="drag-list" id="banner-side-list"></ul>
           <div class="status-text" id="banner-side-list-status"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h2>미니배너(좌) (<span id="bannerTotal-mini-left">0</span>개)</h2>
+            <button class="btn" type="button" data-banner-add="mini-left">+ 배너 추가</button>
+          </div>
+          <p class="field-hint" style="margin-bottom:10px;">DOCK NEWS 아래 "DOCKPASS학원" 섹션의 <strong>왼쪽</strong> 자리 · 권장 이미지 크기 1080×140px · 여러 장 등록하면 4초마다 자동 전환됩니다.</p>
+          <ul class="drag-list" id="banner-mini-left-list"></ul>
+          <div class="status-text" id="banner-mini-left-list-status"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h2>미니배너(우) (<span id="bannerTotal-mini-right">0</span>개)</h2>
+            <button class="btn" type="button" data-banner-add="mini-right">+ 배너 추가</button>
+          </div>
+          <p class="field-hint" style="margin-bottom:10px;">DOCK NEWS 아래 "DOCKPASS학원" 섹션의 <strong>오른쪽</strong> 자리 · 권장 이미지 크기 1080×140px · 좌/우가 같은 타이밍에 전환됩니다.</p>
+          <ul class="drag-list" id="banner-mini-right-list"></ul>
+          <div class="status-text" id="banner-mini-right-list-status"></div>
         </div>
 
         <div class="card">
@@ -1152,9 +1172,15 @@
               <option value="approved">승인완료</option>
               <option value="failed">실패</option>
               <option value="canceled">취소됨</option>
+              <option value="expired">만료</option>
             </select>
             <button class="btn-outline" id="paymentSearchBtn" type="button">검색</button>
           </div>
+          <p class="field-hint" style="margin:10px 0 0;">
+            <strong>대기중</strong>은 결제창이 열린 직후 상태입니다. 결제를 마치지 않고 나간 건은
+            일정 시간(기본 30분) 뒤 자동으로 <strong>만료</strong>로 정리되며, 실제 청구된 금액은 없습니다.
+            만료된 건이라도 PayUp 가맹점 콘솔(cp.payup.co.kr)에 승인내역이 있다면 "수동승인"으로 되살릴 수 있습니다.
+          </p>
           <table>
             <thead>
               <tr><th>주문번호</th><th>회원</th><th>강좌</th><th>금액</th><th>상태</th><th>거래번호</th><th>생성일시</th><th>관리</th></tr>
