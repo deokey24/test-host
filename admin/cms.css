@@ -312,7 +312,7 @@ th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--bord
 th { color: var(--text-soft); font-weight: 700; font-size: 12px; }
 
 
-.badge { padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.badge { padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; display: inline-block; }
 .badge-done { background: #f3ead9; color: var(--green-dark); }
 .badge-processing { background: #e3ecf3; color: #3d6b8b; }
 .badge-uploading, .badge-queued { background: #fdf0d5; color: #9a6a1f; }

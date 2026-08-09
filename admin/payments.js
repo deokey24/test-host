@@ -39,7 +39,7 @@ function paymentRowHtml(p) {
       <td>
         <span class="badge ${PAYMENT_STATUS_BADGE[p.status] || ''}">${PAYMENT_STATUS_LABEL[p.status] || p.status}</span>
         ${suspect ? '<span class="field-hint" style="color:var(--danger); display:block;">승인 응답 누락 의심 — 확인 필요</span>' : ''}
-        ${p.status === 'expired' ? '<span class="field-hint" style="display:block;">미결제</span>' : ''}
+        ${p.status === 'expired' ? '<span class="field-hint" style="display:block; white-space:nowrap;">미결제</span>' : ''}
       </td>
       <td>${escapeHtml(p.transaction_id || '-')}</td>
       <td>${createdAt.toLocaleString('ko-KR')}</td>
