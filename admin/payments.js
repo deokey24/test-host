@@ -26,10 +26,10 @@ function paymentRowHtml(p) {
     actions.push(`<button class="row-btn" data-payment-partial="${p.id}" type="button">부분취소</button>`);
     actions.push(`<button class="row-btn danger" data-payment-cancel="${p.id}" type="button">취소</button>`);
   }
-  // 만료된 건도 수동승인 대상 — PayUp 콘솔에 승인내역이 있으면 여기서 되살린다.
-  if (p.status === 'expired' || suspect) {
-    actions.push(`<button class="row-btn" data-payment-manual="${p.id}" type="button">수동승인</button>`);
-  }
+  // 수동승인 버튼 임시 비활성화
+  // if (p.status === 'expired' || suspect) {
+  //   actions.push(`<button class="row-btn" data-payment-manual="${p.id}" type="button">수동승인</button>`);
+  // }
   return `
     <tr${suspect ? ' style="background:var(--danger-bg);"' : ''}>
       <td>${escapeHtml(p.order_number)}</td>
@@ -39,7 +39,7 @@ function paymentRowHtml(p) {
       <td>
         <span class="badge ${PAYMENT_STATUS_BADGE[p.status] || ''}">${PAYMENT_STATUS_LABEL[p.status] || p.status}</span>
         ${suspect ? '<span class="field-hint" style="color:var(--danger); display:block;">승인 응답 누락 의심 — 확인 필요</span>' : ''}
-        ${p.status === 'expired' ? '<span class="field-hint" style="display:block;">결제창 이탈(미결제)</span>' : ''}
+        ${p.status === 'expired' ? '<span class="field-hint" style="display:block;">미결제</span>' : ''}
       </td>
       <td>${escapeHtml(p.transaction_id || '-')}</td>
       <td>${createdAt.toLocaleString('ko-KR')}</td>
