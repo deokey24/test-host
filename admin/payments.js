@@ -5,7 +5,7 @@ let paymentSearch = '';
 let paymentStatusFilterVal = '';
 let paymentSearchDebounce = null;
 
-const PAYMENT_STATUS_LABEL = { pending: '대기중', approved: '승인완료', failed: '실패', canceled: '취소됨', expired: '만료' };
+const PAYMENT_STATUS_LABEL = { pending: '대기중', approved: '승인', failed: '실패', canceled: '취소됨', expired: '만료' };
 const PAYMENT_STATUS_BADGE = { pending: 'badge-uploading', approved: 'badge-done', failed: 'badge-failed', canceled: 'badge-off', expired: 'badge-off' };
 
 // pending은 "결제하기 버튼을 눌러 결제창이 열렸다"는 뜻일 뿐이라, 결제창을 닫고 나간 회원의 행도 여기 남는다.
