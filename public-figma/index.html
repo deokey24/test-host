@@ -72,13 +72,9 @@
    그리드 stretch를 끄지 않으면 FAQ가 더 길 때 박스가 늘어나 이미지가 레터박스된다 → align-self:start */
 .banner-slider--bottom{align-self:start;border-radius:16px;background:transparent;aspect-ratio:1080/500}
 @media(max-width:600px){.banner-slider--bottom{aspect-ratio:720/600}}
-/* 상단배너는 트랙 자체를 전체 폭으로 퍼뜨려서(뷰포트에 1280px 캡을 두지 않는다), 1280px보다 넓은 화면에서
-   이미지 좌우에 남는 여백도 같은 슬라이드 안의 살아있는 한 조각이 되게 한다 — 슬라이드가 넘어가면 여백까지
-   이미지와 물리적으로 한 덩어리로 같이 밀려난다(색만 크로스페이드하는 게 아니라 진짜로 슬라이드된다).
-   실제 콘텐츠(이미지)는 안쪽 .banner-slider__slide-inner가 1280px로 다시 가둬서 중앙에 앉힌다.
-   높이는 더 이상 __viewport 폭(=전체 화면 폭)에서 비율로 뽑을 수 없어(그러면 화면이 넓을수록 배너가 커진다),
-   JS(fitBannerAspect)가 1280px 기준폭으로 계산한 px 높이를 직접 넣어준다. */
-.banner-slider--top{height:auto}.banner-slider--top .banner-slider__viewport{width:100%;aspect-ratio:1280/180;overflow:hidden}
+/* 상단배너는 1280px보다 넓은 화면에서 이미지 밖으로 남는 자리가 배경색 레터박스로 보이지 않도록
+   슬라이더 자체를 1280px로 가두고 중앙에 앉힌다(중간/하단 배너와 같은 방식). */
+.banner-slider--top{height:auto;max-width:1280px;margin:0 auto}.banner-slider--top .banner-slider__viewport{width:100%;aspect-ratio:1280/180;overflow:hidden}
 .banner-slider--top .banner-slider__slide-inner{width:100%;max-width:1280px;height:100%;margin:0 auto;display:flex;align-items:center;justify-content:center;position:relative;z-index:1}
 .banner-slider--top .banner-slider__slide{background:var(--navy-950);position:relative;overflow:hidden}
 .banner-slider__slide{flex:0 0 100%;height:100%;display:flex;align-items:center;justify-content:center}.banner-slider__slide picture{display:contents}.banner-slider__slide img{width:100%;height:100%;object-fit:contain;display:block;-webkit-user-drag:none;pointer-events:none}
@@ -471,10 +467,8 @@ function fitBannerAspect(root){
     const cap=isMid ? BANNER_MOBILE_MAX_RATIO.mid : BANNER_MOBILE_MAX_RATIO.top;
     const box=isMobile ? Math.min(Math.min(...ratios), cap) : Math.min(...ratios);
     if(isTop && !isMobile){
-      // __viewport는 이제 전체 화면 폭이라, 그 폭 기준으로 비율을 매기면 화면이 넓을수록 배너가 커져버린다.
-      // 디자인 기준폭(최대 1280px)으로 고정 높이를 계산해 넣는다 — 1280px 미만에서는 화면 폭을 그대로 따라간다.
       boxEl.style.aspectRatio='';
-      boxEl.style.height=(Math.min(boxEl.clientWidth,1280)/box)+'px';
+      boxEl.style.height=(boxEl.clientWidth/box)+'px';
     }else{
       boxEl.style.height='';
       boxEl.style.aspectRatio=String(box);
