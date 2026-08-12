@@ -61,7 +61,6 @@
 .meta-row{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;margin-top:10px}.meta-row span{display:inline-flex;align-items:center;gap:5px}.meta-row svg{width:14px;height:14px;flex:none}
 .course-row__actions{text-align:right;display:flex;flex-direction:column;gap:8px;justify-content:center}.price-block{display:flex;flex-direction:column;gap:8px}.actions-buttons{display:flex;flex-direction:column;gap:8px}.price-sub{display:flex;gap:6px;align-items:baseline;justify-content:flex-end}.old{color:#9aa4b2;text-decoration:line-through;font-size:11.7px}.price{font-size:22.5px;font-weight:900;line-height:1.1}.sale{color:var(--beige-700);font-weight:900;font-size:11.25px}.price-sub--empty{visibility:hidden}
 .course-row__actions .btn{padding:11.7px 18px;font-size:14.4px}
-.pagination{display:flex;gap:6px;justify-content:center;margin-top:26px}.pagination button{min-width:36px;height:36px;border:1px solid var(--line);border-radius:10px;background:#fff;color:#4c5665;font-weight:700;cursor:pointer}.pagination button.active{background:var(--navy-800);border-color:var(--navy-800);color:#fff}.pagination button:disabled{opacity:.45;cursor:default}
 .sidebar{display:grid;gap:14px;align-content:start}.panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:var(--shadow-sm)}.panel h3{margin-top:0}.panel.dark{background:var(--navy-900);color:#fff;border-color:rgba(227,205,175,.3)}.panel.dark h2{margin:0 0 10px;font-size:22px}.panel.dark p{color:#c6d0de;font-size:13.5px;margin:0 0 16px}.panel.dark .btn{width:100%}.panel.dark .btn+.btn{margin-top:8px}
 .recent-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}.recent-head h3{margin:0;font-size:17px}.recent-head button{font-size:12px;color:var(--muted);background:none;border:0;cursor:pointer;font-family:inherit;padding:0}
 .recent-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
@@ -91,7 +90,7 @@
 <section class="section"><div class="container">
 <div class="chips" data-chip-group id="categoryChips"><button class="chip active" data-chip data-filter="">전체 강좌</button></div>
 
-<div class="catalog-layout"><div><div class="filterbar"><span class="search-box"><input class="control" id="courseSearchInput" placeholder="강좌명, 키워드 검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m15.8 15.8 4 4"/></svg></span></div><div class="course-list" id="courseList"><p style="padding:40px 0;text-align:center;color:var(--muted)">강좌 목록을 불러오는 중입니다…</p></div><div class="pagination" id="coursePagination"></div></div>
+<div class="catalog-layout"><div><div class="filterbar"><span class="search-box"><input class="control" id="courseSearchInput" placeholder="강좌명, 키워드 검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m15.8 15.8 4 4"/></svg></span></div><div class="course-list" id="courseList"><p style="padding:40px 0;text-align:center;color:var(--muted)">강좌 목록을 불러오는 중입니다…</p></div></div>
 
 <aside class="sidebar">
 <section class="panel dark"><h2>어떤 강좌를<br>들어야 할지 모르겠다면?</h2><p>목표 대학과 현재 실력에 맞는<br>최적의 학습 플랜을 추천해 드립니다.</p><a class="btn btn--primary" href="intro.html">학습소개 살펴보기 →</a><a class="btn btn--kakao" href="#" target="_blank" rel="noopener" data-kakao-link>카카오톡 상담</a></section>
@@ -130,12 +129,10 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-coming-soon]'))
   });
 })();
 
-// ── 강좌 목록/카테고리/페이지네이션: /api/vod-courses, /api/vod-categories 실 데이터 연동 ──
-const COURSE_PAGE_SIZE=5;
+// ── 강좌 목록/카테고리: /api/vod-courses, /api/vod-categories 실 데이터 연동 ──
 let allCourses=[];
 let activeCategoryFilter='';
 let searchQuery='';
-let currentCoursePage=1;
 
 function getFilteredCourses(){
   return allCourses.filter(c=>{
@@ -176,25 +173,14 @@ function courseRowHtml(c){
 }
 
 function renderCoursePage(){
-  const listEl=$('#courseList'),pagEl=$('#coursePagination');
+  const listEl=$('#courseList');
   if(!listEl)return;
   const filtered=getFilteredCourses();
   if(!filtered.length){
     listEl.innerHTML=`<p style="padding:40px 0;text-align:center;color:var(--muted)">${allCourses.length?'조건에 맞는 강좌가 없습니다.':'등록된 강좌가 없습니다.'}</p>`;
-    if(pagEl)pagEl.innerHTML='';
     return;
   }
-  const totalPages=Math.max(1,Math.ceil(filtered.length/COURSE_PAGE_SIZE));
-  if(currentCoursePage>totalPages)currentCoursePage=totalPages;
-  const start=(currentCoursePage-1)*COURSE_PAGE_SIZE;
-  listEl.innerHTML=filtered.slice(start,start+COURSE_PAGE_SIZE).map(courseRowHtml).join('');
-
-  if(pagEl){
-    let html=`<button type="button" data-page="${currentCoursePage-1}"${currentCoursePage===1?' disabled':''}>‹</button>`;
-    for(let p=1;p<=totalPages;p++)html+=`<button type="button" class="${p===currentCoursePage?'active':''}" data-page="${p}">${p}</button>`;
-    html+=`<button type="button" data-page="${currentCoursePage+1}"${currentCoursePage===totalPages?' disabled':''}>›</button>`;
-    pagEl.innerHTML=html;
-  }
+  listEl.innerHTML=filtered.map(courseRowHtml).join('');
 }
 
 $('#courseList')?.addEventListener('click',e=>{
@@ -205,21 +191,12 @@ $('#courseList')?.addEventListener('click',e=>{
   if(course&&typeof recordRecentVodCourse==='function')recordRecentVodCourse(course);
 });
 
-$('#coursePagination')?.addEventListener('click',e=>{
-  const btn=e.target.closest('button[data-page]');
-  if(!btn||btn.disabled)return;
-  currentCoursePage=parseInt(btn.dataset.page,10)||1;
-  renderCoursePage();
-  $('#courseList')?.scrollIntoView({behavior:'smooth',block:'start'});
-});
-
 $('#categoryChips')?.addEventListener('click',e=>{
   const btn=e.target.closest('[data-chip]');
   if(!btn)return;
   $$('[data-chip]',e.currentTarget).forEach(x=>x.classList.remove('active'));
   btn.classList.add('active');
   activeCategoryFilter=btn.dataset.filter||'';
-  currentCoursePage=1;
   renderCoursePage();
 });
 
@@ -228,7 +205,6 @@ $('#courseSearchInput')?.addEventListener('input',e=>{
   clearTimeout(searchDebounce);
   searchDebounce=setTimeout(()=>{
     searchQuery=e.target.value.trim().toLowerCase();
-    currentCoursePage=1;
     renderCoursePage();
   },200);
 });
