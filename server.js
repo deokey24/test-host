@@ -1501,6 +1501,30 @@ app.post('/api/payments/init', requireMember, wrapAsync(async (req, res) => {
   const [[member]] = await getPool().query('SELECT name FROM members WHERE id = ?', [req.session.memberId]);
   const orderNumber = makeOrderNumber(req.session.memberId);
 
+  // 쿠폰으로 최종 금액이 0원이 되면 PayUp을 거치지 않는다 — PG는 0원 거래를 거절해 결제창에서 "결제가 취소
+  // 되었습니다"만 뜨고 승인 요청이 서버에 오지 않는다(실DB에 amount=0 행이 전부 transaction_id 없이 expired로
+  // 남아 있던 원인). 서버가 그 자리에서 approved로 마감하고 수강 등록 + 쿠폰 소진까지 끝낸 뒤, 프론트가
+  // 결제창 대신 완료 페이지로 이동하도록 free 플래그를 돌려준다. transaction_id는 없다(PG 거래가 아님).
+  if (amount === 0) {
+    const [result] = await getPool().query(
+      `INSERT INTO payments (member_id, vod_course_id, order_number, item_name, amount, status, coupon_id, response_msg, approved_at)
+       VALUES (?, ?, ?, ?, 0, 'approved', ?, '쿠폰 전액할인(0원, PG 미경유)', NOW())`,
+      [req.session.memberId, vodCourseId, orderNumber, course.title, couponId]
+    );
+    await enrollMemberInVod(req.session.memberId, vodCourseId, 'payment');
+    if (couponId) {
+      await getPool().query(
+        `UPDATE coupons SET status = '사용완료', used_at = NOW(), payment_id = ? WHERE id = ? AND member_id = ?`,
+        [result.insertId, couponId, req.session.memberId]
+      );
+    }
+    res.json({
+      free: true,
+      redirect: paymentCompleteRedirect({ order_number: orderNumber, vod_course_id: vodCourseId, item_name: course.title, amount: 0 }, true)
+    });
+    return;
+  }
+
   await getPool().query(
     `INSERT INTO payments (member_id, vod_course_id, order_number, item_name, amount, status, coupon_id)
      VALUES (?, ?, ?, ?, ?, 'pending', ?)`,
@@ -1687,8 +1711,11 @@ app.post('/admin/api/payments/:id/cancel', requireAdminApi, wrapAsync(async (req
   if (!payment) { res.status(404).json({ error: '결제 내역을 찾을 수 없습니다.' }); return; }
   if (payment.status !== 'approved') { res.status(400).json({ error: 'approved 상태의 결제만 취소할 수 있습니다.' }); return; }
 
-  const result = await payup.cancelPayment({ transactionId: payment.transaction_id, cancelReason: reason || '관리자 취소' });
-  if (!result.ok) { res.status(400).json({ error: result.raw?.message || '결제 취소에 실패했습니다.' }); return; }
+  // 쿠폰 전액할인(0원) 건은 PG 거래가 없어 transaction_id가 비어 있다 — PayUp 호출 없이 DB만 canceled로 내린다.
+  if (!(Number(payment.amount) === 0 && !payment.transaction_id)) {
+    const result = await payup.cancelPayment({ transactionId: payment.transaction_id, cancelReason: reason || '관리자 취소' });
+    if (!result.ok) { res.status(400).json({ error: result.raw?.message || '결제 취소에 실패했습니다.' }); return; }
+  }
 
   await getPool().query(`UPDATE payments SET status = 'canceled', canceled_at = NOW() WHERE id = ?`, [req.params.id]);
   res.json({ ok: true });
@@ -1703,6 +1730,7 @@ app.post('/admin/api/payments/:id/partial-cancel', requireAdminApi, wrapAsync(as
   const [[payment]] = await getPool().query('SELECT * FROM payments WHERE id = ?', [req.params.id]);
   if (!payment) { res.status(404).json({ error: '결제 내역을 찾을 수 없습니다.' }); return; }
   if (payment.status !== 'approved') { res.status(400).json({ error: 'approved 상태의 결제만 부분취소할 수 있습니다.' }); return; }
+  if (Number(payment.amount) === 0) { res.status(400).json({ error: '0원(쿠폰 전액할인) 결제는 부분취소할 수 없습니다.' }); return; }
 
   const result = await payup.partialCancelPayment({
     transactionId: payment.transaction_id, cancelAmount: amount, cancelReason: reason || '관리자 부분취소'

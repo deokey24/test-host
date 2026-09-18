@@ -23,7 +23,8 @@ function paymentRowHtml(p) {
   const suspect = isSuspectPayment(p);
   const actions = [];
   if (p.status === 'approved') {
-    actions.push(`<button class="row-btn" data-payment-partial="${p.id}" type="button">부분취소</button>`);
+    // 쿠폰 전액할인 0원 건은 환불할 금액이 없어 부분취소 버튼을 감춘다(취소는 수강권 회수용으로 남긴다).
+    if (Number(p.amount) > 0) actions.push(`<button class="row-btn" data-payment-partial="${p.id}" type="button">부분취소</button>`);
     actions.push(`<button class="row-btn danger" data-payment-cancel="${p.id}" type="button">취소</button>`);
   }
   // 수동승인 버튼 임시 비활성화

@@ -104,6 +104,10 @@ PAYUP_API_KEY=...
 4. "결제하기" 클릭 → 실제 카드로 소액 결제 → `paymentComplete.html?payment=success`로 이동해 결과 확인.
 5. 결제 취소(환불): `node --env-file-if-exists=.env scripts/cancel-payment.js <orderNumber> "사유"` — `payments.status='approved'`인 건만 취소 가능, 취소 후 `status='canceled'`로 갱신.
 
+## 쿠폰 전액할인(0원) 주문
+
+PayUp은 0원 거래를 거절한다(결제창은 뜨지만 카드 인증으로 못 넘어가고 "결제가 취소 되었습니다"만 뜸). 그래서 `/api/payments/init`은 쿠폰 적용 후 최종 금액이 0이면 PG를 거치지 않고 그 자리에서 `payments`를 `approved`(`transaction_id` 없음, `response_msg`에 "쿠폰 전액할인" 표기)로 넣고 `enrollMemberInVod()` + 쿠폰 `사용완료`까지 마감한 뒤 `{ free: true, redirect }`를 돌려준다. 프론트(`site-content.js`)는 이 응답이면 `goPayupPay`를 건너뛰고 완료 페이지로 이동한다. 관리자 취소는 PayUp 호출 없이 DB만 `canceled`로 내리고, 부분취소는 막혀 있다.
+
 ## 관리자 결제 관리 (`admin/index.html` "결제 관리")
 
 - **목록/검색**: `GET /admin/api/payments` — 주문번호/거래번호/회원명/강좌명 검색, 상태 필터. `admin/payments.js`가 렌더링.

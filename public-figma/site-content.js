@@ -811,6 +811,8 @@ function wireOrderConfirmPayButton(vodCourseId, course, couponSelect) {
       });
       const payData = await res.json();
       if (!res.ok) { alert(payData.error || '결제 준비 중 오류가 발생했습니다.'); return; }
+      // 쿠폰으로 0원이 된 주문은 서버가 이미 승인·수강등록까지 끝냈다 — PayUp은 0원 거래를 거절하므로 결제창을 띄우지 않는다.
+      if (payData.free) { window.location.href = payData.redirect; return; }
       goPayupPay(payData);
     } catch {
       alert('서버와 통신 중 오류가 발생했습니다.');
