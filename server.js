@@ -2351,7 +2351,8 @@ app.get('/api/v1/courses/:id/lectures', requireApiToken, wrapAsync(async (req, r
       id: l.id,
       lectureNumber: l.lecture_number,
       title: l.title,
-      contentMarkdown: l.content_markdown,
+      // 설명 미입력 강의는 NULL — 배포된 일렉트론 앱이 marked.parse(null)에서 크래시(화면 전체 검정)하므로 항상 문자열로 내려준다.
+      contentMarkdown: l.content_markdown ?? '',
       hasVideo: !!l.video_r2_key,
       materials: l.materials
     }))
@@ -3162,7 +3163,8 @@ app.post('/admin/api/vod-courses/:id/lectures', requireAdminApi, wrapAsync(async
   }
   try {
     const [result] = await getPool().query(
-      'INSERT INTO vod_course_lectures (vod_course_id, lecture_number, title, video_r2_key, sort_order) VALUES (?, ?, ?, ?, ?)',
+      // content_markdown은 NULL 대신 ''로 — /api/v1 소비자(일렉트론 앱)가 문자열을 가정한다.
+      "INSERT INTO vod_course_lectures (vod_course_id, lecture_number, title, video_r2_key, sort_order, content_markdown) VALUES (?, ?, ?, ?, ?, '')",
       [req.params.id, num, String(title).trim(), videoR2Key, num]
     );
     res.json({ ok: true, id: result.insertId });
@@ -3211,7 +3213,7 @@ app.put('/admin/api/vod-courses/:id/lectures/:lectureId', requireAdminApi, wrapA
   }
   if (contentMarkdown !== undefined) {
     fields.push('content_markdown = ?');
-    values.push(contentMarkdown === null ? null : String(contentMarkdown));
+    values.push(contentMarkdown === null ? '' : String(contentMarkdown));
   }
   if (fields.length === 0) { res.status(400).json({ error: '변경할 값이 없습니다.' }); return; }
   try {
