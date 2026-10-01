@@ -3144,6 +3144,75 @@ app.get('/admin/api/vod-courses/:id/lectures', requireAdminApi, wrapAsync(async 
   res.json(rows);
 }));
 
+// 커리큘럼 순서 확정 — orderedIds 순서대로 lecture_number/sort_order를 연속 번호로 다시 매긴다.
+// 시작 번호는 lectureNumberBase() 참고.
+// uq_vod_course_lecture(vod_course_id, lecture_number) 때문에 바로 덮어쓰면 중간에 번호가 겹치므로
+// 먼저 -id(행마다 고유)로 비켜놓은 뒤 최종 번호를 매긴다. 진도·자료는 lecture id로 묶여 있어 번호가 바뀌어도 그대로 따라간다.
+// conn은 트랜잭션 중인 커넥션이어야 하고, orderedIds는 해당 강좌의 강의 id 전체와 정확히 일치해야 한다(호출부 검증).
+async function renumberVodCourseLectures(conn, vodCourseId, orderedIds, baseNumber) {
+  await conn.query('UPDATE vod_course_lectures SET lecture_number = -id WHERE vod_course_id = ?', [vodCourseId]);
+  for (const [idx, id] of orderedIds.entries()) {
+    await conn.query(
+      'UPDATE vod_course_lectures SET lecture_number = ?, sort_order = ? WHERE id = ? AND vod_course_id = ?',
+      [baseNumber + idx, baseNumber + idx, id, vodCourseId]
+    );
+  }
+}
+
+// 0강(OT)이 있던 강좌는 0부터, 아니면 1부터 번호를 매긴다.
+function lectureNumberBase(rows) {
+  return rows.some(r => r.lecture_number === 0) ? 0 : 1;
+}
+
+// 강좌의 강의 행을 현재 표시 순서대로 잠그고 가져온다 — 순서 변경/중간 삽입/삭제가 동시에 들어와도 번호가 꼬이지 않게.
+// 강의 행만 FOR UPDATE로 잠그면 동시 요청끼리 갭 락/삽입 락 순서가 엇갈려 데드락이 나므로,
+// 부모 강좌 행을 먼저 잠가 같은 강좌의 순서 작업을 한 줄로 세운다.
+async function lockVodCourseLectures(conn, vodCourseId) {
+  await conn.query('SELECT id FROM vod_courses WHERE id = ? FOR UPDATE', [vodCourseId]);
+  const [rows] = await conn.query(
+    'SELECT id, lecture_number FROM vod_course_lectures WHERE vod_course_id = ? ORDER BY sort_order, lecture_number FOR UPDATE',
+    [vodCourseId]
+  );
+  return rows;
+}
+
+async function withTransaction(fn) {
+  const conn = await getPool().getConnection();
+  try {
+    await conn.beginTransaction();
+    const result = await fn(conn);
+    await conn.commit();
+    return result;
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
+// 드래그로 바꾼 순서를 일괄 저장 — ids는 해당 강좌 강의 id 전체를 새 순서대로.
+app.post('/admin/api/vod-courses/:id/lectures/reorder', requireAdminApi, wrapAsync(async (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(id => parseInt(id, 10)) : null;
+  if (!ids || !ids.length || ids.some(id => Number.isNaN(id)) || new Set(ids).size !== ids.length) {
+    res.status(400).json({ error: 'ids는 중복 없는 강의 id 배열이어야 합니다.' });
+    return;
+  }
+  const outcome = await withTransaction(async (conn) => {
+    const rows = await lockVodCourseLectures(conn, req.params.id);
+    const existing = new Set(rows.map(r => r.id));
+    // 다른 강좌 id가 섞이거나, 그사이 다른 관리자가 추가/삭제해서 목록이 달라졌으면 거부한다.
+    if (rows.length !== ids.length || ids.some(id => !existing.has(id))) return 'stale';
+    await renumberVodCourseLectures(conn, req.params.id, ids, lectureNumberBase(rows));
+    return 'ok';
+  });
+  if (outcome === 'stale') {
+    res.status(409).json({ error: '강의 목록이 그사이 변경되었습니다. 새로고침 후 다시 시도해주세요.' });
+    return;
+  }
+  res.json({ ok: true });
+}));
+
 app.post('/admin/api/vod-courses/:id/lectures', requireAdminApi, wrapAsync(async (req, res) => {
   const { videoId, lectureNumber, title } = req.body;
   const num = parseInt(lectureNumber, 10);
@@ -3161,7 +3230,29 @@ app.post('/admin/api/vod-courses/:id/lectures', requireAdminApi, wrapAsync(async
     }
     videoR2Key = video.final_r2_key;
   }
+  // insertBeforeId가 있으면 그 강의 바로 앞에 끼워 넣고 뒤 번호를 한 칸씩 민다.
+  // 없으면 기존처럼 lectureNumber(관리자 화면이 계산한 "마지막 + 1") 그대로 맨 끝에 추가.
+  const insertBeforeId = req.body.insertBeforeId ? parseInt(req.body.insertBeforeId, 10) : null;
   try {
+    if (insertBeforeId) {
+      const outcome = await withTransaction(async (conn) => {
+        const rows = await lockVodCourseLectures(conn, req.params.id);
+        const pos = rows.findIndex(r => r.id === insertBeforeId);
+        if (pos < 0) return { notFound: true };
+        const tempNumber = Math.max(...rows.map(r => r.lecture_number)) + 1;
+        const [result] = await conn.query(
+          "INSERT INTO vod_course_lectures (vod_course_id, lecture_number, title, video_r2_key, sort_order, content_markdown) VALUES (?, ?, ?, ?, ?, '')",
+          [req.params.id, tempNumber, String(title).trim(), videoR2Key, tempNumber]
+        );
+        const ids = rows.map(r => r.id);
+        ids.splice(pos, 0, result.insertId);
+        await renumberVodCourseLectures(conn, req.params.id, ids, lectureNumberBase(rows));
+        return { id: result.insertId };
+      });
+      if (outcome.notFound) { res.status(404).json({ error: '삽입 위치의 강의를 찾을 수 없습니다. 새로고침 후 다시 시도해주세요.' }); return; }
+      res.json({ ok: true, id: outcome.id });
+      return;
+    }
     const [result] = await getPool().query(
       // content_markdown은 NULL 대신 ''로 — /api/v1 소비자(일렉트론 앱)가 문자열을 가정한다.
       "INSERT INTO vod_course_lectures (vod_course_id, lecture_number, title, video_r2_key, sort_order, content_markdown) VALUES (?, ?, ?, ?, ?, '')",
@@ -3230,12 +3321,20 @@ app.put('/admin/api/vod-courses/:id/lectures/:lectureId', requireAdminApi, wrapA
   }
 }));
 
+// 중간 강의를 지우면 뒤 번호를 당겨 "1,2,4강"처럼 구멍이 나지 않게 한다.
 app.delete('/admin/api/vod-courses/:id/lectures/:lectureId', requireAdminApi, wrapAsync(async (req, res) => {
-  const [result] = await getPool().query(
-    'DELETE FROM vod_course_lectures WHERE id = ? AND vod_course_id = ?',
-    [req.params.lectureId, req.params.id]
-  );
-  if (result.affectedRows === 0) { res.status(404).json({ error: '강의를 찾을 수 없습니다.' }); return; }
+  const lectureId = parseInt(req.params.lectureId, 10);
+  const deleted = await withTransaction(async (conn) => {
+    const rows = await lockVodCourseLectures(conn, req.params.id);
+    if (!rows.some(r => r.id === lectureId)) return false;
+    await conn.query('DELETE FROM vod_course_lectures WHERE id = ? AND vod_course_id = ?', [lectureId, req.params.id]);
+    const remaining = rows.filter(r => r.id !== lectureId);
+    if (remaining.length) {
+      await renumberVodCourseLectures(conn, req.params.id, remaining.map(r => r.id), lectureNumberBase(rows));
+    }
+    return true;
+  });
+  if (!deleted) { res.status(404).json({ error: '강의를 찾을 수 없습니다.' }); return; }
   res.json({ ok: true });
 }));
 

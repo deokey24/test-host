@@ -681,13 +681,25 @@ function formatLectureDuration(seconds) {
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${mm}:${ss}`;
 }
 
-function lectureRowHtml(l) {
+const VOD_LECTURE_TABLE_HEAD = `
+  <thead><tr><th style="width:110px;">순서</th><th>제목</th><th style="width:220px;">영상 연결</th><th style="width:260px;">자료 첨부</th><th></th></tr></thead>`;
+
+function lectureRowHtml(l, idx, total) {
   const materials = lectureMaterialsFor(l.id);
   const hasContent = !!(l.content_markdown && l.content_markdown.trim());
   const durationText = formatLectureDuration(l.duration_seconds);
   return `
+    <tbody class="drag-item" data-id="${l.id}">
     <tr>
-      <td>${l.lecture_number}</td>
+      <td>
+        <span class="drag-cell">
+          <span class="drag-handle" title="끌어서 순서 변경">☰</span>${l.lecture_number}
+          <span class="lecture-move-btns">
+            <button type="button" class="row-btn" data-move-lec="${l.id}" data-dir="-1" title="위로" ${idx === 0 ? 'disabled' : ''}>▲</button>
+            <button type="button" class="row-btn" data-move-lec="${l.id}" data-dir="1" title="아래로" ${idx === total - 1 ? 'disabled' : ''}>▼</button>
+          </span>
+        </span>
+      </td>
       <td><input type="text" data-lec-title="${l.id}" value="${escapeHtml(l.title)}" style="margin-bottom:0;"></td>
       <td>
         <div class="searchable-select" data-video-select="${l.id}">
@@ -721,6 +733,7 @@ function lectureRowHtml(l) {
         </div>
       </td>
     </tr>
+    </tbody>
   `;
 }
 
@@ -958,13 +971,18 @@ async function loadVodLectures() {
       `<optgroup label="${escapeHtml(group)}">${opts.map(o => `<option value="${o.id}">${escapeHtml(o.label)}</option>`).join('')}</optgroup>`
     ).join('');
 
-  document.getElementById('vodLectureNumberInput').value = lectures.length
-    ? String(Math.max(...lectures.map(l => l.lecture_number)) + 1)
-    : '0';
+  // 추가 위치 선택 — 기본은 맨 끝, "N 앞에"를 고르면 서버가 그 자리에 끼우고 뒤 번호를 민다.
+  const posSelect = document.getElementById('vodLectureInsertPos');
+  const prevPos = posSelect.value;
+  posSelect.innerHTML = '<option value="">맨 끝에 추가</option>' +
+    lectures.map(l => `<option value="${l.id}">${escapeHtml(truncateText(l.title, 24))} 앞에</option>`).join('');
+  if (lectures.some(l => String(l.id) === prevPos)) posSelect.value = prevPos;
 
-  document.getElementById('vodLectureList').innerHTML = lectures.length
-    ? lectures.map(lectureRowHtml).join('')
-    : '<tr><td colspan="5" style="color:var(--text-soft);">등록된 커리큘럼 스텝이 없습니다.</td></tr>';
+  const listEl = document.getElementById('vodLectureList');
+  listEl.innerHTML = VOD_LECTURE_TABLE_HEAD + (lectures.length
+    ? lectures.map((l, idx) => lectureRowHtml(l, idx, lectures.length)).join('')
+    : '<tbody><tr><td colspan="5" style="color:var(--text-soft);">등록된 커리큘럼 스텝이 없습니다.</td></tr></tbody>');
+  attachDragReorder(listEl, (ids) => saveVodLectureOrder(ids));
 
   lectures.forEach(l => {
     const container = document.querySelector(`[data-video-select="${l.id}"]`);
@@ -975,6 +993,37 @@ async function loadVodLectures() {
       onSelect: (videoId) => updateLectureVideo(l.id, videoId)
     });
   });
+}
+
+function truncateText(text, max) {
+  const str = String(text || '');
+  return str.length > max ? str.slice(0, max) + '…' : str;
+}
+
+// 드래그/▲▼로 바뀐 순서를 저장 — 서버가 번호를 다시 매기므로 저장 후 목록을 새로 그린다.
+// 저장 중에는 목록을 잠가 연속 드래그로 요청이 겹치지 않게 하고, 실패하면 저장된 순서로 되돌린다.
+let vodLectureReorderBusy = false;
+async function saveVodLectureOrder(ids) {
+  const status = document.getElementById('vodLectureStatus');
+  const before = vodLecturesCache.map(l => String(l.id));
+  if (ids.join(',') === before.join(',')) return; // 제자리에 놓은 경우
+  if (vodLectureReorderBusy) return;
+  vodLectureReorderBusy = true;
+  const listEl = document.getElementById('vodLectureList');
+  listEl.classList.add('is-saving');
+  try {
+    await apiFetch(`/admin/api/vod-courses/${currentVodId}/lectures/reorder`, {
+      method: 'POST', body: JSON.stringify({ ids })
+    });
+    await loadVodLectures();
+    setStatus(status, '순서가 저장되었습니다.', 'ok');
+  } catch (err) {
+    await loadVodLectures().catch(() => {});
+    setStatus(status, err.message, 'error');
+  } finally {
+    listEl.classList.remove('is-saving');
+    vodLectureReorderBusy = false;
+  }
 }
 
 async function updateLectureVideo(lectureId, videoId) {
@@ -994,14 +1043,19 @@ document.getElementById('vodLectureAddBtn').addEventListener('click', async () =
   if (!currentVodId) return;
   const status = document.getElementById('vodLectureStatus');
   const videoId = document.getElementById('vodLectureVideoSelect').value;
-  const lectureNumber = document.getElementById('vodLectureNumberInput').value;
+  const insertBeforeId = document.getElementById('vodLectureInsertPos').value;
   const title = document.getElementById('vodLectureTitleInput').value.trim();
-  if (lectureNumber === '' || !title) { setStatus(status, '번호와 제목을 입력해주세요.', 'error'); return; }
+  if (!title) { setStatus(status, '제목을 입력해주세요.', 'error'); return; }
+  // 맨 끝 추가는 "마지막 번호 + 1"(첫 강의는 0), 중간 삽입은 서버가 번호를 다시 매긴다.
+  const lectureNumber = vodLecturesCache.length
+    ? Math.max(...vodLecturesCache.map(l => l.lecture_number)) + 1
+    : 0;
   try {
     await apiFetch(`/admin/api/vod-courses/${currentVodId}/lectures`, {
       method: 'POST',
-      body: JSON.stringify({ videoId: videoId || undefined, lectureNumber, title })
+      body: JSON.stringify({ videoId: videoId || undefined, lectureNumber, title, insertBeforeId: insertBeforeId || undefined })
     });
+    document.getElementById('vodLectureInsertPos').value = '';
     setStatus(status, '추가되었습니다.', 'ok');
     document.getElementById('vodLectureTitleInput').value = '';
     await loadVodLectures();
@@ -1025,6 +1079,16 @@ document.getElementById('vodLectureList').addEventListener('change', async (e) =
 });
 
 document.getElementById('vodLectureList').addEventListener('click', async (e) => {
+  const moveId = e.target.dataset.moveLec;
+  if (moveId) {
+    const ids = vodLecturesCache.map(l => String(l.id));
+    const from = ids.indexOf(moveId);
+    const to = from + Number(e.target.dataset.dir);
+    if (from < 0 || to < 0 || to >= ids.length) return;
+    [ids[from], ids[to]] = [ids[to], ids[from]];
+    await saveVodLectureOrder(ids);
+    return;
+  }
   const unlinkId = e.target.dataset.unlinkLec;
   const addMaterialId = e.target.dataset.materialAdd;
   const removeMaterialId = e.target.dataset.removeMaterial;

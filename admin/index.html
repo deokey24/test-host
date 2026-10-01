@@ -315,18 +315,18 @@
           </div>
 
           <div id="vodTabCurriculum" class="admin-tab-panel" style="display:none;">
-            <p class="field-hint" style="margin-bottom:10px;">강의 번호·제목이 커리큘럼 스텝으로 그대로 표시됩니다. 번호는 목록 마지막 다음 번호로 자동 지정되며, 영상 연결과 자료 첨부는 선택 사항입니다.</p>
-            <div style="display:flex; gap:8px; margin-bottom:10px;">
-              <input type="number" id="vodLectureNumberInput" min="0" placeholder="번호" style="width:90px;" readonly>
+            <p class="field-hint" style="margin-bottom:10px;">강의 제목이 목록 순서대로 커리큘럼 스텝으로 표시됩니다. ☰ 손잡이를 끌거나 ▲▼ 버튼으로 순서를 바꿀 수 있고, 추가할 때 위치를 고르면 중간에 끼워 넣을 수 있습니다(번호는 자동으로 다시 매겨짐). 영상 연결과 자료 첨부는 선택 사항입니다.</p>
+            <div class="vod-lecture-add-row">
+              <select id="vodLectureInsertPos" style="flex:0 0 180px;"></select>
               <input type="text" id="vodLectureTitleInput" placeholder="강의 제목" style="flex:1;">
               <select id="vodLectureVideoSelect" style="flex:1;"></select>
               <button class="btn-outline" id="vodLectureAddBtn" type="button">추가</button>
             </div>
             <div class="status-text" id="vodLectureStatus"></div>
-            <table>
-              <thead><tr><th style="width:70px;">번호</th><th>제목</th><th style="width:220px;">영상 연결</th><th style="width:260px;">자료 첨부</th><th></th></tr></thead>
-              <tbody id="vodLectureList"></tbody>
-            </table>
+            <div class="vod-lecture-table-wrap">
+              <!-- 강의 하나 = <tbody class="drag-item"> (본문 행 + 콘텐츠 에디터 행)라 드래그 시 두 행이 함께 움직인다 -->
+              <table id="vodLectureList"></table>
+            </div>
           </div>
 
           <div id="vodTabPurchase" class="admin-tab-panel" style="display:none;">

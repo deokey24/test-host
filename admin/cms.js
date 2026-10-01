@@ -189,18 +189,30 @@ function attachDragReorder(listEl, onReorder) {
       listEl.setPointerCapture(e.pointerId);
       e.preventDefault();
 
-      const onMove = (ev) => {
+      let lastY = e.clientY;
+      const place = () => {
         const items = [...listEl.querySelectorAll('.drag-item')];
         const afterItem = items.find(item => {
           if (item === dragItem) return false;
           const rect = item.getBoundingClientRect();
-          return ev.clientY < rect.top + rect.height / 2;
+          return lastY < rect.top + rect.height / 2;
         });
         if (afterItem) listEl.insertBefore(dragItem, afterItem);
         else listEl.appendChild(dragItem);
       };
+      const onMove = (ev) => { lastY = ev.clientY; place(); };
+
+      // 긴 목록(강의 20~30개)을 모바일에서 끌 때 화면 위/아래 가장자리에 손가락을 대면 자동 스크롤.
+      // 핸들이 touch-action:none이라 드래그 중에는 브라우저가 스스로 스크롤해주지 않는다.
+      const EDGE = 70;
+      const autoScroll = setInterval(() => {
+        const dy = lastY < EDGE ? -(EDGE - lastY) / 3
+          : lastY > window.innerHeight - EDGE ? (lastY - (window.innerHeight - EDGE)) / 3 : 0;
+        if (dy) { window.scrollBy(0, dy); place(); }
+      }, 16);
 
       const onUp = async (ev) => {
+        clearInterval(autoScroll);
         listEl.releasePointerCapture(ev.pointerId);
         listEl.removeEventListener('pointermove', onMove);
         listEl.removeEventListener('pointerup', onUp);

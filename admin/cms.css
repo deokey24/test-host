@@ -510,3 +510,21 @@ th { color: var(--text-soft); font-weight: 700; font-size: 12px; }
 }
 .coupon-code-chip button { font-family: inherit; font-size: 11px; font-weight: 700; color: var(--green-dark); }
 .qna-detail-box .qna-detail-answer b { color: var(--green-dark); }
+
+/* ── VOD 커리큘럼 강의 순서 변경 (강의 하나 = tbody.drag-item, 본문+콘텐츠 에디터 행이 함께 이동) ── */
+.vod-lecture-add-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.vod-lecture-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.vod-lecture-table-wrap table { min-width: 860px; }
+tbody.drag-item .drag-handle { width: 28px; height: 28px; font-size: 17px; }
+tbody.drag-item.dragging { opacity: 0.6; background: rgba(14,169,104,0.08); }
+.lecture-move-btns { display: inline-flex; gap: 2px; margin-left: 4px; }
+.lecture-move-btns .row-btn { padding: 2px 6px; font-size: 11px; line-height: 1.4; }
+.lecture-move-btns .row-btn:disabled { opacity: 0.3; cursor: default; }
+#vodLectureList.is-saving { opacity: 0.55; pointer-events: none; }
+@media (max-width: 600px) {
+  .vod-lecture-add-row { flex-wrap: wrap; }
+  .vod-lecture-add-row > * { flex: 1 1 100% !important; }
+  /* 손가락으로 잡기 쉽게 핸들과 ▲▼ 버튼을 키운다 */
+  tbody.drag-item .drag-handle { width: 36px; height: 36px; font-size: 20px; }
+  .lecture-move-btns .row-btn { padding: 6px 10px; font-size: 13px; }
+}
