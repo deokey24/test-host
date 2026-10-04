@@ -81,10 +81,48 @@ const MEMBER_DETAIL_FIELDS = [
   ['consultation_notes', '상담 메모']
 ];
 
+let detailMemberId = null;
+
+async function loadMemberDevices() {
+  const list = document.getElementById('memberDeviceList');
+  try {
+    const rows = await apiFetch(`/admin/api/members/${detailMemberId}/devices`);
+    list.innerHTML = rows.length ? rows.map(d => `
+      <tr>
+        <td>${escapeHtml(d.label || '알 수 없는 기기')}</td>
+        <td>${d.isApp ? '앱' : '웹'}</td>
+        <td>${escapeHtml(d.ip || '-')}</td>
+        <td>${d.lastLoginAt ? new Date(d.lastLoginAt).toLocaleString('ko-KR') : '-'}</td>
+        <td><button class="row-btn danger" data-device-remove-id="${d.id}" type="button">삭제</button></td>
+      </tr>
+    `).join('') : '<tr><td colspan="5" class="field-hint">등록된 기기가 없습니다.</td></tr>';
+  } catch (err) {
+    list.innerHTML = '<tr><td colspan="5" class="field-hint">기기 목록을 불러오지 못했습니다.</td></tr>';
+  }
+}
+
+document.getElementById('memberDeviceList').addEventListener('click', async (e) => {
+  const removeId = e.target.dataset.deviceRemoveId;
+  if (!removeId) return;
+  if (!confirm('이 기기를 삭제할까요? 해당 기기는 다시 로그인해야 합니다.')) return;
+  const status = document.getElementById('memberDeviceStatus');
+  try {
+    await apiFetch(`/admin/api/members/${detailMemberId}/devices/${removeId}`, { method: 'DELETE' });
+    setStatus(status, '기기가 삭제되었습니다.', 'ok');
+  } catch (err) {
+    setStatus(status, err.message, 'error');
+  }
+  await loadMemberDevices();
+});
+
 async function openMemberDetailModal(memberId) {
+  detailMemberId = memberId;
   const body = document.getElementById('memberDetailBody');
   body.innerHTML = '<tr><td>불러오는 중...</td></tr>';
+  document.getElementById('memberDeviceList').innerHTML = '<tr><td colspan="5" class="field-hint">불러오는 중...</td></tr>';
+  setStatus(document.getElementById('memberDeviceStatus'), '');
   document.getElementById('memberDetailModalOverlay').classList.add('open');
+  loadMemberDevices();
 
   try {
     const m = await apiFetch(`/admin/api/members/${memberId}`);

@@ -1288,6 +1288,40 @@ app.get('/admin/api/members/:id', requireAdminApi, wrapAsync(async (req, res) =>
   res.json(rows[0]);
 }));
 
+// 회원 상세 > 등록 기기 — 정원(MAX_DEVICES_PER_MEMBER)이 차서 로그인조차 못 하는 회원은
+// 마이페이지 기기 관리에 들어갈 수 없으므로 관리자가 대신 지워줄 수 있어야 한다.
+app.get('/admin/api/members/:id/devices', requireAdminApi, wrapAsync(async (req, res) => {
+  const [rows] = await getPool().query(
+    'SELECT id, device_label, ip_address, token_id, last_login_at FROM member_devices WHERE member_id = ? ORDER BY last_login_at DESC',
+    [req.params.id]
+  );
+  res.json(rows.map(r => ({
+    id: r.id,
+    label: r.device_label,
+    ip: r.ip_address,
+    isApp: r.token_id !== null,
+    lastLoginAt: r.last_login_at
+  })));
+}));
+
+app.delete('/admin/api/members/:id/devices/:deviceRowId', requireAdminApi, wrapAsync(async (req, res) => {
+  const [[device]] = await getPool().query(
+    'SELECT device_id FROM member_devices WHERE id = ? AND member_id = ?',
+    [req.params.deviceRowId, req.params.id]
+  );
+  if (!device) {
+    res.status(404).json({ error: '기기를 찾을 수 없습니다.' });
+    return;
+  }
+  // 마이페이지 삭제(DELETE /api/members/devices/:id)와 동일하게 api_tokens도 같이 지워 앱 토큰을 즉시 무효화한다.
+  await getPool().query(
+    'DELETE FROM api_tokens WHERE member_id = ? AND device_id = ?',
+    [req.params.id, device.device_id]
+  );
+  await getPool().query('DELETE FROM member_devices WHERE id = ?', [req.params.deviceRowId]);
+  res.json({ ok: true });
+}));
+
 // 학생을 클래스에 등록하는 공통 진입점 — 지금은 관리자 수동 배정에서만 쓰이지만,
 // 추후 결제 완료 웹훅에서도 동일하게 enrollMemberInClass(memberId, classId, 'payment')로 호출하면 된다.
 async function enrollMemberInClass(memberId, classId, source = 'admin', extra = {}) {
