@@ -51,7 +51,7 @@
    ```
 4. 실제 회원에게 발송하려면 production access 재신청이 필요하다. 케이스가 한 번 거부됐으므로, 재신청 시 거부 사유가 될 만한 부분(예: "기존 시스템에서 마이그레이션된 회원 목록"이라는 표현이 "구매/수집한 리스트"처럼 읽혔을 가능성)을 구체적으로 보완해서 새 케이스를 열거나 기존 케이스에 추가 답변을 보내야 한다.
 5. 재신청 승인 전까지는 `nickname_m@naver.com`(검증된 테스트 주소)로만 실제 발송 테스트가 가능하다.
-6. 운영 서버(EC2)에 연결된 `dockteacher-production-role`에 `infra/iam-policy-production-role.json`의 `SendMemberEmail` 문(`ses:SendEmail`, 리소스 `identity/mail.dockteacher.co.kr`)이 반영되어 있어야 한다.
+6. 운영 서버(EC2)에 연결된 `dockteacher-production-role`에 `infra/iam-policy-production-role.json`의 `SendMemberEmail` 문(`ses:SendEmail`, 리소스 `identity/mail.dockteacher.co.kr` + 기본 설정 세트 `configuration-set/dockteacher-notifications` — 설정 세트가 빠지면 모든 발송이 AccessDenied)이 반영되어 있어야 한다.
 
 ## 2. 프로비저닝 순서 (자격증명 확보 후 실행)
 

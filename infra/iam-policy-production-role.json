@@ -26,7 +26,10 @@
       "Sid": "SendMemberEmail",
       "Effect": "Allow",
       "Action": ["ses:SendEmail"],
-      "Resource": "arn:aws:ses:ap-northeast-2:*:identity/mail.dockteacher.co.kr"
+      "Resource": [
+        "arn:aws:ses:ap-northeast-2:*:identity/mail.dockteacher.co.kr",
+        "arn:aws:ses:ap-northeast-2:*:configuration-set/dockteacher-notifications"
+      ]
     }
   ]
 }
