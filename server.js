@@ -16,6 +16,7 @@ const app = express();
 app.set('trust proxy', 1); // nginx가 X-Forwarded-For를 넘겨줌 — req.ip가 실제 클라이언트 IP를 보게 함
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'dockAdmin';
+const WITHDRAWN_MEMBER_GROUP = 'withdrawn'; // 결제기록 보존 때문에 행을 남긴 탈퇴(익명화) 회원 표식
 const PART_SIZE = 100 * 1024 * 1024; // 100MB
 const MAX_DEVICES_PER_MEMBER = 3;
 const KEEP_LOGGED_IN_MAX_AGE = 1000 * 60 * 60 * 24 * 30; // 30일
@@ -93,12 +94,29 @@ function sendHlsKey(res, hlsKeyBase64) {
   res.send(Buffer.from(hlsKeyBase64, 'base64'));
 }
 
+// 기본값도 MemoryStore지만, 회원 삭제 시 그 회원의 세션을 찾아 끊어야 해서 인스턴스를 변수로 잡아둔다.
+const sessionStore = new session.MemoryStore();
 app.use(session({
+  store: sessionStore,
   secret: process.env.SESSION_SECRET || 'dockteacher-admin-session',
   resave: false,
   saveUninitialized: false,
   cookie: { httpOnly: true, maxAge: 1000 * 60 * 60 * 12 }
 }));
+
+// 관리자가 회원을 삭제/탈퇴 처리했을 때 그 회원의 웹 로그인 세션을 즉시 끊는다.
+// requireMember는 session.memberId 존재만 보므로, 이걸 안 하면 쿠키 만료까지 로그인 상태가 유지된다.
+function destroyMemberSessions(memberId) {
+  return new Promise((resolve) => {
+    sessionStore.all((err, sessions) => {
+      if (err || !sessions) { resolve(0); return; }
+      const sids = Object.keys(sessions).filter(sid => sessions[sid] && String(sessions[sid].memberId) === String(memberId));
+      let pending = sids.length;
+      if (!pending) { resolve(0); return; }
+      sids.forEach(sid => sessionStore.destroy(sid, () => { if (--pending === 0) resolve(sids.length); }));
+    });
+  });
+}
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
@@ -1251,20 +1269,32 @@ app.get('/admin/api/members', requireAdminApi, async (req, res) => {
   const pageSize = Math.min(200, Math.max(1, parseInt(req.query.pageSize, 10) || 50));
   const offset = (page - 1) * pageSize;
   const search = (req.query.search || '').trim();
+  // 탈퇴(익명화) 회원은 결제기록 보존용으로만 남아 있으므로 기본 목록(쿠폰 학생 검색 포함)에서 뺀다.
+  const includeWithdrawn = req.query.includeWithdrawn === '1';
 
-  const where = search ? 'WHERE username LIKE ? OR name LIKE ? OR email LIKE ? OR phone LIKE ? OR mobile LIKE ?' : '';
-  const likeParams = search ? Array(5).fill(`%${search}%`) : [];
+  const conditions = [];
+  const params = [];
+  if (!includeWithdrawn) {
+    conditions.push('(member_group IS NULL OR member_group <> ?)');
+    params.push(WITHDRAWN_MEMBER_GROUP);
+  }
+  if (search) {
+    // OR 묶음은 반드시 괄호로 — 안 감싸면 AND 우선순위 때문에 탈퇴 제외 조건이 깨진다.
+    conditions.push('(username LIKE ? OR name LIKE ? OR email LIKE ? OR phone LIKE ? OR mobile LIKE ?)');
+    params.push(...Array(5).fill(`%${search}%`));
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const [[{ total }]] = await getPool().query(
     `SELECT COUNT(*) AS total FROM members ${where}`,
-    likeParams
+    params
   );
   const [rows] = await getPool().query(
     `SELECT id, username, name, email, phone, mobile, joined_at, member_group, (password IS NOT NULL) AS has_password
      FROM members ${where}
      ORDER BY id DESC
      LIMIT ? OFFSET ?`,
-    [...likeParams, pageSize, offset]
+    [...params, pageSize, offset]
   );
 
   res.json({ total, page, pageSize, rows });
@@ -1320,6 +1350,129 @@ app.delete('/admin/api/members/:id/devices/:deviceRowId', requireAdminApi, wrapA
   );
   await getPool().query('DELETE FROM member_devices WHERE id = ?', [req.params.deviceRowId]);
   res.json({ ok: true });
+}));
+
+// ── 회원 삭제 ──
+// 결제 행이 하나도 없으면 하드 삭제, 있으면(상태 무관) 익명화 탈퇴. payments.member_id가 ON DELETE CASCADE라
+// 하드 삭제하면 결제기록까지 사라지므로(전자상거래법 5년 보존) 행은 남기고 개인정보만 지운다.
+// 미리보기/실행이 공유하는 집계 — 실행 시에는 트랜잭션 안에서 FOR UPDATE로 잠근 뒤 같은 값을 다시 계산한다.
+async function getMemberDeletionSummary(conn, memberId, { lock = false } = {}) {
+  const forUpdate = lock ? ' FOR UPDATE' : '';
+  const [[member]] = await conn.query(
+    `SELECT id, username, name, member_group FROM members WHERE id = ?${forUpdate}`, [memberId]);
+  if (!member) return null;
+  // GROUP BY와 FOR UPDATE를 섞지 않고 결제 행을 그대로 잠근 뒤 JS에서 집계한다.
+  const [payRows] = await conn.query(`SELECT status FROM payments WHERE member_id = ?${forUpdate}`, [member.id]);
+  const pay = {};
+  payRows.forEach(r => { pay[r.status] = (pay[r.status] || 0) + 1; });
+  const count = async (sql) => Number((await conn.query(sql, [member.id]))[0][0].cnt);
+  return {
+    member,
+    withdrawn: member.member_group === WITHDRAWN_MEMBER_GROUP,
+    mode: payRows.length > 0 ? 'anonymize' : 'delete',
+    blockedReason: pay.pending ? '결제 진행 중(pending)인 주문이 있어 지금은 삭제할 수 없습니다. 30분 후 다시 시도해주세요.' : null,
+    counts: {
+      approvedPayments: pay.approved || 0,
+      canceledPayments: pay.canceled || 0,
+      otherPayments: (pay.failed || 0) + (pay.expired || 0),
+      pendingPayments: pay.pending || 0,
+      vodEnrollments: await count('SELECT COUNT(*) AS cnt FROM member_vod_enrollments WHERE member_id = ?'),
+      classEnrollments: await count('SELECT COUNT(*) AS cnt FROM member_class_enrollments WHERE member_id = ?'),
+      devices: await count('SELECT COUNT(*) AS cnt FROM member_devices WHERE member_id = ?'),
+      questions: await count('SELECT COUNT(*) AS cnt FROM vod_course_questions WHERE member_id = ?'),
+      claimedCoupons: await count("SELECT COUNT(*) AS cnt FROM coupons WHERE member_id = ? AND status = '등록됨'")
+    }
+  };
+}
+
+// 회원 삭제/탈퇴의 실제 쓰기 단계(트랜잭션 conn 안에서 호출) — 추후 마이페이지 본인 탈퇴에서도 재사용할 수 있게 분리.
+// 하드 삭제 경로에서도 CASCADE에 기대지 않고 자식 행을 명시적으로 지운다.
+async function withdrawMember(conn, member, mode) {
+  // 미사용 등록 쿠폰은 주인 없는 '등록됨' 고아가 되지 않게 미등록으로 되돌린다(사용완료 쿠폰은 결제기록과 함께 유지).
+  await conn.query(
+    "UPDATE coupons SET status = '미등록', member_id = NULL, claimed_at = NULL WHERE member_id = ? AND status = '등록됨'",
+    [member.id]
+  );
+  await conn.query('DELETE FROM api_tokens WHERE member_id = ?', [member.id]);
+  await conn.query('DELETE FROM member_devices WHERE member_id = ?', [member.id]);
+  await conn.query('DELETE FROM member_lecture_progress WHERE member_id = ?', [member.id]);
+  await conn.query('DELETE FROM member_vod_enrollments WHERE member_id = ?', [member.id]);
+  await conn.query('DELETE FROM member_class_enrollments WHERE member_id = ?', [member.id]);
+  await conn.query('DELETE FROM vod_course_questions WHERE member_id = ?', [member.id]);
+
+  if (mode === 'delete') {
+    await conn.query('DELETE FROM members WHERE id = ?', [member.id]);
+    return;
+  }
+
+  // 새 username은 이메일 형식이 아니라 USERNAME_RE 때문에 누구도 가입할 수 없고, 원래 아이디는 UNIQUE에서 풀려 재가입 가능해진다.
+  const kstStamp = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 16).replace('T', ' ');
+  await conn.query(
+    `UPDATE members SET
+       username = ?,
+       password = NULL, birth_date = NULL, phone = NULL, mobile = NULL, email = NULL,
+       postal_code = NULL, road_address = NULL, detail_address = NULL,
+       signup_channel = NULL, search_keyword = NULL, referrer_code = NULL,
+       email_marketing_consent = NULL, sms_marketing_consent = NULL,
+       consultation_notes = NULL, reset_token = NULL, reset_token_expires = NULL,
+       general_notes = ?,
+       member_group = ?
+     WHERE id = ?`,
+    [
+      `withdrawn_${member.id}_${Math.floor(Date.now() / 1000)}`,
+      `[탈퇴처리 ${kstStamp} 관리자] 결제기록 보존(전자상거래법 5년). 원 아이디: ${member.username}`,
+      WITHDRAWN_MEMBER_GROUP,
+      member.id
+    ]
+  );
+}
+
+app.get('/admin/api/members/:id/delete-preview', requireAdminApi, wrapAsync(async (req, res) => {
+  const s = await getMemberDeletionSummary(getPool(), req.params.id);
+  if (!s) {
+    res.status(404).json({ error: '회원을 찾을 수 없습니다.' });
+    return;
+  }
+  res.json({
+    username: s.member.username,
+    name: s.member.name,
+    withdrawn: s.withdrawn,
+    mode: s.mode,
+    blockedReason: s.blockedReason,
+    counts: s.counts
+  });
+}));
+
+app.delete('/admin/api/members/:id', requireAdminApi, wrapAsync(async (req, res) => {
+  const confirmUsername = String((req.body && req.body.confirmUsername) || '').trim();
+  const conn = await getPool().getConnection();
+  let s;
+  try {
+    await conn.beginTransaction();
+    s = await getMemberDeletionSummary(conn, req.params.id, { lock: true });
+    let reject = null;
+    if (!s) reject = [404, '회원을 찾을 수 없습니다.'];
+    else if (s.withdrawn) reject = [409, '이미 탈퇴 처리된 회원입니다.'];
+    else if (confirmUsername !== s.member.username) reject = [400, '아이디가 일치하지 않습니다.'];
+    else if (s.blockedReason) reject = [409, s.blockedReason];
+    if (reject) {
+      await conn.rollback();
+      res.status(reject[0]).json({ error: reject[1] });
+      return;
+    }
+    await withdrawMember(conn, s.member, s.mode);
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+
+  // 롤백됐을 때 세션을 끊지 않도록 커밋 후에 실행한다. 앱 토큰은 api_tokens 행이 지워져 이미 무효.
+  const killed = await destroyMemberSessions(s.member.id);
+  console.log(`[admin] member ${s.mode} id=${s.member.id} username=${s.member.username} sessions=${killed} ip=${req.ip}`);
+  res.json({ ok: true, mode: s.mode, counts: s.counts });
 }));
 
 // 학생을 클래스에 등록하는 공통 진입점 — 지금은 관리자 수동 배정에서만 쓰이지만,
@@ -1831,8 +1984,9 @@ app.post('/admin/api/coupons', requireAdminApi, wrapAsync(async (req, res) => {
     try {
       await conn.beginTransaction();
       const [members] = await conn.query(
-        `SELECT id, name, username FROM members WHERE id IN (${memberIds.map(() => '?').join(',')})`,
-        memberIds
+        `SELECT id, name, username FROM members
+         WHERE id IN (${memberIds.map(() => '?').join(',')}) AND (member_group IS NULL OR member_group <> ?)`,
+        [...memberIds, WITHDRAWN_MEMBER_GROUP]
       );
       if (members.length !== memberIds.length) {
         await conn.rollback();

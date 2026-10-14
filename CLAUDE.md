@@ -32,6 +32,8 @@ npm start   # http://localhost:3000
 
 세션 쿠키(`express-session`) 기반 비밀번호 인증. `GET /admin`은 미인증 시 로그인 폼, 인증 시 관리자 화면을 반환. `POST /admin/login`으로 비밀번호(`dockAdmin`) 확인 후 세션에 `isAdmin` 플래그 설정, `POST /admin/logout`으로 세션 파기.
 
+**회원 삭제**(`DELETE /admin/api/members/:id`, body `{confirmUsername}` — 클라이언트가 대상 아이디를 자동으로 실어 보냄): 회원 상세 모달의 "회원 삭제" 버튼(confirm 한 번) 또는 회원목록 체크박스 선택 → 우측 상단 "선택 삭제 (N)"(같은 단건 API를 순차 호출, 회원별 트랜잭션·성공/실패 개별 보고, `admin/members.js`). `GET .../delete-preview`는 서버에 남아 있으나 현재 UI는 쓰지 않음. `payments` 행이 없으면 하드 삭제, 있으면 결제기록 보존(`payments.member_id`가 CASCADE라 하드 삭제 불가)을 위해 개인정보를 NULL로 지우고 `username='withdrawn_<id>_<ts>'`, `member_group='withdrawn'`으로 익명화(목록에서 기본 제외). pending 결제가 있으면 409. 수강·진도·기기·api_tokens·Q&A 삭제, 미사용 등록 쿠폰은 미등록으로 반환, 웹 세션은 `destroyMemberSessions()`로 MemoryStore에서 즉시 파기.
+
 ### 대용량 영상 업로드 파이프라인
 
 관리자 페이지에서 20~30GB급 강의 영상을 업로드 → ffmpeg로 HLS(`master.m3u8` + `segmentNNNNN.ts`) 트랜스코딩 → Cloudflare R2 저장 → 경로를 MySQL에 기록하는 별도 파이프라인. 상세 설계는 `infra/README.md`와 바탕화면 `영상업로드-아키텍처.md` 참고.

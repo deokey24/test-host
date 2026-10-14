@@ -3,24 +3,47 @@ const MEMBER_PAGE_SIZE = 15;
 let memberPage = 1;
 let memberSearch = '';
 let memberSearchDebounce = null;
+// 일괄 삭제용 선택 상태 (현재 페이지 기준 — 페이지/검색/필터가 바뀌면 비운다). id → username
+const selectedMembers = new Map();
 
 async function loadMembers() {
+  clearMemberSelection();
   const params = new URLSearchParams({ page: memberPage, pageSize: MEMBER_PAGE_SIZE });
   if (memberSearch) params.set('search', memberSearch);
+  if (document.getElementById('memberIncludeWithdrawn').checked) params.set('includeWithdrawn', '1');
   const { total, page, pageSize, rows } = await apiFetch(`/admin/api/members?${params}`);
+
+  // 회원 삭제 직후 마지막 페이지가 비면 한 칸 앞으로 당겨 다시 조회한다.
+  if (!rows.length && memberPage > 1) {
+    memberPage = Math.max(1, Math.ceil(total / pageSize));
+    return loadMembers();
+  }
 
   document.getElementById('memberTotal').textContent = total;
   document.getElementById('memberList').innerHTML = rows.map(m => {
     const isNew = m.member_group === '1001';
+    const isWithdrawn = m.member_group === 'withdrawn';
+    const badge = isWithdrawn
+      ? '<span class="badge badge-off">탈퇴</span>'
+      : `<span class="badge ${isNew ? 'badge-new' : 'badge-existing'}">${isNew ? '신규' : '기존'}</span>`;
+    // 탈퇴 회원은 결제기록 보존용이라 상세 열람만 허용하고 강좌 관리는 막는다.
+    const enrollCell = isWithdrawn
+      ? '-'
+      : `<button class="row-btn" data-enroll-member="${m.id}" data-enroll-username="${escapeHtml(m.username)}" type="button">강좌 관리</button>`;
+    // 탈퇴 회원은 이미 익명화돼 삭제 대상이 아니므로 체크 불가.
+    const checkCell = isWithdrawn
+      ? '<input type="checkbox" disabled>'
+      : `<input type="checkbox" class="member-select" data-select-member="${m.id}" data-select-username="${escapeHtml(m.username)}">`;
     return `
     <tr>
-      <td><span class="badge ${isNew ? 'badge-new' : 'badge-existing'}">${isNew ? '신규' : '기존'}</span></td>
+      <td>${checkCell}</td>
+      <td>${badge}</td>
       <td>${escapeHtml(m.name)}</td>
       <td>${escapeHtml(m.email)}</td>
       <td>${escapeHtml(m.phone || m.mobile)}</td>
       <td>${m.joined_at ? new Date(m.joined_at).toLocaleDateString('ko-KR') : ''}</td>
       <td><button class="row-btn" data-detail-member="${m.id}" type="button">상세</button></td>
-      <td><button class="row-btn" data-enroll-member="${m.id}" data-enroll-username="${escapeHtml(m.username)}" type="button">강좌 관리</button></td>
+      <td>${enrollCell}</td>
     </tr>
   `;
   }).join('');
@@ -29,7 +52,70 @@ async function loadMembers() {
   document.getElementById('memberPageInfo').textContent = `${page} / ${totalPages}`;
   document.getElementById('memberPrevBtn').disabled = page <= 1;
   document.getElementById('memberNextBtn').disabled = page >= totalPages;
+  document.getElementById('memberSelectAll').disabled = !document.querySelector('#memberList .member-select');
 }
+
+// ── 회원 일괄 삭제 (체크박스 선택 → 기존 단건 DELETE를 순차 호출, 회원별 트랜잭션·결과 유지) ──
+function clearMemberSelection() {
+  selectedMembers.clear();
+  document.querySelectorAll('#memberList .member-select').forEach(cb => { cb.checked = false; });
+  syncMemberSelectionUi();
+}
+
+function syncMemberSelectionUi() {
+  const boxes = [...document.querySelectorAll('#memberList .member-select')];
+  const all = document.getElementById('memberSelectAll');
+  all.checked = boxes.length > 0 && boxes.every(cb => cb.checked);
+  all.indeterminate = !all.checked && boxes.some(cb => cb.checked);
+  document.getElementById('memberBulkDeleteCount').textContent = selectedMembers.size;
+  document.getElementById('memberBulkDeleteBtn').style.display = selectedMembers.size ? '' : 'none';
+}
+
+document.getElementById('memberList').addEventListener('change', (e) => {
+  const cb = e.target.closest('.member-select');
+  if (!cb) return;
+  if (cb.checked) selectedMembers.set(cb.dataset.selectMember, cb.dataset.selectUsername);
+  else selectedMembers.delete(cb.dataset.selectMember);
+  syncMemberSelectionUi();
+});
+
+document.getElementById('memberSelectAll').addEventListener('change', (e) => {
+  document.querySelectorAll('#memberList .member-select').forEach(cb => {
+    cb.checked = e.target.checked;
+    if (cb.checked) selectedMembers.set(cb.dataset.selectMember, cb.dataset.selectUsername);
+    else selectedMembers.delete(cb.dataset.selectMember);
+  });
+  syncMemberSelectionUi();
+});
+
+document.getElementById('memberBulkDeleteBtn').addEventListener('click', async () => {
+  const targets = [...selectedMembers.entries()];
+  if (!targets.length) return;
+  if (!confirm(`선택한 ${targets.length}명의 회원을 삭제할까요?`)) return;
+
+  const btn = document.getElementById('memberBulkDeleteBtn');
+  btn.disabled = true; // 처리 중 중복 클릭 방지
+  let okCount = 0;
+  const failures = [];
+  // 동시 요청 대신 순차 호출 — 서버 쪽 회원별 트랜잭션·세션 파기를 그대로 재사용한다.
+  for (const [id, username] of targets) {
+    try {
+      await apiFetch(`/admin/api/members/${id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ confirmUsername: username })
+      });
+      okCount++;
+    } catch (err) {
+      failures.push(`${username}: ${err.message}`);
+    }
+  }
+  btn.disabled = false;
+
+  let msg = `${okCount}명 삭제 완료`;
+  if (failures.length) msg += `\n\n실패 ${failures.length}명:\n${failures.join('\n')}`;
+  alert(msg);
+  await loadMembers();
+});
 
 function runMemberSearch() {
   memberSearch = document.getElementById('memberSearch').value.trim();
@@ -44,6 +130,10 @@ document.getElementById('memberSearch').addEventListener('input', () => {
 });
 document.getElementById('memberSearch').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { clearTimeout(memberSearchDebounce); runMemberSearch(); }
+});
+document.getElementById('memberIncludeWithdrawn').addEventListener('change', () => {
+  memberPage = 1;
+  loadMembers();
 });
 document.getElementById('memberPrevBtn').addEventListener('click', () => {
   if (memberPage > 1) { memberPage--; loadMembers(); }
@@ -82,6 +172,7 @@ const MEMBER_DETAIL_FIELDS = [
 ];
 
 let detailMemberId = null;
+let detailMember = null; // 삭제 confirm 문구·confirmUsername 용
 
 async function loadMemberDevices() {
   const list = document.getElementById('memberDeviceList');
@@ -117,33 +208,67 @@ document.getElementById('memberDeviceList').addEventListener('click', async (e) 
 
 async function openMemberDetailModal(memberId) {
   detailMemberId = memberId;
+  detailMember = null;
   const body = document.getElementById('memberDetailBody');
   body.innerHTML = '<tr><td>불러오는 중...</td></tr>';
   document.getElementById('memberDeviceList').innerHTML = '<tr><td colspan="5" class="field-hint">불러오는 중...</td></tr>';
   setStatus(document.getElementById('memberDeviceStatus'), '');
+  setStatus(document.getElementById('memberDeleteStatus'), '');
+  document.getElementById('memberDeleteSection').style.display = 'none';
+  document.getElementById('memberWithdrawnNotice').style.display = 'none';
   document.getElementById('memberDetailModalOverlay').classList.add('open');
   loadMemberDevices();
 
   try {
     const m = await apiFetch(`/admin/api/members/${memberId}`);
+    const isWithdrawn = m.member_group === 'withdrawn';
+    detailMember = m;
     body.innerHTML = MEMBER_DETAIL_FIELDS.map(([key, label]) => {
       let val = m[key];
       if (key === 'has_password') val = val ? '설정됨' : '미설정';
       else if (key === 'joined_at') val = val ? new Date(val).toLocaleString('ko-KR') : '';
       else if (key === 'birth_date') val = val ? new Date(val).toLocaleDateString('ko-KR') : '';
+      else if (key === 'member_group' && isWithdrawn) val = '탈퇴(익명화)';
       else val = escapeHtml(val || '-');
       return `<tr><th style="white-space:nowrap;">${label}</th><td>${val}</td></tr>`;
     }).join('');
+    document.getElementById('memberDeleteSection').style.display = isWithdrawn ? 'none' : '';
+    document.getElementById('memberWithdrawnNotice').style.display = isWithdrawn ? '' : 'none';
   } catch (err) {
     body.innerHTML = '<tr><td>회원 정보를 불러오지 못했습니다.</td></tr>';
   }
 }
 
-document.getElementById('memberDetailModalCloseBtn').addEventListener('click', () => {
+function closeMemberDetailModal() {
   document.getElementById('memberDetailModalOverlay').classList.remove('open');
+}
+
+// ── 회원 삭제 (결제 이력 없으면 완전 삭제, 있으면 익명화 탈퇴 — 판정은 서버가 한다) ──
+document.getElementById('memberDeleteBtn').addEventListener('click', async () => {
+  const m = detailMember;
+  if (!m || m.id != detailMemberId) return; // 상세 로딩 전 클릭 방지
+  if (!confirm(`"${m.name || '-'}(${m.username})" 회원을 삭제할까요?`)) return;
+  const btn = document.getElementById('memberDeleteBtn');
+  btn.disabled = true; // 요청 중 중복 클릭 방지
+  try {
+    // 서버가 요구하는 아이디 재확인 값은 상세 조회한 아이디를 그대로 실어 보낸다.
+    const r = await apiFetch(`/admin/api/members/${detailMemberId}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ confirmUsername: m.username })
+    });
+    closeMemberDetailModal();
+    alert(r.mode === 'delete' ? '회원이 삭제되었습니다.' : '탈퇴 처리되었습니다. (결제기록 보존)');
+    await loadMembers();
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    btn.disabled = false;
+  }
 });
+
+document.getElementById('memberDetailModalCloseBtn').addEventListener('click', closeMemberDetailModal);
 document.getElementById('memberDetailModalOverlay').addEventListener('click', (e) => {
-  if (e.target.id === 'memberDetailModalOverlay') document.getElementById('memberDetailModalOverlay').classList.remove('open');
+  if (e.target.id === 'memberDetailModalOverlay') closeMemberDetailModal();
 });
 
 // ── 회원별 VOD 강좌 관리 (수강 등록) ──
