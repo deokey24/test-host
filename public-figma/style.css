@@ -2052,17 +2052,297 @@ body.lp2-page { background: var(--grey-bg); }
 }
 
 .lp-video-wrap {
+  position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
   background: var(--dark);
   border-radius: 14px;
   overflow: hidden;
+  /* 캡처 억제: 드래그·선택·길게 눌러 저장 막기 */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .lp-video-wrap video {
   width: 100%;
   height: 100%;
   display: block;
+  object-fit: contain;
+  background: #000;
+}
+
+/* 전체화면은 video가 아니라 래퍼에 건다(워터마크·컨트롤 포함) */
+.lp-video-wrap:fullscreen { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; background: #000; }
+.lp-video-wrap:-webkit-full-screen { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; background: #000; }
+.lp-video-wrap.is-fullscreen { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; }
+
+.lp-video-wrap.is-idle { cursor: none; }
+
+/* ── 동적 워터마크 ── */
+.lp-watermark {
+  position: absolute;
+  left: 10%;
+  top: 10%;
+  z-index: 4;
+  pointer-events: none;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: #fff;
+  opacity: 0.3;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.7), 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: left 0.6s ease, top 0.6s ease;
+}
+.lp-video-wrap.is-fullscreen .lp-watermark { font-size: 18px; }
+
+/* ── 가운데 큰 재생 버튼 · 단축키 힌트 ── */
+.lp-big-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  width: 72px;
+  height: 72px;
+  margin: -36px 0 0 -36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 4px;
+  color: #fff;
+  background: rgba(3, 18, 40, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: opacity 0.2s, transform 0.15s;
+}
+.lp-big-play:hover { transform: scale(1.06); background: rgba(3, 18, 40, 0.78); }
+.lp-video-wrap.is-playing .lp-big-play { opacity: 0; pointer-events: none; }
+
+.lp-hint {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  z-index: 5;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.lp-hint.show { opacity: 1; }
+
+/* ── 오버레이(포커스 이탈 안내 · 다음 강의 카운트다운) ── */
+.lp-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  color: #fff;
+  background: rgba(2, 9, 24, 0.82);
+}
+.lp-overlay.show { display: flex; }
+.lp-overlay p { font-size: 17px; font-weight: 700; line-height: 1.5; }
+.lp-overlay-sub { font-size: 13px; color: rgba(255, 255, 255, 0.65); }
+.lp-focus-overlay { cursor: pointer; }
+.lp-end-actions { display: flex; gap: 8px; margin-top: 10px; }
+.lp-end-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
+}
+.lp-end-btn:hover { background: rgba(255, 255, 255, 0.1); }
+.lp-end-btn--primary { background: var(--green); border-color: var(--green); }
+.lp-end-btn--primary:hover { background: var(--green-light); }
+
+.lp-blackout {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  background: #000;
+  display: none;
+}
+.lp-blackout.show { display: block; }
+
+/* ── 커스텀 컨트롤 바 ── */
+.lp-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 7;
+  padding: 28px 14px 8px;
+  background: linear-gradient(to top, rgba(2, 9, 24, 0.85), rgba(2, 9, 24, 0));
+  color: #fff;
+  transition: opacity 0.25s;
+}
+.lp-video-wrap.is-idle .lp-controls { opacity: 0; pointer-events: none; }
+
+.lp-seek {
+  position: relative;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  touch-action: none;
+}
+.lp-seek-track {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.22);
+  overflow: hidden;
+  transition: height 0.15s;
+}
+.lp-seek:hover .lp-seek-track, .lp-seek.dragging .lp-seek-track { height: 6px; }
+.lp-seek-buffer, .lp-seek-played {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+}
+.lp-seek-buffer { background: rgba(255, 255, 255, 0.38); }
+.lp-seek-played { background: var(--green); }
+.lp-seek-thumb {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 13px;
+  height: 13px;
+  margin: -6.5px 0 0 -6.5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(169, 130, 84, 0.45);
+  transform: scale(0);
+  transition: transform 0.15s;
+  pointer-events: none;
+}
+.lp-seek:hover .lp-seek-thumb, .lp-seek.dragging .lp-seek-thumb { transform: scale(1); }
+
+.lp-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+.lp-controls-spacer { flex: 1; }
+.lp-ctrl {
+  position: relative;
+  flex-shrink: 0;
+  height: 36px;
+  min-width: 36px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: #fff;
+  background: transparent;
+  opacity: 0.9;
+  transition: background 0.15s, opacity 0.15s;
+}
+.lp-ctrl:hover { background: rgba(255, 255, 255, 0.12); opacity: 1; }
+.lp-ctrl svg { display: block; }
+.lp-skip-num {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -38%);
+  font-size: 8px;
+  font-weight: 800;
+}
+.lp-ctrl--play .ico-pause, .lp-video-wrap.is-playing .lp-ctrl--play .ico-play { display: none; }
+.lp-video-wrap.is-playing .lp-ctrl--play .ico-pause { display: block; }
+.lp-ctrl--mute .ico-muted, .lp-video-wrap.is-muted .lp-ctrl--mute .ico-vol { display: none; }
+.lp-video-wrap.is-muted .lp-ctrl--mute .ico-muted { display: block; }
+.lp-ctrl--fs .ico-fs-exit, .lp-video-wrap.is-fullscreen .lp-ctrl--fs .ico-fs { display: none; }
+.lp-video-wrap.is-fullscreen .lp-ctrl--fs .ico-fs-exit { display: block; }
+.lp-ctrl--rate { font-size: 13px; font-weight: 800; min-width: 48px; }
+
+.lp-volume { display: flex; align-items: center; }
+.lp-volume-range {
+  --lp-vol: 100%;
+  width: 76px;
+  height: 4px;
+  margin: 0 8px 0 2px;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 2px;
+  background: linear-gradient(to right, #fff var(--lp-vol), rgba(255, 255, 255, 0.25) var(--lp-vol));
+  cursor: pointer;
+}
+.lp-volume-range::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 0; }
+.lp-volume-range::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 0; }
+
+.lp-time {
+  margin-left: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.lp-rate { position: relative; }
+.lp-rate-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  display: none;
+  flex-direction: column;
+  min-width: 88px;
+  padding: 6px;
+  border-radius: 10px;
+  background: rgba(3, 18, 40, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.lp-rate-menu.open { display: flex; }
+.lp-rate-menu button {
+  padding: 7px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  text-align: left;
+}
+.lp-rate-menu button:hover { background: rgba(255, 255, 255, 0.1); }
+.lp-rate-menu button.active { color: var(--beige-400); font-weight: 800; }
+
+/* 마이페이지 내 강좌 카드 — 웹 플레이어 허용 회원은 버튼이 두 개 */
+.mp-enroll-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+#mpCourseGrid .vod-course-foot { align-items: center; flex-wrap: wrap; gap: 8px; }
+
+@media (max-width: 600px) {
+  .lp-video-wrap { border-radius: 10px; }
+  .lp-controls { padding: 20px 6px 4px; }
+  .lp-controls-row { gap: 0; }
+  .lp-ctrl { height: 32px; min-width: 30px; padding: 0 3px; }
+  .lp-ctrl svg { width: 18px; height: 18px; }
+  .lp-ctrl--rate { min-width: 38px; font-size: 12px; }
+  .lp-volume-range { display: none; }
+  .lp-time { margin-left: 2px; font-size: 11px; }
+  .lp-big-play { width: 56px; height: 56px; margin: -28px 0 0 -28px; }
+  .lp-big-play svg { width: 26px; height: 26px; }
+  .lp-watermark { font-size: 10px; }
+  .lp-overlay p { font-size: 14px; }
 }
 
 .lp-lecture-title {

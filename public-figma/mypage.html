@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>마이페이지 · 독편사 DOCK PASS</title>
 <link rel="icon" type="image/png" href="assets/favicon.png">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20261015b">
 <style>
 :root{
   --navy-950:#020918;--navy-900:#031228;--navy-850:#071a34;--navy-800:#0e1c30;--navy-700:#162844;
@@ -108,7 +108,11 @@
                 <div class="mp-course-period"></div>
                 <div class="vod-course-foot">
                   <span class="mp-course-status"></span>
-                  <a class="btn-fill mp-enroll-btn" href="#">수강하기</a>
+                  <div class="mp-enroll-actions">
+                    <a class="btn-fill mp-enroll-btn" href="#">수강하기</a>
+                    <!-- 웹 플레이어 허용 회원에게만 보이는 두 번째 버튼(DockPlayer로 보기) — 기본 숨김 -->
+                    <a class="btn-outline mp-enroll-btn mp-enroll-btn--app" href="dockplayer://" style="display:none;">DockPlayer로 보기</a>
+                  </div>
                 </div>
               </div>
             </div>
@@ -260,6 +264,12 @@
         const res = await fetch('/api/members/my-vod-courses');
         if (!res.ok) return;
         const courses = await res.json();
+        // 웹 플레이어 허용 여부(관리자 지정) — 실패해도 기존처럼 DockPlayer 버튼만 보여준다.
+        // site-content.js가 이 인라인 스크립트보다 뒤에 로드되므로 fetchMe가 아직 없을 수 있어 직접 fetch로 폴백한다.
+        const me = await (typeof fetchMe === 'function'
+          ? fetchMe()
+          : fetch('/api/members/me').then(r => r.json()).catch(() => ({ loggedIn: false })));
+        const webPlayer = !!(me && me.loggedIn && me.webPlayer);
         const template = grid.querySelector('template');
         [...grid.children].filter(c => c.tagName !== 'TEMPLATE').forEach(c => c.remove());
         expiredGrid.innerHTML = '';
@@ -297,6 +307,11 @@
             enrollBtn.textContent = '재구매하기';
             enrollBtn.href = `vodDetail.html?id=${course.id}`;
             node.classList.add('is-expired');
+          } else if (webPlayer) {
+            enrollBtn.textContent = '웹에서 보기';
+            enrollBtn.href = `lecturePlayer.html?id=${course.id}`;
+            const appBtn = node.querySelector('.mp-enroll-btn--app');
+            if (appBtn) appBtn.style.display = '';
           } else {
             enrollBtn.href = 'dockplayer://';
           }
@@ -576,7 +591,7 @@
   </div>
 
 </div>
-<script src="site-content.js?v=20261015"></script>
+<script src="site-content.js?v=20261015b"></script>
 <script src="auth.js?v=20261015"></script>
 <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 </body>

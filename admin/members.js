@@ -26,6 +26,10 @@ async function loadMembers() {
     const badge = isWithdrawn
       ? '<span class="badge badge-off">탈퇴</span>'
       : `<span class="badge ${isNew ? 'badge-new' : 'badge-existing'}">${isNew ? '신규' : '기존'}</span>`;
+    // 관리자가 웹 브라우저 재생을 허용한 회원 표시 (members.web_player_enabled)
+    const webBadge = m.web_player_enabled && !isWithdrawn
+      ? ' <span class="badge badge-processing" title="웹 브라우저 재생 허용">웹</span>'
+      : '';
     // 탈퇴 회원은 결제기록 보존용이라 상세 열람만 허용하고 강좌 관리는 막는다.
     const enrollCell = isWithdrawn
       ? '-'
@@ -37,7 +41,7 @@ async function loadMembers() {
     return `
     <tr>
       <td>${checkCell}</td>
-      <td>${badge}</td>
+      <td>${badge}${webBadge}</td>
       <td>${escapeHtml(m.name)}</td>
       <td>${escapeHtml(m.email)}</td>
       <td>${escapeHtml(m.phone || m.mobile)}</td>
@@ -216,6 +220,11 @@ async function openMemberDetailModal(memberId) {
   setStatus(document.getElementById('memberDeleteStatus'), '');
   document.getElementById('memberDeleteSection').style.display = 'none';
   document.getElementById('memberWithdrawnNotice').style.display = 'none';
+  const webToggle = document.getElementById('memberWebPlayerToggle');
+  webToggle.checked = false;
+  webToggle.disabled = true; // 상세 로딩 전 토글 방지
+  document.getElementById('memberWebPlayerMeta').textContent = '';
+  setStatus(document.getElementById('memberWebPlayerStatus'), '');
   document.getElementById('memberDetailModalOverlay').classList.add('open');
   loadMemberDevices();
   // 가입 시 유입(first/last·가입 직전 경로) — admin/journey.js
@@ -236,10 +245,54 @@ async function openMemberDetailModal(memberId) {
     }).join('');
     document.getElementById('memberDeleteSection').style.display = isWithdrawn ? 'none' : '';
     document.getElementById('memberWithdrawnNotice').style.display = isWithdrawn ? '' : 'none';
+    renderMemberWebPlayer(m);
   } catch (err) {
     body.innerHTML = '<tr><td>회원 정보를 불러오지 못했습니다.</td></tr>';
   }
 }
+
+// ── 웹 플레이어 허용 (members.web_player_enabled — 세션 웹 재생만 영향, DockPlayer는 무관) ──
+function renderMemberWebPlayer(m) {
+  const toggle = document.getElementById('memberWebPlayerToggle');
+  const isWithdrawn = m.member_group === 'withdrawn';
+  toggle.checked = !!m.web_player_enabled;
+  toggle.disabled = isWithdrawn;
+  const meta = document.getElementById('memberWebPlayerMeta');
+  const updatedAt = m.web_player_updated_at ? new Date(m.web_player_updated_at) : null;
+  const ymd = updatedAt
+    ? `${updatedAt.getFullYear()}-${String(updatedAt.getMonth() + 1).padStart(2, '0')}-${String(updatedAt.getDate()).padStart(2, '0')}`
+    : '';
+  meta.textContent = isWithdrawn ? ' 탈퇴 회원은 변경할 수 없습니다.'
+    : ymd ? ` ${m.web_player_enabled ? '허용일' : '해제일'} ${ymd}` : '';
+}
+
+document.getElementById('memberWebPlayerToggle').addEventListener('change', async (e) => {
+  const toggle = e.target;
+  const m = detailMember;
+  const status = document.getElementById('memberWebPlayerStatus');
+  if (!m || m.id != detailMemberId) { // 상세 로딩 전 클릭 방지
+    toggle.checked = !toggle.checked;
+    return;
+  }
+  const enabled = toggle.checked;
+  toggle.disabled = true; // 요청 중 중복 클릭 방지
+  try {
+    const r = await apiFetch(`/admin/api/members/${detailMemberId}/web-player`, {
+      method: 'PUT',
+      body: JSON.stringify({ enabled })
+    });
+    m.web_player_enabled = r.web_player_enabled;
+    m.web_player_updated_at = new Date().toISOString();
+    renderMemberWebPlayer(m);
+    setStatus(status, '저장됨', 'ok');
+    loadMembers().catch(() => {});
+  } catch (err) {
+    toggle.checked = !enabled;
+    setStatus(status, err.message, 'error');
+  } finally {
+    if (m.member_group !== 'withdrawn') toggle.disabled = false;
+  }
+});
 
 function closeMemberDetailModal() {
   document.getElementById('memberDetailModalOverlay').classList.remove('open');

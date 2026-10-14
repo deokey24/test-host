@@ -130,6 +130,13 @@ ALTER TABLE members
   ADD COLUMN IF NOT EXISTS road_address VARCHAR(255) DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS detail_address VARCHAR(255) DEFAULT NULL;
 
+-- 2026-10-15 관리자가 지정한 회원만 웹 브라우저 플레이어(lecturePlayer.html)로 재생 허용.
+-- DockPlayer(Bearer 토큰) 재생에는 영향 없음. 0=웹 재생 불가(기본), 1=허용.
+-- web_player_updated_at: 관리자가 마지막으로 바꾼 시각(감사용). 마이그레이션: infra/migrations/2026-10-15-members-web-player.sql
+ALTER TABLE members
+  ADD COLUMN IF NOT EXISTS web_player_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS web_player_updated_at DATETIME NULL;
+
 -- 마이페이지 기기 관리 (OTT 방식, 회원당 최대 3개 기기 등록 — server.js에서 강제)
 -- token_id: 네이티브 앱(일렉트론/RN) 로그인으로 만들어진 기기는 api_tokens.id를 연결해
 -- 마이페이지에서 기기 삭제 시 해당 토큰도 같이 폐기한다. 웹 브라우저 로그인은 NULL.

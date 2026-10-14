@@ -28,6 +28,9 @@ function buildCdnUrl(r2Key) {
 }
 
 const STREAM_URL_TTL_SECONDS = Number(process.env.STREAM_URL_TTL_SECONDS || 21600); // 6시간
+// 웹 브라우저(세션) 재생분만 TTL을 짧게 — 관리자가 web_player_enabled를 끄면 이미 발급된
+// 세그먼트/키 URL도 최대 이 시간 안에 만료된다. DockPlayer(Bearer)는 STREAM_URL_TTL_SECONDS 그대로.
+const WEB_STREAM_URL_TTL_SECONDS = Number(process.env.WEB_STREAM_URL_TTL_SECONDS || 3600); // 1시간
 // AES-128 키 URL 자체 서명용 — 세그먼트 프리사인 URL과 달리 이건 R2 서명이 아니라
 // 우리가 직접 발급하는 exp+sig 쿼리라 별도 시크릿이 필요하다 (네이티브 HLS 플레이어가
 // 커스텀 인증 헤더 없이도 키를 받아갈 수 있어야 하므로).
@@ -176,6 +179,7 @@ async function requireApiToken(req, res, next) {
     }
     req.memberId = row.member_id;
     req.apiTokenId = row.id;
+    req.authVia = 'token';
     // 진도 하트비트처럼 수십 초마다 호출되는 라우트가 생겨서, 매 요청 쓰기를 하지 않도록 5분에 한 번만 갱신한다.
     getPool().query(
       'UPDATE api_tokens SET last_used_at = NOW() WHERE id = ? AND last_used_at < NOW() - INTERVAL 5 MINUTE',
@@ -193,6 +197,7 @@ async function requireApiToken(req, res, next) {
 async function requireMemberOrApiToken(req, res, next) {
   if (req.session.memberId) {
     req.memberId = req.session.memberId;
+    req.authVia = 'session'; // 웹 플레이어 허용 플래그(web_player_enabled)는 세션 경로에만 적용
     next();
     return;
   }
@@ -563,7 +568,21 @@ app.get('/api/stream/vod-lecture/:lectureId/master.m3u8', requireMemberOrApiToke
     res.status(access.status).json({ error: access.error, reason: access.reason });
     return;
   }
-  const manifest = await renderSignedManifest(lecture.video_r2_key, signKeyUrl(`/api/stream/vod-lecture/${req.params.lectureId}/key`));
+  // 웹 브라우저(세션)로 들어온 요청만 관리자 허용 플래그를 본다 — DockPlayer(Bearer)는 무관.
+  const isWebSession = req.authVia === 'session';
+  if (isWebSession) {
+    const web = await checkWebPlayerAllowed(req.memberId);
+    if (!web.ok) {
+      res.status(web.status).json({ error: web.error, reason: web.reason });
+      return;
+    }
+  }
+  const ttl = isWebSession ? WEB_STREAM_URL_TTL_SECONDS : STREAM_URL_TTL_SECONDS;
+  const manifest = await renderSignedManifest(
+    lecture.video_r2_key,
+    signKeyUrl(`/api/stream/vod-lecture/${req.params.lectureId}/key`, ttl),
+    ttl
+  );
   res.set('Content-Type', 'application/vnd.apple.mpegurl');
   res.set('Cache-Control', 'no-store');
   res.send(manifest);
@@ -1291,7 +1310,7 @@ app.get('/admin/api/members', requireAdminApi, async (req, res) => {
     params
   );
   const [rows] = await getPool().query(
-    `SELECT id, username, name, email, phone, mobile, joined_at, member_group, (password IS NOT NULL) AS has_password
+    `SELECT id, username, name, email, phone, mobile, joined_at, member_group, web_player_enabled, (password IS NOT NULL) AS has_password
      FROM members ${where}
      ORDER BY id DESC
      LIMIT ? OFFSET ?`,
@@ -1308,6 +1327,7 @@ app.get('/admin/api/members/:id', requireAdminApi, wrapAsync(async (req, res) =>
             signup_channel, search_keyword, referrer_code, signup_context,
             email_marketing_consent, sms_marketing_consent,
             joined_at, general_notes, consultation_notes,
+            web_player_enabled, web_player_updated_at,
             (password IS NOT NULL) AS has_password
      FROM members WHERE id = ?`,
     [req.params.id]
@@ -1317,6 +1337,26 @@ app.get('/admin/api/members/:id', requireAdminApi, wrapAsync(async (req, res) =>
     return;
   }
   res.json(rows[0]);
+}));
+
+// 회원 상세 > 웹 플레이어 — 관리자가 지정한 회원만 브라우저(lecturePlayer.html)로 재생 가능.
+// DockPlayer(Bearer) 재생에는 영향 없음. 탈퇴(익명화) 회원은 바꿀 수 없다.
+app.put('/admin/api/members/:id/web-player', requireAdminApi, wrapAsync(async (req, res) => {
+  const { enabled } = req.body || {};
+  if (typeof enabled !== 'boolean') {
+    res.status(400).json({ error: 'enabled(boolean) 값이 필요합니다.' });
+    return;
+  }
+  const [result] = await getPool().query(
+    `UPDATE members SET web_player_enabled = ?, web_player_updated_at = NOW()
+     WHERE id = ? AND (member_group IS NULL OR member_group <> ?)`,
+    [enabled ? 1 : 0, req.params.id, WITHDRAWN_MEMBER_GROUP]
+  );
+  if (result.affectedRows === 0) {
+    res.status(404).json({ error: '회원을 찾을 수 없습니다.' });
+    return;
+  }
+  res.json({ ok: true, web_player_enabled: enabled ? 1 : 0 });
 }));
 
 // 회원 상세 > 등록 기기 — 정원(MAX_DEVICES_PER_MEMBER)이 차서 로그인조차 못 하는 회원은
@@ -1583,6 +1623,15 @@ async function enrollMemberInVod(memberId, vodCourseId, source = 'admin', extra 
 // 스트림 매니페스트 / 강의 목록 / 재생 URL / Q&A 작성 게이트가 전부 이 함수만 쓰도록 통일한다
 // (체크가 흩어져 있으면 한 군데를 빠뜨렸을 때 그대로 우회 경로가 된다).
 // ends_at은 DATE라 "종료일 당일 자정까지"는 시청 가능하도록 >= CURDATE()로 비교한다.
+// 웹 브라우저(세션) 재생은 관리자가 허용한 회원만. Bearer(DockPlayer)는 호출하지 않는다.
+async function checkWebPlayerAllowed(memberId) {
+  const [[row]] = await getPool().query('SELECT web_player_enabled FROM members WHERE id = ?', [memberId]);
+  if (!row || !row.web_player_enabled) {
+    return { ok: false, status: 403, reason: 'web_player_disabled', error: '웹 플레이어 이용 권한이 없습니다. DockPlayer 앱으로 시청해 주세요.' };
+  }
+  return { ok: true };
+}
+
 async function checkVodAccess(memberId, vodCourseId) {
   const [[row]] = await getPool().query(
     `SELECT e.expires_at, c.ends_at,
@@ -2516,13 +2565,15 @@ app.post('/api/members/logout', (req, res) => {
   res.json({ ok: true });
 });
 
-app.get('/api/members/me', (req, res) => {
+app.get('/api/members/me', wrapAsync(async (req, res) => {
   if (req.session.memberId) {
-    res.json({ loggedIn: true, name: req.session.memberName, memberId: req.session.memberId });
+    // webPlayer: 세션에 캐시하지 않고 매번 DB에서 읽는다 — 관리자가 바꾸면 다음 요청부터 반영.
+    const [[row]] = await getPool().query('SELECT web_player_enabled FROM members WHERE id = ?', [req.session.memberId]);
+    res.json({ loggedIn: true, name: req.session.memberName, memberId: req.session.memberId, webPlayer: !!(row && row.web_player_enabled) });
   } else {
     res.json({ loggedIn: false });
   }
-});
+}));
 
 // ── /api/v1 — 네이티브 앱(일렉트론/RN) 전용, Bearer 토큰 인증. 웹 세션과 완전히 분리 ──
 
@@ -3017,13 +3068,30 @@ app.get('/api/members/my-vod-courses', requireMember, wrapAsync(async (req, res)
 
 // 로그인한 회원이 실제로 그 VOD 강좌를 수강 중일 때만 강의 목록(영상+콘텐츠)을 내려준다.
 app.get('/api/members/my-vod-lectures/:vodCourseId', requireMember, wrapAsync(async (req, res) => {
+  // 이 라우트는 웹 플레이어(lecturePlayer.html) 전용 — 수강 여부보다 웹 재생 허용 플래그를 먼저 본다.
+  // members PK 조회 1회로 플래그와 워터마크용 시청자 정보를 같이 읽는다.
+  const [[viewerRow]] = await getPool().query(
+    'SELECT web_player_enabled, name, username, mobile FROM members WHERE id = ?',
+    [req.session.memberId]
+  );
+  if (!viewerRow || !viewerRow.web_player_enabled) {
+    res.status(403).json({ error: '웹 플레이어 이용 권한이 없습니다. DockPlayer 앱으로 시청해 주세요.', reason: 'web_player_disabled' });
+    return;
+  }
   const result = await getVodCourseLectures(req.session.memberId, req.params.vodCourseId);
   if (result.error) {
     res.status(result.status).json({ error: result.error, reason: result.reason });
     return;
   }
+  const mobileDigits = String(viewerRow.mobile || '').replace(/\D/g, '');
   res.json({
     course: result.course,
+    // 플레이어 동적 워터마크용 — 값은 서버가 정한다(클라이언트 임의 조작 방지).
+    viewer: {
+      name: viewerRow.name || null,
+      username: viewerRow.username || null,
+      mobileTail: mobileDigits ? mobileDigits.slice(-4) : null
+    },
     lectures: result.lectures.map(({ video_r2_key, ...l }) => ({
       ...l,
       video_url: !video_r2_key ? null

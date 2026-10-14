@@ -51,21 +51,55 @@ function recordRecentVodCourse(course) {
 // HLS(.m3u8)와 레거시 mp4를 모두 지원하는 공용 재생 헬퍼.
 // hls.js는 <video>에 직접 attachMedia하므로 HLS일 때는 video.load()를 호출하면 안 된다
 // (붙인 MediaSource 스트림이 끊김).
+// onForbidden: 매니페스트가 403이면 호출(웹 플레이어 권한이 재생 도중 회수된 경우 등).
 let _hlsInstance = null;
-function attachVideoSource(videoEl, url) {
+let _nativeErrorHandler = null;
+function attachVideoSource(videoEl, url, { onForbidden } = {}) {
   if (_hlsInstance) {
     _hlsInstance.destroy();
     _hlsInstance = null;
   }
+  if (_nativeErrorHandler) {
+    videoEl.removeEventListener('error', _nativeErrorHandler);
+    _nativeErrorHandler = null;
+  }
   const isHls = !!url && /\.m3u8(\?|$)/i.test(url);
   if (isHls && window.Hls && window.Hls.isSupported()) {
-    _hlsInstance = new window.Hls();
-    _hlsInstance.loadSource(url);
-    _hlsInstance.attachMedia(videoEl);
+    const hls = new window.Hls();
+    _hlsInstance = hls;
+    hls.on(window.Hls.Events.ERROR, (event, data) => {
+      if (!onForbidden || !data) return;
+      const code = data.response && data.response.code;
+      if (data.details === window.Hls.ErrorDetails.MANIFEST_LOAD_ERROR && code === 403) onForbidden();
+    });
+    hls.loadSource(url);
+    hls.attachMedia(videoEl);
     return;
+  }
+  // Safari 네이티브 HLS는 HTTP 상태를 알려주지 않으므로, 재생 오류가 나면 매니페스트를 한 번 더 찔러 403인지 본다.
+  if (isHls && onForbidden) {
+    _nativeErrorHandler = () => {
+      fetch(url, { method: 'GET', cache: 'no-store' })
+        .then(res => { if (res.status === 403) onForbidden(); })
+        .catch(() => {});
+    };
+    videoEl.addEventListener('error', _nativeErrorHandler);
   }
   videoEl.src = url; // Safari 네이티브 HLS 또는 레거시 mp4
   videoEl.load();
+}
+
+// ── 로그인 회원 정보 공용 캐시 — /api/members/me 를 페이지당 한 번만 부른다 ──
+// 응답: {loggedIn:true, name, memberId, webPlayer} | {loggedIn:false}. 실패 시 비로그인으로 취급.
+let _meCache = null;
+function fetchMe() {
+  if (!_meCache) {
+    _meCache = fetch('/api/members/me', { credentials: 'same-origin' })
+      .then(res => (res.ok ? res.json() : { loggedIn: false }))
+      .then(data => (data && typeof data === 'object' ? data : { loggedIn: false }))
+      .catch(() => ({ loggedIn: false }));
+  }
+  return _meCache;
 }
 
 // ── 수강현황(진도) 전송 ──
@@ -487,10 +521,13 @@ async function hydrateClassDetail() {
     return;
   }
 
-  const [courseRes, lectures] = await Promise.all([
+  const [courseRes, lectures, me] = await Promise.all([
     fetch(`/api/vod-courses/${courseId}`).then(r => r.ok ? r.json() : null).catch(() => null),
-    fetch(`/api/vod-courses/${courseId}/lectures`).then(r => r.ok ? r.json() : []).catch(() => [])
+    fetch(`/api/vod-courses/${courseId}/lectures`).then(r => r.ok ? r.json() : []).catch(() => []),
+    fetchMe()
   ]);
+  // 웹 플레이어는 관리자가 허용한 회원만 — 수강 여부는 서버가 막으므로 UI는 플래그만 본다.
+  const canWebPlay = !!(me && me.loggedIn && me.webPlayer);
   if (!courseRes) {
     if (main) main.innerHTML = '<p class="faq-footnote">강좌 정보를 찾을 수 없습니다.</p>';
     return;
@@ -550,7 +587,7 @@ async function hydrateClassDetail() {
       const numTitle = `<span class="num">${String(i + 1).padStart(2, '0')}</span><span class="step-title">${escapeCmsHtml(step.title)}</span>`;
       return `
         <li id="cdStep-${i}">
-          ${step.has_video ? `<a class="curriculum-step-link" href="lecturePlayer.html?id=${courseId}&lecture=${step.lecture_number}">${numTitle}</a>` : numTitle}
+          ${step.has_video && canWebPlay ? `<a class="curriculum-step-link" href="lecturePlayer.html?id=${courseId}&lecture=${step.lecture_number}">${numTitle}</a>` : numTitle}
           ${hasContent ? `
             <button type="button" class="curriculum-detail-btn" data-step-toggle="${i}">
               <span class="detail-label">상세보기</span><span class="detail-icon">+</span>
@@ -909,12 +946,17 @@ async function hydrateLecturePlayer() {
       window.location.href = 'mypage.html';
       return;
     }
+    if (reason === 'web_player_disabled') {
+      notifyWebPlayerDisabled();
+      return;
+    }
     window.location.href = 'index.html';
     return;
   }
   const data = await res.json();
   const course = data.course;
   const lectures = data.lectures;
+  const viewer = data.viewer || null;
   if (!course || !lectures.length) {
     window.location.href = 'index.html';
     return;
@@ -949,6 +991,7 @@ async function hydrateLecturePlayer() {
   } catch { /* 진도 없이 진행 */ }
 
   const videoEl = document.getElementById('lpVideo');
+  const wrapEl = document.getElementById('lpVideoWrap');
   const progressTracker = videoEl ? createProgressTracker(videoEl, saved => {
     saved.forEach(p => { progressByLecture[p.lectureId] = p; });
     renderList(); // 25초마다 목록 배지를 최신 진도로 갱신
@@ -957,6 +1000,12 @@ async function hydrateLecturePlayer() {
   const listEl = document.getElementById('lpCurriculumList');
   const nextBtn = document.getElementById('lpNextBtn');
   let currentIndex = 0;
+  // 커스텀 컨트롤 바(배속·시크·볼륨·전체화면·단축키·자동 다음 강의)
+  const playerControls = videoEl && wrapEl ? createLecturePlayerControls(videoEl, wrapEl, {
+    hasNext: () => currentIndex < lectures.length - 1,
+    nextTitle: () => (lectures[currentIndex + 1] && lectures[currentIndex + 1].title) || '',
+    playNext: () => { if (currentIndex < lectures.length - 1) playLecture(currentIndex + 1, { autoplay: true }); }
+  }) : null;
   const requestedNum = params.get('lecture');
   if (requestedNum !== null) {
     const idx = lectures.findIndex(l => String(l.lecture_number) === requestedNum);
@@ -1018,13 +1067,20 @@ async function hydrateLecturePlayer() {
     if (videoEl) {
       // src를 갈기 전에 호출해야 이전 강의의 마지막 구간이 이전 강의 앞으로 기록된다.
       if (progressTracker) progressTracker.setLecture(lecture.id);
-      attachVideoSource(videoEl, lecture.video_url || '');
+      if (playerControls) playerControls.reset();
+      attachVideoSource(videoEl, lecture.video_url || '', { onForbidden: notifyWebPlayerDisabled });
       // 이어보기 — 거의 다 본 강의는 끝에서 시작하면 의미가 없으니 처음부터 튼다.
       const saved = progressByLecture[lecture.id];
       const resumeAt = saved && !saved.completed && saved.position > 5 ? saved.position : 0;
       if (resumeAt) {
         // hls.js가 매니페스트를 파싱하기 전엔 currentTime을 못 잡으므로 메타데이터를 기다린다.
-        videoEl.addEventListener('loadedmetadata', () => { videoEl.currentTime = resumeAt; }, { once: true });
+        // 끝까지 넘겨만 둔 강의(시청시간은 부족해 completed가 아님)는 position이 영상 길이와 같아
+        // 그대로 복원하면 즉시 ended가 되므로, 길이의 95% 이상이면 처음부터 튼다.
+        videoEl.addEventListener('loadedmetadata', () => {
+          const dur = videoEl.duration;
+          if (Number.isFinite(dur) && dur > 0 && resumeAt >= dur * 0.95) return;
+          videoEl.currentTime = resumeAt;
+        }, { once: true });
       }
       if (autoplay) videoEl.play().catch(() => {});
     }
@@ -1061,7 +1117,482 @@ async function hydrateLecturePlayer() {
     });
   }
 
+  if (videoEl && wrapEl) {
+    installLecturePlayerCaptureGuards(videoEl, wrapEl);
+    // 워터마크 값은 서버가 내려준 viewer(이름·아이디·휴대폰 뒤4자리)를 쓴다. 없으면 me(이름·회원번호)로 폴백.
+    if (viewer) {
+      startLecturePlayerWatermark(wrapEl, [viewer.name, viewer.username, viewer.mobileTail].filter(Boolean).join(' · '));
+    } else {
+      fetchMe().then(me => {
+        startLecturePlayerWatermark(wrapEl, [me && me.name, me && me.memberId != null ? `#${me.memberId}` : ''].filter(Boolean).join(' · '));
+      });
+    }
+  }
+
   playLecture(currentIndex);
+}
+
+function notifyWebPlayerDisabled() {
+  if (notifyWebPlayerDisabled.done) return; // hls 오류가 연달아 와도 안내는 한 번만
+  notifyWebPlayerDisabled.done = true;
+  const videoEl = document.getElementById('lpVideo');
+  if (videoEl) { try { videoEl.pause(); } catch {} }
+  alert('웹 재생 권한이 없는 계정입니다. DockPlayer 앱으로 시청해 주세요.');
+  window.location.href = 'mypage.html';
+}
+
+// ── 강의 플레이어 커스텀 컨트롤 (DockPlayer와 같은 조작감) ──
+// 네이티브 controls의 전체화면은 <video>만 키워 워터마크가 사라지므로 컨트롤을 직접 그리고
+// 전체화면은 .lp-video-wrap(워터마크·오버레이 포함)에 건다.
+// 진도 트래커(createProgressTracker)와의 관계: 트래커는 timeupdate 증가분(≤3초)만 누적하므로
+//  - 배속(최대 2x)은 timeupdate 간격당 0.5초 안팎이라 그대로 반영되고,
+//  - ±10초·0~9 점프는 3초를 넘거나 음수라 버려지며 seeked에서 기준점이 다시 잡힌다.
+//  - 시크바 드래그는 놓을 때 한 번만 currentTime을 바꾼다(드래그 중 잔걸음 시크가 진도로 쌓이지 않게).
+const PLAYER_RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+const PLAYER_RATE_KEY = 'dt_player_rate';
+const PLAYER_VOLUME_KEY = 'dt_player_volume';
+const PLAYER_IDLE_MS = 3000;
+const PLAYER_AUTONEXT_SECONDS = 3;
+
+function readPlayerPref(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function writePlayerPref(key, value) {
+  try { localStorage.setItem(key, String(value)); } catch { /* 저장 불가 환경은 무시 */ }
+}
+
+function formatPlayerTime(sec) {
+  if (!isFinite(sec) || sec < 0) sec = 0;
+  sec = Math.floor(sec);
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  const mm = h ? String(m).padStart(2, '0') : String(m);
+  return `${h ? `${h}:` : ''}${mm}:${String(s).padStart(2, '0')}`;
+}
+
+function getPlayerFullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+
+function createLecturePlayerControls(videoEl, wrapEl, { hasNext, nextTitle, playNext }) {
+  const $ = (id) => document.getElementById(id);
+  const playBtn = $('lpPlayBtn');
+  const bigPlayBtn = $('lpBigPlay');
+  const rewindBtn = $('lpRewindBtn');
+  const forwardBtn = $('lpForwardBtn');
+  const muteBtn = $('lpMuteBtn');
+  const volumeInput = $('lpVolume');
+  const timeEl = $('lpTime');
+  const rateBtn = $('lpRateBtn');
+  const rateMenu = $('lpRateMenu');
+  const fsBtn = $('lpFullscreenBtn');
+  const seekEl = $('lpSeek');
+  const seekBuffer = $('lpSeekBuffer');
+  const seekPlayed = $('lpSeekPlayed');
+  const seekThumb = $('lpSeekThumb');
+  const endOverlay = $('lpEndOverlay');
+  const endTitle = $('lpEndTitle');
+  const endDesc = $('lpEndDesc');
+  const endCancelBtn = $('lpEndCancel');
+  const endNowBtn = $('lpEndNow');
+
+  videoEl.controls = false;
+
+  // ── 배속 ──
+  let rate = Number(readPlayerPref(PLAYER_RATE_KEY));
+  if (!PLAYER_RATES.includes(rate)) rate = 1;
+
+  function renderRateMenu() {
+    if (!rateMenu) return;
+    rateMenu.innerHTML = PLAYER_RATES.slice().reverse().map(r =>
+      `<button type="button" role="menuitemradio" aria-checked="${r === rate}" class="${r === rate ? 'active' : ''}" data-rate="${r}">${r}x</button>`
+    ).join('');
+  }
+  function applyRate() {
+    videoEl.defaultPlaybackRate = rate;
+    if (videoEl.playbackRate !== rate) videoEl.playbackRate = rate;
+    if (rateBtn) rateBtn.textContent = `${rate}x`;
+    renderRateMenu();
+  }
+  function setRate(next) {
+    if (!PLAYER_RATES.includes(next)) return;
+    rate = next;
+    writePlayerPref(PLAYER_RATE_KEY, rate);
+    applyRate();
+    flashHint(`${rate}x`);
+  }
+  function stepRate(dir) {
+    const idx = PLAYER_RATES.indexOf(rate);
+    const nextIdx = Math.min(PLAYER_RATES.length - 1, Math.max(0, idx + dir));
+    setRate(PLAYER_RATES[nextIdx]);
+  }
+  // src를 갈면 playbackRate가 기본값으로 돌아가므로 메타데이터마다 다시 건다(강의 전환 시 유지).
+  videoEl.addEventListener('loadedmetadata', applyRate);
+  applyRate();
+
+  if (rateBtn && rateMenu) {
+    rateBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = !rateMenu.classList.contains('open');
+      rateMenu.classList.toggle('open', open);
+      rateBtn.setAttribute('aria-expanded', String(open));
+      rateBtn.blur();
+    });
+    rateMenu.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-rate]');
+      if (!btn) return;
+      e.stopPropagation();
+      setRate(Number(btn.dataset.rate));
+      rateMenu.classList.remove('open');
+      rateBtn.setAttribute('aria-expanded', 'false');
+    });
+    document.addEventListener('click', () => {
+      rateMenu.classList.remove('open');
+      rateBtn.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  // ── 재생/일시정지 ──
+  function togglePlay() {
+    if (videoEl.paused || videoEl.ended) videoEl.play().catch(() => {});
+    else videoEl.pause();
+  }
+  function syncPlayState() {
+    const playing = !videoEl.paused && !videoEl.ended;
+    wrapEl.classList.toggle('is-playing', playing);
+    if (playBtn) playBtn.setAttribute('aria-label', playing ? '일시정지 (K)' : '재생 (K)');
+    if (!playing) showControls();
+    else scheduleIdle();
+  }
+  ['play', 'playing', 'pause', 'ended', 'emptied'].forEach(ev => videoEl.addEventListener(ev, syncPlayState));
+  if (playBtn) playBtn.addEventListener('click', () => { togglePlay(); playBtn.blur(); });
+  if (bigPlayBtn) bigPlayBtn.addEventListener('click', () => { togglePlay(); bigPlayBtn.blur(); });
+  videoEl.addEventListener('click', togglePlay);
+  videoEl.addEventListener('dblclick', () => toggleFullscreen());
+
+  // ── 시크 ──
+  function seekBy(delta) {
+    if (!isFinite(videoEl.duration)) return;
+    videoEl.currentTime = Math.min(Math.max(0, videoEl.currentTime + delta), Math.max(0, videoEl.duration - 0.1));
+    flashHint(delta > 0 ? `+${delta}초` : `${delta}초`);
+  }
+  if (rewindBtn) rewindBtn.addEventListener('click', () => { seekBy(-10); rewindBtn.blur(); });
+  if (forwardBtn) forwardBtn.addEventListener('click', () => { seekBy(10); forwardBtn.blur(); });
+
+  let dragging = false;
+  let dragRatio = 0;
+  function ratioFromEvent(e) {
+    const rect = seekEl.getBoundingClientRect();
+    return rect.width ? Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)) : 0;
+  }
+  function paintSeek(ratio) {
+    const pct = `${(ratio * 100).toFixed(3)}%`;
+    if (seekPlayed) seekPlayed.style.width = pct;
+    if (seekThumb) seekThumb.style.left = pct;
+  }
+  function renderTime() {
+    const dur = videoEl.duration;
+    const cur = dragging && isFinite(dur) ? dragRatio * dur : videoEl.currentTime;
+    if (timeEl) timeEl.textContent = `${formatPlayerTime(cur)} / ${formatPlayerTime(dur)}`;
+    if (!dragging) paintSeek(isFinite(dur) && dur > 0 ? cur / dur : 0);
+    if (seekEl) seekEl.setAttribute('aria-valuenow', String(Math.floor(cur)));
+  }
+  function renderBuffer() {
+    if (!seekBuffer) return;
+    const dur = videoEl.duration;
+    const b = videoEl.buffered;
+    let end = 0;
+    for (let i = 0; i < b.length; i++) {
+      if (b.start(i) <= videoEl.currentTime + 0.5 && b.end(i) >= videoEl.currentTime) { end = b.end(i); break; }
+    }
+    seekBuffer.style.width = isFinite(dur) && dur > 0 ? `${Math.min(100, (end / dur) * 100)}%` : '0%';
+  }
+  ['timeupdate', 'durationchange', 'loadedmetadata', 'seeked', 'emptied'].forEach(ev => videoEl.addEventListener(ev, renderTime));
+  ['progress', 'timeupdate', 'seeked', 'emptied'].forEach(ev => videoEl.addEventListener(ev, renderBuffer));
+
+  if (seekEl) {
+    seekEl.addEventListener('pointerdown', (e) => {
+      if (!isFinite(videoEl.duration)) return;
+      dragging = true;
+      dragRatio = ratioFromEvent(e);
+      seekEl.classList.add('dragging');
+      try { seekEl.setPointerCapture(e.pointerId); } catch {}
+      paintSeek(dragRatio);
+      renderTime();
+    });
+    seekEl.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      dragRatio = ratioFromEvent(e);
+      paintSeek(dragRatio);
+      renderTime();
+    });
+    const finishDrag = (e) => {
+      if (!dragging) return;
+      dragging = false;
+      seekEl.classList.remove('dragging');
+      if (e && e.type === 'pointerup') dragRatio = ratioFromEvent(e);
+      if (isFinite(videoEl.duration)) videoEl.currentTime = Math.min(dragRatio * videoEl.duration, Math.max(0, videoEl.duration - 0.1));
+      renderTime();
+    };
+    seekEl.addEventListener('pointerup', finishDrag);
+    seekEl.addEventListener('pointercancel', finishDrag);
+  }
+
+  // ── 볼륨 ──
+  const savedVolume = Number(readPlayerPref(PLAYER_VOLUME_KEY));
+  if (readPlayerPref(PLAYER_VOLUME_KEY) !== null && isFinite(savedVolume)) videoEl.volume = Math.min(1, Math.max(0, savedVolume));
+  function syncVolume() {
+    const muted = videoEl.muted || videoEl.volume === 0;
+    wrapEl.classList.toggle('is-muted', muted);
+    if (volumeInput) {
+      volumeInput.value = String(muted ? 0 : videoEl.volume);
+      volumeInput.style.setProperty('--lp-vol', `${(muted ? 0 : videoEl.volume) * 100}%`);
+    }
+    if (muteBtn) muteBtn.setAttribute('aria-label', muted ? '음소거 해제 (M)' : '음소거 (M)');
+  }
+  function setVolume(v) {
+    v = Math.min(1, Math.max(0, Math.round(v * 100) / 100));
+    videoEl.volume = v;
+    videoEl.muted = v === 0;
+    writePlayerPref(PLAYER_VOLUME_KEY, v);
+  }
+  function toggleMute() {
+    if (videoEl.muted || videoEl.volume === 0) {
+      if (videoEl.volume === 0) videoEl.volume = 0.5;
+      videoEl.muted = false;
+    } else {
+      videoEl.muted = true;
+    }
+  }
+  videoEl.addEventListener('volumechange', syncVolume);
+  if (volumeInput) volumeInput.addEventListener('input', () => setVolume(Number(volumeInput.value)));
+  if (volumeInput) volumeInput.addEventListener('change', () => volumeInput.blur());
+  if (muteBtn) muteBtn.addEventListener('click', () => { toggleMute(); muteBtn.blur(); });
+  syncVolume();
+
+  // ── 전체화면 (.lp-video-wrap 대상, Safari webkit 폴백, iPhone은 video 네이티브 전체화면 폴백) ──
+  function toggleFullscreen() {
+    if (getPlayerFullscreenElement()) {
+      (document.exitFullscreen || document.webkitExitFullscreen || (() => {})).call(document);
+      return;
+    }
+    if (wrapEl.requestFullscreen) wrapEl.requestFullscreen().catch(() => {});
+    else if (wrapEl.webkitRequestFullscreen) wrapEl.webkitRequestFullscreen();
+    else if (videoEl.webkitEnterFullscreen) videoEl.webkitEnterFullscreen(); // iPhone: 요소 전체화면 미지원
+  }
+  function syncFullscreen() {
+    const fs = getPlayerFullscreenElement() === wrapEl;
+    wrapEl.classList.toggle('is-fullscreen', fs);
+    if (fsBtn) fsBtn.setAttribute('aria-label', fs ? '전체화면 종료 (F)' : '전체화면 (F)');
+    showControls();
+  }
+  document.addEventListener('fullscreenchange', syncFullscreen);
+  document.addEventListener('webkitfullscreenchange', syncFullscreen);
+  if (fsBtn) fsBtn.addEventListener('click', () => { toggleFullscreen(); fsBtn.blur(); });
+
+  // ── 컨트롤·커서 자동 숨김 (재생 중 3초 무동작) ──
+  let idleTimer = null;
+  function showControls() {
+    wrapEl.classList.remove('is-idle');
+    scheduleIdle();
+  }
+  function scheduleIdle() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      const busy = (rateMenu && rateMenu.classList.contains('open')) || dragging;
+      if (!videoEl.paused && !videoEl.ended && !busy) wrapEl.classList.add('is-idle');
+      else scheduleIdle();
+    }, PLAYER_IDLE_MS);
+  }
+  wrapEl.addEventListener('mousemove', showControls);
+  wrapEl.addEventListener('pointerdown', showControls);
+  wrapEl.addEventListener('touchstart', showControls, { passive: true });
+  wrapEl.addEventListener('mouseleave', () => {
+    if (!videoEl.paused && !videoEl.ended && !getPlayerFullscreenElement()) {
+      clearTimeout(idleTimer);
+      wrapEl.classList.add('is-idle');
+    }
+  });
+
+  // ── 단축키 힌트(가운데 잠깐 표시) ──
+  const hintEl = $('lpHint');
+  let hintTimer = null;
+  function flashHint(text) {
+    if (!hintEl) return;
+    hintEl.textContent = text;
+    hintEl.classList.add('show');
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => hintEl.classList.remove('show'), 700);
+  }
+
+  // ── 키보드 단축키 ──
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target;
+    const tag = t && t.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+    const key = e.key;
+    let handled = true;
+    if (key === ' ' || key === 'Spacebar' || key === 'k' || key === 'K') togglePlay();
+    else if (key === 'ArrowLeft' || key === 'j' || key === 'J') seekBy(-10);
+    else if (key === 'ArrowRight' || key === 'l' || key === 'L') seekBy(10);
+    else if (key === 'ArrowUp') { setVolume((videoEl.muted ? 0 : videoEl.volume) + 0.1); flashHint(`볼륨 ${Math.round(videoEl.volume * 100)}%`); }
+    else if (key === 'ArrowDown') { setVolume((videoEl.muted ? 0 : videoEl.volume) - 0.1); flashHint(`볼륨 ${Math.round(videoEl.volume * 100)}%`); }
+    else if (key === 'm' || key === 'M') toggleMute();
+    else if (key === 'f' || key === 'F') toggleFullscreen();
+    else if (key === ',' || key === '<') stepRate(-1);
+    else if (key === '.' || key === '>') stepRate(1);
+    else if (/^[0-9]$/.test(key)) {
+      if (isFinite(videoEl.duration)) videoEl.currentTime = videoEl.duration * (Number(key) / 10);
+    } else handled = false;
+    if (handled) {
+      e.preventDefault();
+      showControls();
+    }
+  });
+
+  // ── 영상 끝 → 3초 카운트다운 후 자동 다음 강의 ──
+  let countdownTimer = null;
+  function hideEndOverlay() {
+    clearInterval(countdownTimer);
+    countdownTimer = null;
+    if (endOverlay) endOverlay.classList.remove('show');
+  }
+  videoEl.addEventListener('ended', () => {
+    if (!endOverlay) return;
+    if (!hasNext()) {
+      if (endTitle) endTitle.textContent = '수강 완료';
+      if (endDesc) endDesc.textContent = '이 강좌의 마지막 강의까지 모두 보셨습니다.';
+      if (endCancelBtn) endCancelBtn.textContent = '닫기';
+      if (endNowBtn) endNowBtn.style.display = 'none';
+      endOverlay.classList.add('show');
+      return;
+    }
+    let left = PLAYER_AUTONEXT_SECONDS;
+    const title = nextTitle();
+    const paint = () => {
+      if (endTitle) endTitle.textContent = title ? `다음 강의: ${title}` : '다음 강의';
+      if (endDesc) endDesc.textContent = `${left}초 후 자동으로 재생됩니다.`;
+    };
+    if (endCancelBtn) endCancelBtn.textContent = '취소';
+    if (endNowBtn) endNowBtn.style.display = '';
+    paint();
+    endOverlay.classList.add('show');
+    clearInterval(countdownTimer);
+    countdownTimer = setInterval(() => {
+      left -= 1;
+      if (left <= 0) { hideEndOverlay(); playNext(); return; }
+      paint();
+    }, 1000);
+  });
+  if (endCancelBtn) endCancelBtn.addEventListener('click', hideEndOverlay);
+  if (endNowBtn) endNowBtn.addEventListener('click', () => { hideEndOverlay(); playNext(); });
+
+  syncPlayState();
+  renderTime();
+
+  return {
+    // 강의 전환 직전에 호출 — 남은 카운트다운을 끄고 시크바를 비운다(배속은 loadedmetadata에서 다시 건다).
+    reset() {
+      hideEndOverlay();
+      dragging = false;
+      paintSeek(0);
+      if (seekBuffer) seekBuffer.style.width = '0%';
+      showControls();
+    }
+  };
+}
+
+// ── 캡처 억제(완전 차단 불가 — 정식 DRM 없이 가능한 억제 수단, 계획 §6-1) ──
+// 우클릭 저장·PiP 차단, 창 이탈/탭 숨김 시 일시정지 + 안내, PrintScreen 시 일시정지 + 1초 검은 화면.
+function installLecturePlayerCaptureGuards(videoEl, wrapEl) {
+  videoEl.setAttribute('controlsList', 'nodownload noremoteplayback');
+  videoEl.setAttribute('disablePictureInPicture', '');
+  videoEl.disablePictureInPicture = true;
+  videoEl.disableRemotePlayback = true;
+  wrapEl.addEventListener('contextmenu', (e) => e.preventDefault());
+  wrapEl.addEventListener('dragstart', (e) => e.preventDefault());
+
+  const focusOverlay = document.getElementById('lpFocusOverlay');
+  const blackout = document.getElementById('lpBlackout');
+
+  function pauseForFocusLoss() {
+    if (videoEl.paused || videoEl.ended) return; // 이미 멈춘 상태면 안내도 띄우지 않는다
+    videoEl.pause();
+    if (focusOverlay) focusOverlay.classList.add('show');
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') pauseForFocusLoss();
+  });
+  window.addEventListener('blur', pauseForFocusLoss);
+  if (focusOverlay) {
+    focusOverlay.addEventListener('click', () => {
+      focusOverlay.classList.remove('show');
+      videoEl.play().catch(() => {});
+    });
+  }
+  // 다른 경로(재생 버튼·단축키)로 다시 재생되면 안내는 자동으로 걷는다.
+  videoEl.addEventListener('play', () => { if (focusOverlay) focusOverlay.classList.remove('show'); });
+
+  let blackoutTimer = null;
+  function onPrintScreen(e) {
+    if (e.key !== 'PrintScreen' && e.code !== 'PrintScreen') return;
+    videoEl.pause();
+    if (blackout) {
+      blackout.classList.add('show');
+      clearTimeout(blackoutTimer);
+      blackoutTimer = setTimeout(() => blackout.classList.remove('show'), 1000);
+    }
+  }
+  // Windows는 PrintScreen keydown을 페이지에 안 주는 경우가 많아 keyup도 같이 본다.
+  document.addEventListener('keydown', onPrintScreen);
+  document.addEventListener('keyup', onPrintScreen);
+}
+
+// ── 동적 워터마크 — 유출 시 시청자 추적용. 30~60초마다 안전 영역 안 랜덤 위치로 이동 ──
+let _watermarkTimer = null;
+function startLecturePlayerWatermark(wrapEl, identity) {
+  let el = document.getElementById('lpWatermark');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'lpWatermark';
+    el.className = 'lp-watermark';
+    el.setAttribute('aria-hidden', 'true');
+  }
+  const pad = (n) => String(n).padStart(2, '0');
+  function stamp() {
+    const d = new Date();
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function tick() {
+    // 개발자도구로 지워도 다음 주기에 다시 붙인다(억제 수단일 뿐 완전 차단은 아님).
+    if (el.parentNode !== wrapEl) wrapEl.appendChild(el);
+    el.removeAttribute('style');
+    el.textContent = [identity, stamp()].filter(Boolean).join(' · ');
+    const w = wrapEl.clientWidth;
+    const h = wrapEl.clientHeight;
+    const ew = el.offsetWidth;
+    const eh = el.offsetHeight;
+    // 상하좌우 6% 안전 영역, 하단은 컨트롤 바 높이만큼 더 피한다.
+    const marginX = w * 0.06;
+    const marginTop = h * 0.06;
+    const marginBottom = h * 0.06 + 56;
+    const left = marginX + Math.random() * Math.max(0, w - ew - marginX * 2);
+    const top = marginTop + Math.random() * Math.max(0, h - eh - marginTop - marginBottom);
+    // %로 두어 창 크기가 바뀌어도 영역 밖으로 크게 벗어나지 않게 한다.
+    el.style.left = w ? `${((left / w) * 100).toFixed(2)}%` : '10%';
+    el.style.top = h ? `${((top / h) * 100).toFixed(2)}%` : '10%';
+    clearTimeout(_watermarkTimer);
+    _watermarkTimer = setTimeout(tick, 30000 + Math.random() * 30000);
+  }
+  tick();
+  // 전체화면 진입/해제 시 크기가 바뀌므로 바로 다시 배치한다.
+  const relayout = () => tick();
+  document.addEventListener('fullscreenchange', relayout);
+  document.addEventListener('webkitfullscreenchange', relayout);
+  let resizeTimer = null;
+  window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(relayout, 200); });
 }
 
 // ── 합격 인증 차트(퍼센트/막대) + 갤러리 ──
