@@ -155,7 +155,6 @@
   // ── 4-2. 유입·전환 분석 (GET /admin/api/marketing/attribution) ──
   // 비율(conversionRate = 결제자 ÷ 가입, 가입 코호트 기준)은 0~1 소수, 가입 0이면 null.
   const ATTR_TARGETS = [['mkAttrChannelTable', 6], ['mkAttrKeywordTable', 6], ['mkAttrLandingTable', 6], ['mkAttrPrePurchaseTable', 4]];
-  const CHANNEL_KIND_HINT = { form: '가입폼 입력(유입 추적 전)', none: '유입 정보 없음', tracked: '유입 추적' };
   const dwell = (s) => (s === null || s === undefined ? '-' : s >= 60 ? `${Math.floor(s / 60)}분 ${s % 60}초` : `${s}초`);
   let attrSeq = 0;
   let attrRange = { from: '', to: '' };
@@ -186,51 +185,114 @@
     }
   }
 
+  // 표마다 처음엔 상위 N행만 보여주고 나머지는 "더 보기"로 펼친다(키워드는 최대 50행이라 한눈에 안 들어옴).
+  const ATTR_VISIBLE_ROWS = 8;
+
+  // 숫자 셀: 0은 흐리게, 값은 tabular-nums. bar가 주어지면 셀 배경에 비율 막대(표 내 최대값 대비).
+  const numCell = (v, { bar, title, cls } = {}) => {
+    const n = Number(v || 0);
+    const classes = ['mk-num', n === 0 ? 'mk-zero' : '', bar !== undefined ? 'mk-barcell' : '', cls || ''].filter(Boolean).join(' ');
+    const barHtml = bar !== undefined ? `<i class="mk-bar" style="width:${Math.max(0, Math.min(100, bar)).toFixed(1)}%"></i>` : '';
+    return `<td class="${classes}"${title ? ` title="${escapeHtml(title)}"` : ''}>${barHtml}<span>${num(n)}</span></td>`;
+  };
+  const rateCell = (v) => {
+    if (v === null || v === undefined || Number.isNaN(Number(v))) return '<td class="mk-num mk-zero">-</td>';
+    const r = Number(v);
+    const tone = r >= 0.3 ? 'hi' : r > 0 ? '' : 'mk-zero';
+    return `<td class="mk-num mk-rate ${tone}">${rate(r)}</td>`;
+  };
+  const wonCell = (v) => `<td class="mk-num mk-col-period ${Number(v || 0) === 0 ? 'mk-zero' : ''}">${won(v)}</td>`;
+  // 출처 라벨 — "추적"(유입 쿠키) / "가입폼"(회원 입력) / "미수집"
+  const srcPill = (kind) => {
+    if (kind === 'tracked') return '<span class="mk-src mk-src-tracked" title="유입 쿠키로 자동 수집">추적</span>';
+    if (kind === 'form') return '<span class="mk-src mk-src-form" title="회원이 가입폼에서 고른 값(유입 추적 전)">가입폼</span>';
+    return '<span class="mk-src" title="유입 정보 없음">미수집</span>';
+  };
+  // "가입폼/학원 재원생" → 출처 알약 + 이름, 추적 채널 "naver/cpc" → "naver / cpc"
+  const channelLabel = (r) => {
+    const raw = String(r.channel || '');
+    if (r.kind === 'form') return `${srcPill('form')}<span class="mk-label">${escapeHtml(raw.replace(/^가입폼\//, ''))}</span>`;
+    if (r.kind === 'tracked') return `${srcPill('tracked')}<span class="mk-label">${escapeHtml(raw.replace('/', ' / '))}</span>`;
+    return `${srcPill('none')}<span class="mk-label mk-label-muted">${escapeHtml(raw)}</span>`;
+  };
+  const maxOf = (rows, key) => rows.reduce((m, r) => Math.max(m, Number(r[key] || 0)), 0);
+  const barPct = (v, max) => (max > 0 ? (Number(v || 0) / max) * 100 : 0);
+
+  // 상위 N행 이후는 숨기고 "더 보기 (n)" 버튼을 켠다.
+  function fillAttrTable(id, rows, rowHtml, cols, emptyMsg) {
+    const tbody = $(id);
+    const moreBtn = document.querySelector(`[data-mk-more="${id}"]`);
+    if (!rows.length) {
+      tbody.innerHTML = emptyRow(cols, emptyMsg);
+      if (moreBtn) moreBtn.hidden = true;
+      return;
+    }
+    tbody.innerHTML = rows.map((r, i) => rowHtml(r, i >= ATTR_VISIBLE_ROWS ? ' class="mk-more-row" hidden' : '')).join('');
+    if (!moreBtn) return;
+    const hiddenCount = Math.max(0, rows.length - ATTR_VISIBLE_ROWS);
+    moreBtn.hidden = hiddenCount === 0;
+    moreBtn.dataset.open = '0';
+    moreBtn.textContent = `더 보기 (${hiddenCount})`;
+  }
+
   function renderAttribution(data) {
     const t = data.totals || {};
-    const cov = (part, whole) => (Number(whole) > 0 ? `${num(part)}/${num(whole)} (${pct(part, whole)})` : '0');
+    const covChip = (label, part, whole, hint) => `
+      <span class="mk-ga4-chip" title="${escapeHtml(hint)}">${escapeHtml(label)} <b>${num(part)}<span class="mk-chip-of">/ ${num(whole)}</span></b> <em>${escapeHtml(Number(whole) > 0 ? pct(part, whole) : '-')}</em></span>`;
     $('mkAttrCoverage').innerHTML = `
-      <span>가입 중 유입 추적됨 <b>${escapeHtml(cov(t.signupsTracked, t.signups))}</b></span>
-      <span>결제 중 유입 추적됨 <b>${escapeHtml(cov(t.paymentsTracked, t.payments))}</b></span>
-      <span>결제 중 페이지 경로 있음 <b>${escapeHtml(cov(t.paymentsWithJourney, t.payments))}</b></span>
+      ${covChip('가입 중 유입 추적', t.signupsTracked, t.signups, '기간 내 가입 회원 중 유입 쿠키가 함께 저장된 수')}
+      ${covChip('결제 중 유입 추적', t.paymentsTracked, t.payments, '기간 내 승인 결제 중 유입 정보가 함께 저장된 수')}
+      ${covChip('결제 중 페이지 경로', t.paymentsWithJourney, t.payments, '기간 내 승인 결제 중 결제 직전 페이지 경로가 저장된 수')}
       ${data.signupContextAvailable === false ? '<span class="mk-attr-warn">회원 가입 유입 컬럼(signup_context) 미적용 — 가입은 가입폼 값으로만 집계</span>' : ''}`;
 
-    const metricCells = (r) => `
-        <td class="mk-num">${num(r.signups)}</td>
-        <td class="mk-num">${num(r.buyers)}</td>
-        <td class="mk-num">${num(r.payments)}</td>
-        <td class="mk-num">${won(r.revenue)}</td>
-        <td class="mk-num">${rate(r.conversionRate)}</td>`;
+    const metricCells = (r, maxSignups) => `
+        ${numCell(r.signups, { bar: barPct(r.signups, maxSignups) })}
+        ${numCell(r.buyers)}
+        ${rateCell(r.conversionRate)}
+        ${numCell(r.payments, { cls: 'mk-col-period mk-col-period-first' })}
+        ${wonCell(r.revenue)}`;
 
     const channels = data.channels || [];
-    $('mkAttrChannelTable').innerHTML = channels.length ? channels.map(r => `
-      <tr class="${r.kind === 'tracked' ? '' : 'mk-row-muted'}">
-        <td title="${escapeHtml(CHANNEL_KIND_HINT[r.kind] || '')}"><code>${escapeHtml(r.channel)}</code></td>${metricCells(r)}
-      </tr>`).join('') : emptyRow(6, '기간 내 가입·결제가 없습니다.');
+    const chMax = maxOf(channels, 'signups');
+    fillAttrTable('mkAttrChannelTable', channels, (r, attrs) => `
+      <tr${attrs}><td class="mk-labelcell">${channelLabel(r)}</td>${metricCells(r, chMax)}</tr>`,
+      6, '기간 내 가입·결제가 없습니다.');
 
     const keywords = data.keywords || [];
-    $('mkAttrKeywordTable').innerHTML = keywords.length ? keywords.map(r => `
-      <tr>
-        <td>${escapeHtml(r.keyword)} <span class="field-hint">${escapeHtml((r.sources || []).join('·'))}</span></td>${metricCells(r)}
-      </tr>`).join('') : emptyRow(6, '키워드가 수집된 가입·결제가 없습니다.');
+    const kwMax = maxOf(keywords, 'signups');
+    fillAttrTable('mkAttrKeywordTable', keywords, (r, attrs) => `
+      <tr${attrs}><td class="mk-labelcell"><span class="mk-label mk-label-strong">${escapeHtml(r.keyword)}</span>${(r.sources || []).map(s => `<span class="mk-src ${s === '가입폼' ? 'mk-src-form' : 'mk-src-tracked'}">${escapeHtml(s)}</span>`).join('')}</td>${metricCells(r, kwMax)}</tr>`,
+      6, '키워드가 수집된 가입·결제가 없습니다.');
 
     const landings = data.landings || [];
-    $('mkAttrLandingTable').innerHTML = landings.length ? landings.map(r => `
-      <tr><td><code>${escapeHtml(r.landing)}</code></td>${metricCells(r)}</tr>`).join('')
-      : emptyRow(6, '랜딩 페이지가 수집된 가입·결제가 없습니다.');
+    const ldMax = maxOf(landings, 'signups');
+    fillAttrTable('mkAttrLandingTable', landings, (r, attrs) => `
+      <tr${attrs}><td class="mk-labelcell"><span class="mk-path">${escapeHtml(r.landing)}</span></td>${metricCells(r, ldMax)}</tr>`,
+      6, '랜딩 페이지가 수집된 가입·결제가 없습니다.');
 
     const pages = data.prePurchasePages || [];
-    $('mkAttrPrePurchaseTable').innerHTML = pages.length ? pages.map(r => `
-      <tr>
-        <td><code>${escapeHtml(r.path)}</code></td>
-        <td class="mk-num">${num(r.count)}</td>
-        <td class="mk-num">${num(r.lastPageCount)}</td>
-        <td class="mk-num" title="체류초 표본 ${num(r.dwellSamples)}건">${dwell(r.avgDwellSec)}</td>
-      </tr>`).join('') : emptyRow(4, '페이지 경로가 수집된 승인 결제가 없습니다.');
+    const pgMax = maxOf(pages, 'count');
+    fillAttrTable('mkAttrPrePurchaseTable', pages, (r, attrs) => `
+      <tr${attrs}>
+        <td class="mk-labelcell"><span class="mk-path">${escapeHtml(r.path)}</span></td>
+        ${numCell(r.count, { bar: barPct(r.count, pgMax) })}
+        ${numCell(r.lastPageCount)}
+        <td class="mk-num${r.avgDwellSec === null || r.avgDwellSec === undefined ? ' mk-zero' : ''}" title="체류초 표본 ${num(r.dwellSamples)}건">${dwell(r.avgDwellSec)}</td>
+      </tr>`,
+      4, '페이지 경로가 수집된 승인 결제가 없습니다.');
   }
 
   // CSV: 세션 쿠키로 인증되는 GET이라 링크 이동만으로 내려받는다(UTF-8 BOM, 엑셀 호환).
   $('mkAttributionCard').addEventListener('click', (e) => {
+    const more = e.target.closest('[data-mk-more]');
+    if (more) {
+      const open = more.dataset.open !== '1';
+      more.dataset.open = open ? '1' : '0';
+      const rows = $(more.dataset.mkMore).querySelectorAll('tr.mk-more-row');
+      rows.forEach(tr => { tr.hidden = !open; });
+      more.textContent = open ? '접기' : `더 보기 (${rows.length})`;
+      return;
+    }
     const btn = e.target.closest('[data-mk-csv]');
     if (!btn) return;
     const a = document.createElement('a');

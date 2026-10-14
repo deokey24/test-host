@@ -577,10 +577,42 @@ th.mk-num, td.mk-num { text-align: right; font-variant-numeric: tabular-nums; wh
 /* 유입·전환 분석 카드 */
 .mk-table-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .mk-table-head .mk-h3 { margin: 0; }
-.mk-attr-coverage { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--text-soft); margin: 0 0 14px; }
-.mk-attr-coverage b { color: var(--text); font-variant-numeric: tabular-nums; }
-.mk-attr-warn { color: #7a5418; background: #fdf0d5; border-radius: 6px; padding: 1px 8px; }
-#marketingSection tr.mk-row-muted td { color: var(--text-soft); }
+.mk-attr-lead { font-size: 13px; color: var(--text-soft); line-height: 1.6; margin: -6px 0 12px; }
+.mk-attr-lead b { color: var(--text); font-weight: 700; }
+.mk-attr-coverage { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0 0 10px; }
+.mk-attr-coverage .mk-chip-of { color: var(--text-soft); font-weight: 600; font-size: 12px; margin-left: 2px; }
+.mk-attr-coverage em { font-style: normal; color: var(--green-dark); margin-left: 4px; }
+.mk-attr-warn { color: #7a5418; background: #fdf0d5; border-radius: 6px; padding: 3px 10px; font-size: 12px; }
+.mk-attr-notes { margin: 0 0 16px; }
+.mk-attr-notes > summary { font-size: 12px; font-weight: 700; color: var(--text-soft); }
+.mk-attr-notes ul { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.75; color: var(--text-soft); }
+.mk-attr-notes ul b { color: var(--text); }
+.mk-attr-grid { grid-template-columns: repeat(auto-fit, minmax(min(520px, 100%), 1fr)); gap: 24px 28px; }
+.mk-attr-block { min-width: 0; }
+.mk-h3-sub { font-weight: 600; color: var(--text-soft); font-size: 12px; margin-left: 6px; }
+.mk-attr-table th { white-space: nowrap; padding-top: 6px; padding-bottom: 6px; }
+.mk-attr-table td { padding-top: 10px; padding-bottom: 10px; }
+.mk-attr-table tbody tr:nth-child(even) td { background: #fafbfa; }
+.mk-attr-table tbody tr:hover td { background: #f3f5f4; }
+.mk-attr-table th.mk-col-period, .mk-attr-table td.mk-col-period { color: var(--text-soft); }
+.mk-attr-table th.mk-col-period-first, .mk-attr-table td.mk-col-period-first { border-left: 1px dashed var(--border-strong); padding-left: 14px; }
+.mk-attr-table th.mk-col-bar { min-width: 96px; }
+.mk-labelcell { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.mk-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mk-label-strong { font-weight: 700; }
+.mk-label-muted { color: var(--text-soft); }
+.mk-path { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: var(--text); background: var(--grey-bg); border-radius: 4px; padding: 2px 6px; word-break: break-all; }
+.mk-src { flex-shrink: 0; display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700; line-height: 16px; background: var(--border); color: var(--text-soft); white-space: nowrap; }
+.mk-src-tracked { background: #e3ecf3; color: #3d6b8b; }
+.mk-src-form { background: #f3ead9; color: var(--green-dark); }
+.mk-attr-table td.mk-zero, .mk-attr-table td.mk-zero span { color: var(--border-strong); }
+.mk-attr-table td.mk-rate { font-weight: 800; }
+.mk-attr-table td.mk-rate.hi { color: var(--green-dark); }
+.mk-barcell { position: relative; }
+.mk-barcell span { position: relative; z-index: 1; }
+.mk-bar { position: absolute; right: 8px; top: 6px; bottom: 6px; background: var(--green-light); opacity: .55; border-radius: 3px; z-index: 0; pointer-events: none; }
+.mk-attr-table tbody tr:nth-child(even) td.mk-barcell .mk-bar { opacity: .7; }
+.mk-attr-more { margin-top: 8px; }
 #marketingSection td code { word-break: break-all; }
 /* GA4 방문 통계 카드 (admin/marketing.js loadGa4) */
 #marketingSection [hidden] { display: none !important; }

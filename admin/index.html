@@ -1331,48 +1331,60 @@
             <h2>유입·전환 분석</h2>
             <div class="status-text" id="mkAttrStatus"></div>
           </div>
-          <p class="field-hint" style="margin:-8px 0 12px;">
-            가입·결제자·전환율은 <b>기간 내 가입 회원</b>(가입 시 유입) 기준입니다 — 전환율 = 결제자(가입 회원 중 승인 결제가 1건 이상 있는 회원, 결제 시점 무관) ÷ 가입.
-            결제·매출은 <b>기간 내 승인 결제</b>(결제 시 유입) 기준이라 가입과 코호트가 다릅니다.
-            가입경로를 여러 개 고른 회원은 각 채널에 한 번씩 집계되어 채널 합계가 전체 건수보다 클 수 있습니다.
-            유입 추적 전 데이터는 가입폼 입력(<code>가입폼/…</code>)으로, 둘 다 없으면 <code>(미수집)</code>으로 묶습니다.
-          </p>
+          <p class="mk-attr-lead">어떤 경로·키워드로 들어온 회원이 가입하고 결제했는지 봅니다. <b>전환율 = 가입자 중 결제자 비율</b>, 막대는 표 안에서 가입 수가 가장 많은 행 대비 길이입니다.</p>
           <div class="mk-attr-coverage" id="mkAttrCoverage"></div>
-          <div class="mk-table-grid">
-            <div>
+          <details class="mk-details mk-attr-notes">
+            <summary>집계 기준 자세히</summary>
+            <ul>
+              <li><b>가입·결제자·전환율</b>은 기간 내 가입한 회원(가입 시 유입) 기준입니다. 결제자는 그 회원 중 승인 결제가 1건 이상 있는 사람(결제 시점 무관)입니다.</li>
+              <li><b>결제·매출</b>은 기간 내 승인 결제(결제 시 유입) 기준이라 가입 쪽과 대상이 다릅니다.</li>
+              <li>가입경로를 여러 개 고른 회원은 각 채널에 한 번씩 세어 채널 합계가 전체보다 클 수 있습니다.</li>
+              <li><span class="mk-src mk-src-tracked">추적</span> 유입 쿠키로 자동 수집 · <span class="mk-src mk-src-form">가입폼</span> 회원이 가입폼에서 고른 값(추적 전 데이터) · <span class="mk-src">미수집</span> 둘 다 없음.</li>
+            </ul>
+          </details>
+          <div class="mk-table-grid mk-attr-grid">
+            <section class="mk-attr-block">
               <div class="mk-table-head">
-                <h3 class="mk-h3">채널별 (소스/매체)</h3>
+                <h3 class="mk-h3">채널별 <span class="mk-h3-sub">소스 / 매체</span></h3>
                 <button class="row-btn" type="button" data-mk-csv="channels">CSV</button>
               </div>
-              <div class="mk-table-wrap"><table>
-                <thead><tr><th>채널</th><th class="mk-num">가입</th><th class="mk-num">결제자</th><th class="mk-num">결제</th><th class="mk-num">매출</th><th class="mk-num" title="가입 회원 중 승인 결제가 1건 이상 있는 회원 ÷ 가입">전환율(가입자 중 결제자)</th></tr></thead>
+              <div class="mk-table-wrap"><table class="mk-attr-table">
+                <thead><tr><th>채널</th><th class="mk-num mk-col-bar">가입</th><th class="mk-num">결제자</th><th class="mk-num" title="가입자 중 결제자 비율">전환율</th><th class="mk-num mk-col-period mk-col-period-first" title="기간 내 승인 결제 건수">결제</th><th class="mk-num mk-col-period" title="기간 내 승인 결제 매출">매출</th></tr></thead>
                 <tbody id="mkAttrChannelTable"></tbody>
               </table></div>
-            </div>
-            <div>
+              <button class="row-btn mk-attr-more" type="button" data-mk-more="mkAttrChannelTable" hidden></button>
+            </section>
+            <section class="mk-attr-block">
               <div class="mk-table-head">
-                <h3 class="mk-h3">키워드별 (광고 검색어·utm_term·가입폼)</h3>
+                <h3 class="mk-h3">키워드별 <span class="mk-h3-sub">광고 검색어 · utm_term · 가입폼</span></h3>
                 <button class="row-btn" type="button" data-mk-csv="keywords">CSV</button>
               </div>
-              <div class="mk-table-wrap"><table>
-                <thead><tr><th>키워드</th><th class="mk-num">가입</th><th class="mk-num">결제자</th><th class="mk-num">결제</th><th class="mk-num">매출</th><th class="mk-num" title="가입 회원 중 승인 결제가 1건 이상 있는 회원 ÷ 가입">전환율(가입자 중 결제자)</th></tr></thead>
+              <div class="mk-table-wrap"><table class="mk-attr-table">
+                <thead><tr><th>키워드</th><th class="mk-num mk-col-bar">가입</th><th class="mk-num">결제자</th><th class="mk-num" title="가입자 중 결제자 비율">전환율</th><th class="mk-num mk-col-period mk-col-period-first" title="기간 내 승인 결제 건수">결제</th><th class="mk-num mk-col-period" title="기간 내 승인 결제 매출">매출</th></tr></thead>
                 <tbody id="mkAttrKeywordTable"></tbody>
               </table></div>
-            </div>
-            <div>
-              <h3 class="mk-h3">랜딩페이지별 (첫 유입)</h3>
-              <div class="mk-table-wrap"><table>
-                <thead><tr><th>랜딩 페이지</th><th class="mk-num">가입</th><th class="mk-num">결제자</th><th class="mk-num">결제</th><th class="mk-num">매출</th><th class="mk-num" title="가입 회원 중 승인 결제가 1건 이상 있는 회원 ÷ 가입">전환율(가입자 중 결제자)</th></tr></thead>
+              <button class="row-btn mk-attr-more" type="button" data-mk-more="mkAttrKeywordTable" hidden></button>
+            </section>
+            <section class="mk-attr-block">
+              <div class="mk-table-head">
+                <h3 class="mk-h3">랜딩페이지별 <span class="mk-h3-sub">첫 방문 페이지</span></h3>
+              </div>
+              <div class="mk-table-wrap"><table class="mk-attr-table">
+                <thead><tr><th>랜딩 페이지</th><th class="mk-num mk-col-bar">가입</th><th class="mk-num">결제자</th><th class="mk-num" title="가입자 중 결제자 비율">전환율</th><th class="mk-num mk-col-period mk-col-period-first" title="기간 내 승인 결제 건수">결제</th><th class="mk-num mk-col-period" title="기간 내 승인 결제 매출">매출</th></tr></thead>
                 <tbody id="mkAttrLandingTable"></tbody>
               </table></div>
-            </div>
-            <div>
-              <h3 class="mk-h3">결제 직전 페이지 TOP <span class="field-hint">(결제마다 마지막 3페이지)</span></h3>
-              <div class="mk-table-wrap"><table>
-                <thead><tr><th>페이지</th><th class="mk-num">등장</th><th class="mk-num">마지막 페이지</th><th class="mk-num">평균 체류</th></tr></thead>
+              <button class="row-btn mk-attr-more" type="button" data-mk-more="mkAttrLandingTable" hidden></button>
+            </section>
+            <section class="mk-attr-block">
+              <div class="mk-table-head">
+                <h3 class="mk-h3">결제 직전 페이지 <span class="mk-h3-sub">결제마다 마지막 3페이지</span></h3>
+              </div>
+              <div class="mk-table-wrap"><table class="mk-attr-table">
+                <thead><tr><th>페이지</th><th class="mk-num mk-col-bar" title="마지막 3페이지 안에 등장한 결제 수">등장</th><th class="mk-num" title="결제 직전에 보고 있던 페이지였던 결제 수">직전 페이지</th><th class="mk-num">평균 체류</th></tr></thead>
                 <tbody id="mkAttrPrePurchaseTable"></tbody>
               </table></div>
-            </div>
+              <button class="row-btn mk-attr-more" type="button" data-mk-more="mkAttrPrePurchaseTable" hidden></button>
+            </section>
           </div>
         </div>
 
