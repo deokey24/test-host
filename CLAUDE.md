@@ -64,6 +64,7 @@ npm start   # http://localhost:3000
 - **`requireApiToken`/`hashApiToken`**(`server.js`) — `Authorization: Bearer <token>` 검증 미들웨어, `req.memberId`/`req.apiTokenId` 설정. **`requireMemberOrApiToken`**은 세션 쿠키와 Bearer 토큰을 모두 받아 `req.memberId`로 통일하는 이중 인증 미들웨어(`/api/stream/vod-lecture/:id/master.m3u8`에 적용 — 웹 플레이어와 네이티브 앱이 같은 라우트를 공유).
 - **라우트**: `POST /api/v1/auth/login`(`{username,password,deviceId,platform}` → `registerMemberDevice()` 재사용 후 토큰 발급) · `POST /api/v1/auth/logout` · `GET /api/v1/me` · `GET /api/v1/courses` · `GET /api/v1/courses/:id/lectures` · `GET /api/v1/lectures/:id/playback`(`{kind:"hls"|"mp4", url}` 반환, HLS면 기존 `/api/stream/vod-lecture/:id/master.m3u8` 재사용).
 - **공용 헬퍼** `getMemberVodCourses()`/`getVodCourseLectures()`(`server.js`) — 웹 라우트(`/api/members/my-vod-courses`, `/api/members/my-vod-lectures/:id`)와 `/api/v1/*`가 SQL/enrollment 체크 로직을 공유, 응답 모양만 다르게 조립.
+- **데스크톱 앱 릴리스·바로가기 오류 대응**: `docs/dockplayer-release.md` (R2 업로드 순서, 마이페이지 링크, "DockPlayer.lnk을 찾을 수 없습니다" 원인·사용자 안내).
 - 클라이언트 가이드: 일렉트론은 `keytar`/`safeStorage`로 토큰 보관 + `<video>`+hls.js(웹과 동일한 `attachVideoSource` 패턴 재사용 가능), RN은 `react-native-keychain` + `react-native-video`(네이티브 디코더가 HLS+AES-128 직접 처리, hls.js 불필요). 둘 다 재생 직전 `/api/v1/lectures/:id/playback` 호출, 매니페스트 URL 미리 캐싱 안 함.
 
 ### SPA 페이지 전환 방식
