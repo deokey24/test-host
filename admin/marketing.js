@@ -181,6 +181,7 @@
       if (seq !== attrSeq) return;
       setStatus(status, `불러오지 못했습니다: ${err.message}`, 'error');
       $('mkAttrCoverage').textContent = '';
+      $('mkAttrDemo').hidden = true;
       ATTR_TARGETS.forEach(([id, cols]) => { $(id).innerHTML = emptyRow(cols, '불러오지 못했습니다.'); });
     }
   }
@@ -235,8 +236,23 @@
     moreBtn.textContent = `더 보기 (${hiddenCount})`;
   }
 
+  // 시안 모드(서버가 빈 표에만 표본을 채움) — 표본 행 경로 뒤 알약, 리드 아래 안내줄
+  const demoPill = (r) => (r && r.demo ? '<span class="mk-src mk-src-demo" title="시연용 표본 데이터(실데이터 아님)">시안</span>' : '');
+  const kstHm = (iso) => {
+    const d = new Date(Date.parse(iso) + 9 * 60 * 60 * 1000);
+    return Number.isNaN(d.getTime()) ? '' : `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+  };
+
   function renderAttribution(data) {
     const t = data.totals || {};
+    const demoBox = $('mkAttrDemo');
+    if (data.demo && data.demo.active) {
+      demoBox.innerHTML = `<span class="mk-attr-warn">시안 데이터 표시 중 — ${escapeHtml(kstHm(data.demo.until))}까지 (실데이터 없는 표에만, 자동 해제)</span>`;
+      demoBox.hidden = false;
+    } else {
+      demoBox.innerHTML = '';
+      demoBox.hidden = true;
+    }
     const covChip = (label, part, whole, hint) => `
       <span class="mk-ga4-chip" title="${escapeHtml(hint)}">${escapeHtml(label)} <b>${num(part)}<span class="mk-chip-of">/ ${num(whole)}</span></b> <em>${escapeHtml(Number(whole) > 0 ? pct(part, whole) : '-')}</em></span>`;
     $('mkAttrCoverage').innerHTML = `
@@ -267,14 +283,14 @@
     const landings = data.landings || [];
     const ldMax = maxOf(landings, 'signups');
     fillAttrTable('mkAttrLandingTable', landings, (r, attrs) => `
-      <tr${attrs}><td class="mk-labelcell"><span class="mk-path">${escapeHtml(r.landing)}</span></td>${metricCells(r, ldMax)}</tr>`,
+      <tr${attrs}><td class="mk-labelcell"><span class="mk-path">${escapeHtml(r.landing)}</span>${demoPill(r)}</td>${metricCells(r, ldMax)}</tr>`,
       6, '랜딩 페이지가 수집된 가입·결제가 없습니다.');
 
     const pages = data.prePurchasePages || [];
     const pgMax = maxOf(pages, 'count');
     fillAttrTable('mkAttrPrePurchaseTable', pages, (r, attrs) => `
       <tr${attrs}>
-        <td class="mk-labelcell"><span class="mk-path">${escapeHtml(r.path)}</span></td>
+        <td class="mk-labelcell"><span class="mk-path">${escapeHtml(r.path)}</span>${demoPill(r)}</td>
         ${numCell(r.count, { bar: barPct(r.count, pgMax) })}
         ${numCell(r.lastPageCount)}
         <td class="mk-num${r.avgDwellSec === null || r.avgDwellSec === undefined ? ' mk-zero' : ''}" title="체류초 표본 ${num(r.dwellSamples)}건">${dwell(r.avgDwellSec)}</td>
