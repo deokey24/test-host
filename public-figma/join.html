@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8"><script src="analytics.js?v=20261014"></script>
+<meta charset="UTF-8"><script src="analytics.js?v=20261015"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>회원가입 · 독편사 DOCK PASS</title>
 <link rel="icon" type="image/png" href="assets/favicon.png">
@@ -38,6 +38,8 @@ body[data-page="join"]{background:var(--warm-white)}
 .auth-field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px}
 .auth-field input{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:10px;font-size:14.5px;font-family:inherit;color:var(--text);background:#fff}
 .auth-field input:focus{outline:none;border-color:var(--beige-700)}
+.auth-field select{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:10px;font-size:14.5px;font-family:inherit;color:var(--text);background:#fff}
+.auth-field select:focus{outline:none;border-color:var(--beige-700)}
 .auth-check-row{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;opacity:.75;margin-bottom:18px}
 .auth-check-row input{accent-color:var(--beige-700)}
 .auth-error-msg{font-size:13px;font-weight:600;color:#d64545;margin-bottom:14px}
@@ -203,14 +205,26 @@ body[data-page="join"]{background:var(--warm-white)}
             <label><input type="checkbox" value="인터넷 검색"> 인터넷 검색</label>
             <label><input type="checkbox" value="언론 기사"> 언론 기사</label>
             <label><input type="checkbox" value="광고 홍보물"> 광고 홍보물</label>
+            <label><input type="checkbox" value="인스타그램"> 인스타그램</label>
+            <label><input type="checkbox" value="유튜브"> 유튜브</label>
+            <label><input type="checkbox" value="네이버 블로그"> 네이버 블로그</label>
+            <label><input type="checkbox" value="카카오톡 채널"> 카카오톡 채널</label>
             <label><input type="checkbox" value="기타"> 기타</label>
           </div>
           <p class="join-hint">독편사편입논술학원을 아시게 된 경로를 선택해주세요!</p>
         </div>
 
-        <div class="auth-field">
-          <label for="joinSearchKeyword">인터넷 검색 키워드</label>
-          <input type="text" id="joinSearchKeyword">
+        <div class="auth-field" id="joinSearchKeywordField" style="display:none">
+          <label for="joinSearchKeywordSelect">인터넷 검색 키워드<span class="req">*</span></label>
+          <select id="joinSearchKeywordSelect">
+            <option value="">검색하신 키워드를 선택해주세요</option>
+            <option value="편입논술">편입논술</option>
+            <option value="연고대 편입">연고대 편입</option>
+            <option value="한예종 논술">한예종 논술</option>
+            <option value="독편사">독편사</option>
+            <option value="__custom">기타(직접입력)</option>
+          </select>
+          <input type="text" id="joinSearchKeyword" maxlength="100" placeholder="검색하신 키워드를 입력해주세요" style="display:none;margin-top:8px">
         </div>
 
         <div class="auth-field">
@@ -333,8 +347,8 @@ body[data-page="join"]{background:var(--warm-white)}
   </div>
 
 </div>
-<script src="site-content.js?v=20261014"></script>
-<script src="auth.js?v=20261014"></script>
+<script src="site-content.js?v=20261015"></script>
+<script src="auth.js?v=20261015"></script>
 <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <script>
 (function () {
@@ -352,10 +366,76 @@ body[data-page="join"]{background:var(--warm-white)}
     allTerms.checked = termsBoxes.every(x => x.checked);
   }));
 
-  document.querySelectorAll('#joinChannelGrid label').forEach(label => {
-    const input = label.querySelector('input');
-    input.addEventListener('change', () => label.classList.toggle('on', input.checked));
+  const channelInputs = Array.from(document.querySelectorAll('#joinChannelGrid input'));
+  const searchChannelInput = channelInputs.find(i => i.value === '인터넷 검색');
+  const keywordField = $('joinSearchKeywordField');
+  const keywordSelect = $('joinSearchKeywordSelect');
+  const keywordInput = $('joinSearchKeyword');
+
+  // "인터넷 검색"을 고른 경우에만 검색 키워드(선택지 + 직접입력)를 보여주고 필수로 받는다.
+  function syncKeywordField() {
+    const on = !!(searchChannelInput && searchChannelInput.checked);
+    keywordField.style.display = on ? '' : 'none';
+    keywordInput.style.display = on && keywordSelect.value === '__custom' ? '' : 'none';
+  }
+  keywordSelect.addEventListener('change', () => {
+    syncKeywordField();
+    if (keywordSelect.value === '__custom') keywordInput.focus();
   });
+
+  channelInputs.forEach(input => {
+    const label = input.closest('label');
+    input.addEventListener('change', () => {
+      label.classList.toggle('on', input.checked);
+      syncKeywordField();
+    });
+  });
+
+  function setChannelChecked(value) {
+    const input = channelInputs.find(i => i.value === value);
+    if (!input || input.checked) return;
+    input.checked = true;
+    input.closest('label').classList.add('on');
+  }
+
+  // 유입 쿠키(dt_attr)의 utm_source·referrer 도메인으로 가입경로를 미리 체크한다(사용자가 바꿀 수 있음).
+  function channelFromTouch(t) {
+    if (!t) return null;
+    const src = String(t.utm_source || '').toLowerCase();
+    const med = String(t.utm_medium || '').toLowerCase();
+    const m = /^[a-z][a-z0-9+.-]*:\/\/([^\/?#:]+)/i.exec(String(t.referrer || ''));
+    const host = m ? m[1].toLowerCase() : '';
+    const has = (re) => re.test(src) || re.test(host);
+    if (has(/instagram/)) return '인스타그램';
+    if (has(/youtube|youtu\.be/)) return '유튜브';
+    if (has(/kakao/)) return '카카오톡 채널';
+    if (/(^|\.)cafe\.(naver|daum)\.(com|net)$/.test(host)) return '독편사 카페';
+    if (/(^|\.)blog\.naver\.com$/.test(host) || (/naver/.test(src) && /blog/.test(src + ' ' + med))) return '네이버 블로그';
+    if (has(/naver|google|daum|bing|zum/) || t.n_query || t.n_keyword || t.gclid) return '인터넷 검색';
+    return null;
+  }
+
+  function prefillKeyword(text) {
+    const kw = String(text || '').trim();
+    if (!kw || keywordSelect.value) return;
+    const opt = Array.from(keywordSelect.options).find(o => o.value && o.value !== '__custom' && o.value === kw);
+    if (opt) { keywordSelect.value = opt.value; return; }
+    keywordSelect.value = '__custom';
+    keywordInput.value = kw.slice(0, 100);
+  }
+
+  try {
+    const attr = typeof window.dtGetAttribution === 'function' ? window.dtGetAttribution() : null;
+    if (attr) {
+      [attr.last, attr.first].forEach(t => {
+        const ch = channelFromTouch(t);
+        if (!ch) return;
+        setChannelChecked(ch);
+        if (ch === '인터넷 검색') prefillKeyword(t.n_query || t.n_keyword || t.utm_term);
+      });
+    }
+  } catch { /* 자동 선택은 편의 기능 — 실패해도 무시 */ }
+  syncKeywordField();
 
   const birthdateInput = $('joinBirthdate');
   birthdateInput.max = new Date().toISOString().slice(0, 10);
@@ -492,6 +572,16 @@ body[data-page="join"]{background:var(--warm-white)}
       return;
     }
 
+    let searchKeyword = null;
+    if (signupChannel.includes('인터넷 검색')) {
+      searchKeyword = keywordSelect.value === '__custom' ? keywordInput.value.trim() : keywordSelect.value;
+      if (!searchKeyword) {
+        errEl.textContent = keywordSelect.value === '__custom' ? '검색 키워드를 입력해주세요.' : '인터넷 검색 키워드를 선택해주세요.';
+        errEl.style.display = 'block';
+        return;
+      }
+    }
+
     const phone = combineTriple('joinTel1', 'joinTel2', 'joinTel3', false);
     const mobile = combineTriple('joinHp1', 'joinHp2', 'joinHp3', true);
     if (mobile.error) {
@@ -531,10 +621,12 @@ body[data-page="join"]{background:var(--warm-white)}
           mobile: mobile.value,
           postalCode, roadAddress, detailAddress,
           signupChannel,
-          searchKeyword: $('joinSearchKeyword').value.trim() || null,
+          searchKeyword,
           referrerCode: $('joinReferrerCode').value.trim() || null,
           emailConsent, smsConsent,
-          deviceId: getOrCreateDeviceId()
+          deviceId: getOrCreateDeviceId(),
+          // 유입(dt_attr)·세션 경로(dt_journey) — analytics.js 헬퍼가 없으면 생략
+          ...(typeof analyticsContextForRequest === 'function' ? analyticsContextForRequest() : {})
         })
       });
       const data = await res.json();
@@ -544,6 +636,7 @@ body[data-page="join"]{background:var(--warm-white)}
         submitBtn.disabled = false;
         return;
       }
+      if (data.memberId && typeof window.dtSetUserId === 'function') window.dtSetUserId(data.memberId);
       if (typeof window.dtTrack === 'function') window.dtTrack('sign_up', { method: 'email', signup_channel: signupChannel.join('|') });
       form.style.display = 'none';
       $('joinSuccess').style.display = 'block';

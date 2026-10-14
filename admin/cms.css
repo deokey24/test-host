@@ -574,7 +574,46 @@ th.mk-num, td.mk-num { text-align: right; font-variant-numeric: tabular-nums; wh
 .mk-guide > summary { font-size: 15px; font-weight: 800; color: var(--text); }
 .mk-guide ol { margin: 0 0 16px; padding-left: 20px; font-size: 13px; line-height: 1.75; }
 .mk-guide code, #marketingSection td code { background: var(--grey-bg); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+/* 유입·전환 분석 카드 */
+.mk-table-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.mk-table-head .mk-h3 { margin: 0; }
+.mk-attr-coverage { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--text-soft); margin: 0 0 14px; }
+.mk-attr-coverage b { color: var(--text); font-variant-numeric: tabular-nums; }
+.mk-attr-warn { color: #7a5418; background: #fdf0d5; border-radius: 6px; padding: 1px 8px; }
+#marketingSection tr.mk-row-muted td { color: var(--text-soft); }
+#marketingSection td code { word-break: break-all; }
+
+/* 결제 여정 모달 · 회원 상세 "가입 시 유입" (admin/journey.js) */
+.jr-modal { width: 820px; }
+.jr-flow { display: flex; flex-direction: column; gap: 18px; }
+.jr-flow > section { border-left: 3px solid var(--green-light); padding-left: 14px; }
+.jr-channel { font-size: 12.5px; margin-bottom: 8px; color: var(--text-soft); font-weight: 700; }
+.jr-channel code, .jr-steps code, .jr-kv td { font-size: 12px; }
+.jr-channel code, .jr-steps code { background: var(--grey-bg); padding: 1px 6px; border-radius: 4px; color: var(--text); }
+.jr-touch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.jr-touch { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--grey-bg); }
+.jr-touch-head { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; margin-bottom: 6px; }
+.jr-kv { width: 100%; }
+.jr-kv th, .jr-kv td { padding: 3px 6px 3px 0; border: 0; font-size: 12px; vertical-align: top; text-align: left; }
+.jr-kv th { width: 120px; color: var(--text-soft); font-weight: 700; white-space: nowrap; }
+.jr-kv td { word-break: break-all; }
+.jr-steps { list-style: none; margin: 0; padding: 0; counter-reset: jr; }
+.jr-steps li {
+  counter-increment: jr; display: grid; grid-template-columns: 26px 86px minmax(0, 1fr) auto; gap: 8px; align-items: baseline;
+  padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 12.5px;
+}
+.jr-steps li::before { content: counter(jr); font-weight: 800; color: var(--green-dark); text-align: right; }
+.jr-steps li:last-child { border-bottom: 0; font-weight: 700; }
+.jr-time { color: var(--text-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.jr-path { min-width: 0; word-break: break-all; }
+.jr-dwell { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text-soft); }
+.jr-pay { font-size: 13px; line-height: 1.7; }
+.jr-pay .badge { margin-left: 6px; }
+.jr-member { font-size: 13px; }
+
 @media (max-width: 900px) {
   .mk-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .jr-steps li { grid-template-columns: 22px minmax(0, 1fr) auto; }
+  .jr-time { display: none; }
   .mk-preset-group { margin-left: 0; }
 }

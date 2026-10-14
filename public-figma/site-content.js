@@ -803,6 +803,22 @@ async function hydrateOrderConfirm() {
   wireOrderConfirmPayButton(courseId, course, select);
 }
 
+// 결제·가입 요청 바디에 함께 싣는 유입(dt_attr)·세션 경로(dt_journey) — analytics.js 헬퍼가 없으면 빈 객체(생략).
+function analyticsContextForRequest() {
+  const out = {};
+  try {
+    if (typeof window.dtGetAttribution === 'function') {
+      const attribution = window.dtGetAttribution();
+      if (attribution) out.attribution = attribution;
+    }
+    if (typeof window.dtGetJourney === 'function') {
+      const journey = window.dtGetJourney();
+      if (Array.isArray(journey) && journey.length) out.journey = journey;
+    }
+  } catch { /* 분석 정보는 선택 — 실패해도 결제는 진행 */ }
+  return out;
+}
+
 // course를 넘겨 결제창 직전에 수강기간/종료일 확인 모달을 띄운다(필요한 경우에만).
 function wireOrderConfirmPayButton(vodCourseId, course, couponSelect) {
   const payBtn = document.getElementById('ocPayBtn');
@@ -833,7 +849,10 @@ function wireOrderConfirmPayButton(vodCourseId, course, couponSelect) {
       const res = await fetch('/api/payments/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vodCourseId, couponId: couponSelect.value || undefined })
+        body: JSON.stringify(Object.assign(
+          { vodCourseId, couponId: couponSelect.value || undefined },
+          analyticsContextForRequest()
+        ))
       });
       const payData = await res.json();
       if (!res.ok) { alert(payData.error || '결제 준비 중 오류가 발생했습니다.'); return; }

@@ -62,6 +62,7 @@
     const status = $('mkSummaryStatus');
     if (from && to && from > to) { setStatus(status, '시작일이 종료일보다 늦습니다.', 'error'); return; }
     const seq = ++summarySeq;
+    loadAttribution(from, to); // 같은 기간으로 유입·전환 분석 카드도 갱신
     setStatus(status, '불러오는 중...');
     try {
       const params = new URLSearchParams();
@@ -149,6 +150,95 @@
     }
     return out;
   }
+
+  // ── 4-2. 유입·전환 분석 (GET /admin/api/marketing/attribution) ──
+  // 비율(conversionRate = 결제자 ÷ 가입, 가입 코호트 기준)은 0~1 소수, 가입 0이면 null.
+  const ATTR_TARGETS = [['mkAttrChannelTable', 6], ['mkAttrKeywordTable', 6], ['mkAttrLandingTable', 6], ['mkAttrPrePurchaseTable', 4]];
+  const CHANNEL_KIND_HINT = { form: '가입폼 입력(유입 추적 전)', none: '유입 정보 없음', tracked: '유입 추적' };
+  const dwell = (s) => (s === null || s === undefined ? '-' : s >= 60 ? `${Math.floor(s / 60)}분 ${s % 60}초` : `${s}초`);
+  let attrSeq = 0;
+  let attrRange = { from: '', to: '' };
+
+  function attrParams(extra) {
+    const params = new URLSearchParams();
+    if (attrRange.from) params.set('from', attrRange.from);
+    if (attrRange.to) params.set('to', attrRange.to);
+    Object.entries(extra || {}).forEach(([k, v]) => params.set(k, v));
+    return params;
+  }
+
+  async function loadAttribution(from, to) {
+    attrRange = { from, to };
+    const seq = ++attrSeq;
+    const status = $('mkAttrStatus');
+    setStatus(status, '불러오는 중...');
+    try {
+      const data = await apiFetch(`/admin/api/marketing/attribution?${attrParams()}`);
+      if (seq !== attrSeq) return;
+      renderAttribution(data || {});
+      setStatus(status, '');
+    } catch (err) {
+      if (seq !== attrSeq) return;
+      setStatus(status, `불러오지 못했습니다: ${err.message}`, 'error');
+      $('mkAttrCoverage').textContent = '';
+      ATTR_TARGETS.forEach(([id, cols]) => { $(id).innerHTML = emptyRow(cols, '불러오지 못했습니다.'); });
+    }
+  }
+
+  function renderAttribution(data) {
+    const t = data.totals || {};
+    const cov = (part, whole) => (Number(whole) > 0 ? `${num(part)}/${num(whole)} (${pct(part, whole)})` : '0');
+    $('mkAttrCoverage').innerHTML = `
+      <span>가입 중 유입 추적됨 <b>${escapeHtml(cov(t.signupsTracked, t.signups))}</b></span>
+      <span>결제 중 유입 추적됨 <b>${escapeHtml(cov(t.paymentsTracked, t.payments))}</b></span>
+      <span>결제 중 페이지 경로 있음 <b>${escapeHtml(cov(t.paymentsWithJourney, t.payments))}</b></span>
+      ${data.signupContextAvailable === false ? '<span class="mk-attr-warn">회원 가입 유입 컬럼(signup_context) 미적용 — 가입은 가입폼 값으로만 집계</span>' : ''}`;
+
+    const metricCells = (r) => `
+        <td class="mk-num">${num(r.signups)}</td>
+        <td class="mk-num">${num(r.buyers)}</td>
+        <td class="mk-num">${num(r.payments)}</td>
+        <td class="mk-num">${won(r.revenue)}</td>
+        <td class="mk-num">${rate(r.conversionRate)}</td>`;
+
+    const channels = data.channels || [];
+    $('mkAttrChannelTable').innerHTML = channels.length ? channels.map(r => `
+      <tr class="${r.kind === 'tracked' ? '' : 'mk-row-muted'}">
+        <td title="${escapeHtml(CHANNEL_KIND_HINT[r.kind] || '')}"><code>${escapeHtml(r.channel)}</code></td>${metricCells(r)}
+      </tr>`).join('') : emptyRow(6, '기간 내 가입·결제가 없습니다.');
+
+    const keywords = data.keywords || [];
+    $('mkAttrKeywordTable').innerHTML = keywords.length ? keywords.map(r => `
+      <tr>
+        <td>${escapeHtml(r.keyword)} <span class="field-hint">${escapeHtml((r.sources || []).join('·'))}</span></td>${metricCells(r)}
+      </tr>`).join('') : emptyRow(6, '키워드가 수집된 가입·결제가 없습니다.');
+
+    const landings = data.landings || [];
+    $('mkAttrLandingTable').innerHTML = landings.length ? landings.map(r => `
+      <tr><td><code>${escapeHtml(r.landing)}</code></td>${metricCells(r)}</tr>`).join('')
+      : emptyRow(6, '랜딩 페이지가 수집된 가입·결제가 없습니다.');
+
+    const pages = data.prePurchasePages || [];
+    $('mkAttrPrePurchaseTable').innerHTML = pages.length ? pages.map(r => `
+      <tr>
+        <td><code>${escapeHtml(r.path)}</code></td>
+        <td class="mk-num">${num(r.count)}</td>
+        <td class="mk-num">${num(r.lastPageCount)}</td>
+        <td class="mk-num" title="체류초 표본 ${num(r.dwellSamples)}건">${dwell(r.avgDwellSec)}</td>
+      </tr>`).join('') : emptyRow(4, '페이지 경로가 수집된 승인 결제가 없습니다.');
+  }
+
+  // CSV: 세션 쿠키로 인증되는 GET이라 링크 이동만으로 내려받는다(UTF-8 BOM, 엑셀 호환).
+  $('mkAttributionCard').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-mk-csv]');
+    if (!btn) return;
+    const a = document.createElement('a');
+    a.href = `/admin/api/marketing/attribution.csv?${attrParams({ table: btn.dataset.mkCsv })}`;
+    a.download = '';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  });
 
   // ── 3. 일별 추이 (인라인 SVG) ──
   // dataviz 규칙: 이중 축 금지 → 건수(가입·승인)와 매출(원)을 별도 차트로.
@@ -272,7 +362,8 @@
           <td>${r.conversionSentAt ? dateTime(r.conversionSentAt) : '<span class="badge badge-off">미전송</span>'}</td>
           <td>${r.hasGaClientId ? '<span class="badge badge-on">있음</span>' : '<span class="badge badge-off">없음</span>'}</td>
           <td>${r.hasFbp ? '<span class="badge badge-on">있음</span>' : '<span class="badge badge-off">없음</span>'}</td>
-          <td><button class="row-btn" type="button" data-mk-resend="${escapeHtml(String(r.paymentId))}">재전송</button>
+          <td><button class="row-btn" type="button" data-mk-journey="${escapeHtml(String(r.paymentId))}">여정</button>
+              <button class="row-btn" type="button" data-mk-resend="${escapeHtml(String(r.paymentId))}">재전송</button>
               <div class="mk-resend-result" data-mk-result="${escapeHtml(String(r.paymentId))}"></div></td>
         </tr>`).join('') : emptyRow(8, '최근 승인 결제가 없습니다.');
       setStatus($('mkConversionStatus'), '');
@@ -283,6 +374,8 @@
   }
 
   $('mkConversionTable').addEventListener('click', async (e) => {
+    const journeyBtn = e.target.closest('[data-mk-journey]');
+    if (journeyBtn) { Journey.openPayment(journeyBtn.dataset.mkJourney); return; }
     const btn = e.target.closest('[data-mk-resend]');
     if (!btn) return;
     const id = btn.dataset.mkResend;

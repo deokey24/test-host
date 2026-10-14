@@ -38,6 +38,7 @@
 | `view_item` | 강좌 상세(classDetail.html / vodDetail.html)에서 강좌 데이터 수신 직후 | `currency:'KRW'`, `value`, `items[]` |
 | `begin_checkout` | 주문확인(orderConfirm.html) "결제하기" → 수강기간 확인 후, 결제 준비 요청 직전 | `currency`, `value`(쿠폰 적용 후 최종금액), `coupon`(선택 시 쿠폰 코드 — 서버 purchase의 `coupon`과 동일 값), `items[]` |
 | `purchase` | 결제완료(paymentComplete.html) 성공 화면. 주문번호당 브라우저 1회(localStorage `dt_purchase_<주문번호>`) | `transaction_id`(주문번호), `currency`, `value`, `items[]` |
+| `dt_user` | 로그인·가입 성공 직후, 그리고 로그인 상태면 **매 페이지 analytics.js 로드 시 GTM 로드 전**(localStorage `dt_uid`) | `user_id`(회원 숫자 id 문자열 — 이메일 등 개인정보 아님). 로그아웃 시 `dt_uid` 삭제 |
 
 `items[]` = `[{item_id: 강좌ID(문자열), item_name: 강좌명, price, quantity: 1}]`
 
@@ -75,6 +76,7 @@
 | `DLV - method` | `method` | 가입/로그인 방식 |
 | `DLV - signup_channel` | `signup_channel` | 가입 경로 |
 | `DLV - item_id` | `items.0.item_id` | Meta/카카오용 상품 ID |
+| `DLV - user_id` | `user_id` | GA4 user_id(회원 숫자 id) — 9-3 참고 |
 | `CONST - GA4 ID` | (상수 변수) `G-XXXXXXX` | GA4 측정 ID |
 
 ## 3. GTM 트리거
@@ -87,12 +89,13 @@
 | `CE - view_item` | 맞춤 이벤트 | 이벤트 이름 `view_item` |
 | `CE - begin_checkout` | 맞춤 이벤트 | 이벤트 이름 `begin_checkout` |
 | `CE - purchase` | 맞춤 이벤트 | 이벤트 이름 `purchase` |
+| `CE - dt_user` | 맞춤 이벤트 | 이벤트 이름 `dt_user` (선택 — 9-3) |
 
 ## 4. GTM 태그
 
 | 태그 | 유형 | 설정 | 트리거 |
 |---|---|---|---|
-| GA4 - 구성 | Google 태그 | 태그 ID `{{CONST - GA4 ID}}` | All Pages |
+| GA4 - 구성 | Google 태그 | 태그 ID `{{CONST - GA4 ID}}`, 구성 매개변수 `user_id={{DLV - user_id}}`(9-3) | All Pages |
 | GA4 - sign_up | GA4 이벤트 | 이벤트 이름 `sign_up`, 매개변수 `method={{DLV - method}}`, `signup_channel={{DLV - signup_channel}}` | CE - sign_up |
 | GA4 - login | GA4 이벤트 | 이벤트 이름 `login`, 매개변수 `method={{DLV - method}}` | CE - login |
 | GA4 - view_item | GA4 이벤트 | 이벤트 이름 `view_item`, 추가 설정 → **전자상거래 데이터 보내기** 체크(데이터 소스: 데이터 영역) | CE - view_item |
@@ -219,6 +222,7 @@ GTM 맞춤 HTML 안의 `{{변수}}`는 문자열이면 따옴표가 붙은 JS �
 > | Google(Google Analytics 4, Google Tag Manager) | 웹사이트 방문 기록, 이용 페이지, 이벤트(회원가입·로그인·상품 조회·결제 진행·결제 완료), 기기·브라우저 정보, 쿠키 식별자 | 쿠키 및 스크립트, 서버 간 전송 | 서비스 이용 통계 분석, 서비스 개선, 광고 성과 측정 | 수집일로부터 14개월 |
 > | NAVER(네이버 애널리틱스) | 방문 기록, 유입 경로, 기기 정보 | 쿠키 및 스크립트 | 이용 통계 분석, 검색광고 성과 측정 | 네이버 정책에 따름 |
 > | Microsoft(Clarity) | 화면 이용 행태(클릭·스크롤·마우스 이동), 기기 정보 (입력값은 마스킹) | 쿠키 및 스크립트 | 사용성 개선 | 최대 13개월 |
+> | 회사(자체 수집) | 서비스 이용기록(방문 페이지·체류시간·유입경로) | 퍼스트파티 쿠키(`dt_attr`)·브라우저 세션 저장소, 회원가입·결제 시 저장 | 유입 경로별 가입·결제 성과 분석, 서비스 개선 | 쿠키 90일, 저장분은 회원 탈퇴 시까지(결제기록 보존 대상은 5년) |
 > | Meta Platforms(Meta 픽셀·전환 API), Kakao(카카오 픽셀) | 방문·결제 이벤트, 쿠키 식별자, 기기 정보, IP 주소, 결제 완료 시 일방향 암호화(SHA-256 해시)한 이메일·휴대전화번호 | 쿠키 및 스크립트, 서버 간 전송 | 광고 성과 측정, 맞춤형 광고 제공 | 각 사 정책에 따름 |
 >
 > ② 회사는 결제 완료 시 광고 성과 측정을 위해 주문번호·결제금액·강좌 정보와 일방향 암호화(해시)한 이메일·휴대전화번호를 Meta Platforms, Inc.에 전송할 수 있으며, 해당 정보는 국외(미국)에서 처리됩니다. [국외 이전 고지 항목: 이전받는 자, 이전 국가, 이전 일시·방법, 이전 항목, 이용 목적, 보유 기간 — 원청 확인 후 기재]
@@ -228,3 +232,37 @@ GTM 맞춤 HTML 안의 `{{변수}}`는 문자열이면 따옴표가 붙은 JS �
 > ④ 행태정보 관련 문의는 개인정보 보호책임자에게 연락하시기 바랍니다.
 
 확인 필요: 보유기간(GA4 속성의 데이터 보존 기간 설정값과 일치), 국외 이전 고지 범위, 마케팅 수신 동의와의 관계, 시행일.
+
+## 9. 유입·여정 수집 (자체 DB 저장 — 관리자 유입 분석용)
+
+GA4와 별개로, **가입·결제한 그 사람**의 유입 경로와 결제 직전 페이지 흐름을 우리 DB에 남긴다(계획: `docs/plans/attribution-and-journey.md` 2-A). 모든 수집은 `public-figma/analytics.js`가 하고, 분석 도구 ID 설정 여부와 무관하게 항상 동작한다.
+
+### 9-1. 브라우저 저장소
+
+| 이름 | 종류·보유기간 | 내용 |
+|---|---|---|
+| `dt_attr` | 퍼스트파티 쿠키, **90일**, `Path=/`, `SameSite=Lax`, https면 `Secure` | JSON `{first, last}`(encodeURIComponent). `first` = 쿠키가 없던 첫 방문(이후 유지), `last` = 그 뒤 `utm_*`/`gclid`/`n_*` 파라미터나 외부 referrer를 달고 들어온 가장 최근 방문(없으면 생략). 각 터치 키: `ts`(ISO), `landing`(path+query, 200자), `referrer`(300자, 없으면 빈 문자열), `utm_source/medium/campaign/content/term`, `gclid`, `n_query`, `n_keyword`, `n_ad_group`, `n_media`, `n_rank`(각 100자, URL 디코딩, 없으면 키 생략). 전체가 3KB를 넘으면 referrer → landing → last 순으로 줄인다. 결제창(PG·카드사 도메인) referrer와 `paymentComplete.html`·`payupReturn.html` 진입은 `last`를 갱신하지 않는다. 자기 도메인 판정은 `www.` 무시 |
+| `dt_journey` | sessionStorage(탭을 닫으면 삭제) | 배열(최근 20개) `[{path, q, t, d}]` — `path` 페이지 경로, `q` 식별 파라미터(`id, courseId, lecture, orderNumber, page, post`만, 80자), `t` 진입 시각(epoch ms), `d` 화면이 **보이는 동안** 머문 초(누적, `visibilitychange`·`pagehide` 시 갱신). 뒤로가기 캐시 복귀도 새 항목 |
+| `dt_uid` | localStorage | GA4 user_id용 회원 숫자 id(9-3) |
+
+페이지 코드용 헬퍼: `window.dtGetAttribution()`(→ `{first, last}` 또는 `null`), `window.dtGetJourney()`(→ 배열, 현재 페이지 체류초까지 반영), `window.dtSetUserId(id|null)`.
+
+### 9-2. 서버 저장
+
+- `/api/payments/init`(주문확인 "결제하기")·`/api/members/signup` 바디에 `attribution`, `journey`를 함께 보낸다(쿠키를 서버가 파싱하지 않음).
+- 서버 검증(`lib/conversions.js` `sanitizeAttribution`·`sanitizeJourney`·`attachAttributionContext`): 키 화이트리스트, 제어문자 제거, 100/200/300자 절단, journey 최대 20개·`path`는 `/`로 시작·`t`는 2020년~현재+1일·`d`는 0~86400 정수. 직렬화 전체가 8KB를 넘으면 journey의 **오래된 항목부터** 버린다(결제 직전 페이지 보존). 잘못된 값은 버리고 요청은 실패시키지 않는다.
+- 결제: `payments.client_context` JSON(기존 `ga_client_id, ga_session_id, fbp, fbc, ip, ua`)에 `attribution`, `journey` 키 추가.
+- 가입: `members.signup_context` TEXT(JSON `{attribution, journey, ua}`) — 마이그레이션 `infra/migrations/2026-10-14-members-signup-context.sql`. 관리자 회원 삭제의 익명화 경로에서 NULL 처리.
+- DB는 MariaDB 10.11이라 집계 SQL에서 `JSON_EXTRACT`/`JSON_VALUE` 사용 가능.
+
+### 9-3. GA4 user_id (GTM 매핑)
+
+1. 2장 변수에 `DLV - user_id`(데이터 영역 변수 `user_id`, 버전 2)를 만든다.
+2. `GA4 - 구성`(Google 태그) → 구성 설정 → 매개변수 `user_id` = `{{DLV - user_id}}`. analytics.js가 로그인 회원이면 GTM 로드 **전에** `{event:'dt_user', user_id}`를 push하므로 첫 page_view부터 실린다.
+3. 로그인·가입 직후 같은 페이지에서 바로 이어지는 이벤트에도 싣고 싶으면 `GA4 - login`·`GA4 - sign_up` 이벤트 태그의 매개변수에도 `user_id={{DLV - user_id}}`를 추가한다(다음 페이지부터는 2번으로 자동).
+4. GA4 관리 → 데이터 표시 → 보고용 ID를 "혼합(Blended)" 또는 "관찰됨"으로 둔다. GTM 없이 gtag 직접 모드면 analytics.js가 `gtag('config', id, {user_id})`·`gtag('set', {user_id})`로 처리한다.
+5. user_id는 숫자 id만 보낸다(GA4 정책상 이메일·전화번호 등 개인 식별 정보 금지).
+
+### 9-4. 개인정보처리방침 반영
+
+8장 초안 표에 "회사(자체 수집) — 서비스 이용기록(방문 페이지·체류시간·유입경로)" 행을 추가해 두었다. 보유기간(쿠키 90일, 저장분은 탈퇴 시 삭제·결제기록 보존 대상은 5년)은 원청·법무 확인 필요.

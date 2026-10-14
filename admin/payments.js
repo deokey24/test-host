@@ -22,6 +22,8 @@ function paymentRowHtml(p) {
   const createdAt = new Date(p.created_at);
   const suspect = isSuspectPayment(p);
   const actions = [];
+  // 유입 → 페이지 경로 → 결제 타임라인(admin/journey.js). 수집 전 결제는 모달에서 "수집 전 결제"로 표시된다.
+  actions.push(`<button class="row-btn" data-payment-journey="${p.id}" type="button">여정</button>`);
   if (p.status === 'approved') {
     // 쿠폰 전액할인 0원 건은 환불할 금액이 없어 부분취소 버튼을 감춘다(취소는 수강권 회수용으로 남긴다).
     if (Number(p.amount) > 0) actions.push(`<button class="row-btn" data-payment-partial="${p.id}" type="button">부분취소</button>`);
@@ -116,6 +118,8 @@ document.getElementById('paymentList').addEventListener('click', (e) => {
   const cancelId = e.target.dataset.paymentCancel;
   const partialId = e.target.dataset.paymentPartial;
   const manualId = e.target.dataset.paymentManual;
+  const journeyId = e.target.dataset.paymentJourney;
+  if (journeyId) { Journey.openPayment(journeyId); return; }
   if (cancelId) openPaymentActionModal(cancelId, 'cancel');
   else if (partialId) openPaymentActionModal(partialId, 'partial');
   else if (manualId) openPaymentActionModal(manualId, 'manual');

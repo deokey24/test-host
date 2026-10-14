@@ -218,6 +218,8 @@ async function openMemberDetailModal(memberId) {
   document.getElementById('memberWithdrawnNotice').style.display = 'none';
   document.getElementById('memberDetailModalOverlay').classList.add('open');
   loadMemberDevices();
+  // 가입 시 유입(first/last·가입 직전 경로) — admin/journey.js
+  if (typeof Journey !== 'undefined') Journey.renderMemberSignup(document.getElementById('memberSignupAttribution'), memberId);
 
   try {
     const m = await apiFetch(`/admin/api/members/${memberId}`);

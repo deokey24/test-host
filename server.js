@@ -11,7 +11,7 @@ const { sendVideoJob } = require('./lib/sqs');
 const { ensureWorkerCapacity } = require('./lib/asg');
 const { sendEmail } = require('./lib/ses');
 const payup = require('./lib/payup');
-const { captureClientContext, sendPurchaseConversion } = require('./lib/conversions');
+const { captureClientContext, sendPurchaseConversion, attachAttributionContext } = require('./lib/conversions');
 
 const app = express();
 app.set('trust proxy', 1); // nginx가 X-Forwarded-For를 넘겨줌 — req.ip가 실제 클라이언트 IP를 보게 함
@@ -1305,7 +1305,7 @@ app.get('/admin/api/members/:id', requireAdminApi, wrapAsync(async (req, res) =>
   const [rows] = await getPool().query(
     `SELECT id, username, name, birth_date, member_group, phone, mobile, email,
             postal_code, road_address, detail_address,
-            signup_channel, search_keyword, referrer_code,
+            signup_channel, search_keyword, referrer_code, signup_context,
             email_marketing_consent, sms_marketing_consent,
             joined_at, general_notes, consultation_notes,
             (password IS NOT NULL) AS has_password
@@ -1413,7 +1413,7 @@ async function withdrawMember(conn, member, mode) {
        username = ?,
        password = NULL, birth_date = NULL, phone = NULL, mobile = NULL, email = NULL,
        postal_code = NULL, road_address = NULL, detail_address = NULL,
-       signup_channel = NULL, search_keyword = NULL, referrer_code = NULL,
+       signup_channel = NULL, search_keyword = NULL, referrer_code = NULL, signup_context = NULL,
        email_marketing_consent = NULL, sms_marketing_consent = NULL,
        consultation_notes = NULL, reset_token = NULL, reset_token_expires = NULL,
        general_notes = ?,
@@ -1691,7 +1691,13 @@ app.post('/api/payments/init', requireMember, wrapAsync(async (req, res) => {
   const orderNumber = makeOrderNumber(req.session.memberId);
   // 승인은 PG 콜백·관리자 수동승인처럼 브라우저 쿠키가 없는 요청에서도 일어나므로, 서버측 전환 전송에 쓸
   // GA/Meta 식별자(_ga·_ga_<ID>·_fbp·_fbc)와 IP·UA를 결제창을 띄우는 이 시점에 결제 행에 스냅샷해 둔다.
-  const clientContext = JSON.stringify(captureClientContext(req, await getMarketingSettings()));
+  // 유입(attribution: dt_attr 쿠키의 first/last)·결제 직전 세션 경로(journey)도 같은 JSON에 함께 남긴다
+  // (lib/conversions.js의 attachAttributionContext가 화이트리스트·길이·8KB 상한을 강제, 잘못된 값은 버림).
+  const clientContext = JSON.stringify(attachAttributionContext(
+    captureClientContext(req, await getMarketingSettings()),
+    req.body.attribution,
+    req.body.journey
+  ));
 
   // 쿠폰으로 최종 금액이 0원이 되면 PayUp을 거치지 않는다 — PG는 0원 거래를 거절해 결제창에서 "결제가 취소
   // 되었습니다"만 뜨고 승인 요청이 서버에 오지 않는다(실DB에 amount=0 행이 전부 transaction_id 없이 expired로
@@ -2356,7 +2362,7 @@ app.post('/api/members/signup', async (req, res) => {
     username, password, email, name, birthDate, phone, mobile,
     postalCode, roadAddress, detailAddress,
     signupChannel, searchKeyword, referrerCode, emailConsent, smsConsent,
-    deviceId, keepLoggedIn
+    deviceId, keepLoggedIn, attribution, journey
   } = req.body;
 
   if (!username || !password || !email || !name || !postalCode || !roadAddress || !detailAddress) {
@@ -2374,18 +2380,29 @@ app.post('/api/members/signup', async (req, res) => {
 
   const passwordHash = await bcrypt.hash(password, 10);
   const channelStr = Array.isArray(signupChannel) ? signupChannel.join(', ') : (signupChannel || null);
+  // 가입 시점의 유입(dt_attr first/last)·세션 경로·UA 스냅샷 — 관리자 유입 분석용. 검증 실패 값은 버린다.
+  let signupContext = null;
+  try {
+    const ctx = attachAttributionContext(
+      { ua: req.headers['user-agent'] ? String(req.headers['user-agent']).slice(0, 255) : null },
+      attribution,
+      journey
+    );
+    signupContext = JSON.stringify({ attribution: ctx.attribution || null, journey: ctx.journey || [], ua: ctx.ua });
+  } catch { signupContext = null; }
 
   try {
     const [result] = await getPool().query(
       `INSERT INTO members
-        (username, password, name, birth_date, member_group, phone, mobile, email, postal_code, road_address, detail_address, signup_channel, search_keyword, referrer_code, email_marketing_consent, sms_marketing_consent, joined_at)
-       VALUES (?, ?, ?, ?, '1001', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        (username, password, name, birth_date, member_group, phone, mobile, email, postal_code, road_address, detail_address, signup_channel, search_keyword, referrer_code, email_marketing_consent, sms_marketing_consent, signup_context, joined_at)
+       VALUES (?, ?, ?, ?, '1001', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         username, passwordHash, name, birthDate || null, phone || null, mobile || null, email,
         postalCode, roadAddress, detailAddress,
         channelStr, searchKeyword || null, referrerCode || null,
         emailConsent === '1' ? '허용' : '거부',
-        smsConsent === '1' ? '허용' : '거부'
+        smsConsent === '1' ? '허용' : '거부',
+        signupContext
       ]
     );
     await registerMemberDevice(result.insertId, deviceId, req);
@@ -2393,7 +2410,8 @@ app.post('/api/members/signup', async (req, res) => {
     req.session.memberName = name;
     req.session.deviceId = deviceId || null;
     if (keepLoggedIn) req.session.cookie.maxAge = KEEP_LOGGED_IN_MAX_AGE;
-    res.json({ ok: true, name });
+    // memberId: GA4 user_id(dataLayer dt_user)용 숫자 id — 민감정보 아님
+    res.json({ ok: true, name, memberId: result.insertId });
 
     sendEmail({
       to: email,
@@ -2432,7 +2450,7 @@ app.post('/api/members/login', async (req, res) => {
   req.session.memberName = member.name;
   req.session.deviceId = deviceId || null;
   if (keepLoggedIn) req.session.cookie.maxAge = KEEP_LOGGED_IN_MAX_AGE;
-  res.json({ ok: true, name: member.name });
+  res.json({ ok: true, name: member.name, memberId: member.id });
 });
 
 app.post('/api/members/forgot-password', async (req, res) => {
@@ -2500,7 +2518,7 @@ app.post('/api/members/logout', (req, res) => {
 
 app.get('/api/members/me', (req, res) => {
   if (req.session.memberId) {
-    res.json({ loggedIn: true, name: req.session.memberName });
+    res.json({ loggedIn: true, name: req.session.memberName, memberId: req.session.memberId });
   } else {
     res.json({ loggedIn: false });
   }
@@ -4783,8 +4801,8 @@ app.put('/admin/api/marketing/settings', requireAdminApi, wrapAsync(async (req, 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 const MARKETING_MAX_RANGE_DAYS = 400;
 const DAY_MS = 24 * 60 * 60 * 1000;
-// join.html 가입경로 체크박스 값
-const KNOWN_SIGNUP_CHANNELS = ['학원 재원생', '지인 등 소개', '독편사 카페', '제휴 거래처', '인터넷 검색', '언론 기사', '광고 홍보물', '기타'];
+// 가입경로 목록·분해 규칙은 lib/attribution-report.js 한 곳에서 관리(유입·전환 분석과 공유)
+const { splitSignupChannels } = require('./lib/attribution-report');
 
 function parseYmd(s) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(s || ''))) return null;
@@ -4816,28 +4834,6 @@ function parseMarketingRange(query) {
     startUtc: utcSqlOf(fromT - KST_OFFSET_MS),     // from 00:00 KST
     endUtc: utcSqlOf(toT + DAY_MS - KST_OFFSET_MS) // to 다음날 00:00 KST (미포함)
   };
-}
-
-// 가입경로는 체크박스 복수선택을 ', '로 이어 저장한다. 구 데이터 일부는 구분자 없이 붙어 있어
-// ('학원 재원생독편사 카페') 알려진 경로명으로 다시 쪼갠다. 끝까지 못 쪼개면 원문 그대로 한 경로로 센다.
-function splitSignupChannels(raw) {
-  const out = new Set();
-  for (const piece of String(raw || '').split(',')) {
-    const trimmed = piece.trim();
-    if (!trimmed) continue;
-    if (KNOWN_SIGNUP_CHANNELS.includes(trimmed)) { out.add(trimmed); continue; }
-    let rest = trimmed;
-    const tokens = [];
-    while (rest) {
-      const hit = KNOWN_SIGNUP_CHANNELS.find(c => rest.startsWith(c));
-      if (!hit) break;
-      tokens.push(hit);
-      rest = rest.slice(hit.length).trim();
-    }
-    if (!rest && tokens.length) tokens.forEach(t => out.add(t));
-    else out.add(trimmed);
-  }
-  return [...out];
 }
 
 const toInt = v => Math.round(Number(v) || 0);
@@ -5050,6 +5046,9 @@ app.post('/admin/api/marketing/conversions/:paymentId/resend', requireAdminApi, 
   }
   res.json({ ok: result.ga4 !== 'failed' && result.meta !== 'failed', result });
 }));
+
+// 관리자 유입·전환 분석(채널·키워드·랜딩·결제 직전 페이지, 결제/회원 여정) — lib/attribution-report.js
+require('./lib/attribution-report')(app, { getPool, requireAdmin: requireAdminApi });
 
 // 기존 사이트(public/)는 /v1 하위로 이전. 신규 루트(피그마 디자인)와 분리.
 app.use('/v1', express.static(path.join(__dirname, 'public')));

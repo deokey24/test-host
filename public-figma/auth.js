@@ -31,6 +31,11 @@ function applyLoggedInUI(name) {
   if (myInfoBtn) myInfoBtn.style.display = '';
 }
 
+// GA4 user_id(dataLayer 'dt_user') — 회원 숫자 id만 보낸다. analytics.js가 없으면 no-op.
+function setAnalyticsUserId(memberId) {
+  if (typeof window.dtSetUserId === 'function') window.dtSetUserId(memberId == null ? null : memberId);
+}
+
 function applyLoggedOutUI() {
   const trigger = document.getElementById('loginTrigger');
   if (trigger) {
@@ -45,6 +50,7 @@ function applyLoggedOutUI() {
 
 async function doLogout() {
   try { await fetch('/api/members/logout', { method: 'POST' }); } catch { /* 네트워크 오류는 무시 */ }
+  setAnalyticsUserId(null);
   applyLoggedOutUI();
 }
 
@@ -52,7 +58,12 @@ async function checkLoginState() {
   try {
     const res = await fetch('/api/members/me');
     const data = await res.json();
-    if (data.loggedIn) applyLoggedInUI(data.name);
+    if (data.loggedIn) {
+      if (data.memberId) setAnalyticsUserId(data.memberId);
+      applyLoggedInUI(data.name);
+    } else {
+      setAnalyticsUserId(null);
+    }
   } catch { /* 비로그인 상태로 둔다 */ }
 }
 
@@ -76,6 +87,7 @@ async function submitLoginForm(e) {
       errEl.style.display = 'block';
       return;
     }
+    if (data.memberId) setAnalyticsUserId(data.memberId);
     if (typeof window.dtTrack === 'function') window.dtTrack('login', { method: 'email' });
     closeLoginModal();
     applyLoggedInUI(data.name);

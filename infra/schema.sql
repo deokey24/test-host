@@ -114,6 +114,7 @@ CREATE TABLE IF NOT EXISTS members (
   joined_at DATETIME,
   general_notes TEXT,
   consultation_notes TEXT,
+  signup_context TEXT NULL, -- 2026-10-14 가입 시점 유입·세션 경로 JSON {attribution:{first,last}, journey:[{path,q,t,d}], ua} (infra/migrations/2026-10-14-members-signup-context.sql)
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_members_username (username)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
