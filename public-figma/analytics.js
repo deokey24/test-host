@@ -92,7 +92,7 @@ var DT_ANALYTICS_CONFIG = {};
       // 네이버 애널리틱스 공통 스크립트(wcslog.js) — 비동기 로드 후 wcs_do()
       window.wcs_add = window.wcs_add || {};
       window.wcs_add['wa'] = naverId;
-      loadScript('https://wcs.naver.net/wcslog.js', function () {
+      loadScript('https://wcs.pstatic.net/wcslog.js', function () {
         try { if (window.wcs) window.wcs_do(); } catch (e) { /* noop */ }
       });
     }
