@@ -1237,6 +1237,66 @@
           </details>
         </div>
 
+        <!-- 3-2. GA4 방문 통계 (GA4 Data API, lib/ga4-data.js) -->
+        <div class="card" id="mkGa4Card">
+          <div class="card-head-row">
+            <h2>GA4 방문 통계</h2>
+            <div class="status-text" id="mkGa4Status" style="margin:0;"></div>
+          </div>
+          <div id="mkGa4Unconfigured" class="mk-ga4-notice" hidden>
+            <p>GA4 Data API가 연결되지 않았습니다. 아래 설정 카드에서 GA4 속성 ID와 서비스 계정 JSON을 저장하고 'GA4 연결 테스트'를 누르세요.</p>
+            <button class="row-btn" type="button" id="mkGa4GuideOpen">연결 방법 보기</button>
+          </div>
+          <div id="mkGa4Error" class="mk-ga4-notice mk-ga4-error" hidden></div>
+          <div id="mkGa4Body" hidden>
+            <div class="mk-ga4-top">
+              <span class="mk-ga4-live" id="mkGa4Realtime"><i></i>현재 접속 -</span>
+              <div class="mk-ga4-chips" id="mkGa4Totals"></div>
+              <span class="mk-ga4-meta" id="mkGa4Meta"></span>
+              <button class="row-btn" type="button" id="mkGa4Refresh">새로 조회</button>
+            </div>
+            <p class="field-hint" style="margin:0 0 14px;">GA4 표준 집계는 보통 1~2일 지연됩니다. 오늘 수치는 아직 작을 수 있습니다.</p>
+            <div class="mk-ga4-daily">
+              <h3 class="mk-h3">일별</h3>
+              <div class="mk-table-wrap"><table>
+                <thead><tr><th>날짜</th><th class="mk-num">세션</th><th></th><th class="mk-num">사용자</th><th class="mk-num">신규</th><th class="mk-num">페이지뷰</th><th class="mk-num">주요 이벤트</th></tr></thead>
+                <tbody id="mkGa4DailyTable"></tbody>
+              </table></div>
+            </div>
+            <div class="mk-table-grid">
+              <div>
+                <h3 class="mk-h3">페이지별 (조회수 상위 50)</h3>
+                <div class="mk-table-wrap"><table>
+                  <thead><tr><th>경로</th><th class="mk-num">조회수</th><th class="mk-num">사용자</th><th class="mk-num">평균 체류</th><th class="mk-num">참여율</th></tr></thead>
+                  <tbody id="mkGa4PagesTable"></tbody>
+                </table></div>
+              </div>
+              <div>
+                <h3 class="mk-h3">유입 소스별 (세션 상위 30)</h3>
+                <div class="mk-table-wrap"><table>
+                  <thead><tr><th>소스 / 매체</th><th class="mk-num">세션</th><th class="mk-num">사용자</th><th class="mk-num">참여 세션</th><th class="mk-num">주요 이벤트</th></tr></thead>
+                  <tbody id="mkGa4SourcesTable"></tbody>
+                </table></div>
+              </div>
+              <div>
+                <h3 class="mk-h3">랜딩 페이지별 (세션 상위 30)</h3>
+                <div class="mk-table-wrap"><table>
+                  <thead><tr><th>랜딩 페이지</th><th class="mk-num">세션</th><th class="mk-num">사용자</th><th class="mk-num">주요 이벤트</th></tr></thead>
+                  <tbody id="mkGa4LandingsTable"></tbody>
+                </table></div>
+              </div>
+              <div>
+                <h3 class="mk-h3">퍼널 이벤트</h3>
+                <div class="mk-table-wrap"><table>
+                  <thead><tr><th>이벤트</th><th class="mk-num">발생 수</th><th class="mk-num">사용자</th><th class="mk-num" title="이전 단계 사용자 대비">이전 단계 대비</th></tr></thead>
+                  <tbody id="mkGa4EventsTable"></tbody>
+                </table></div>
+                <p class="field-hint">퍼널 비율 = 이 단계 사용자 ÷ 이전 단계 사용자. sign_up·login은 퍼널과 별도로 표시합니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 4. 유입 경로 -->
         <div class="card" id="mkAcquisitionCard">
           <h2>유입 경로</h2>
@@ -1380,6 +1440,17 @@
               <div class="field-hint">웹 스트림 화면 → Measurement Protocol API 비밀번호 → 만들기. 비워 두면 기존 값 유지</div>
             </div>
             <div class="field-row">
+              <label class="field-label" for="mkGa4PropertyId">GA4 속성 ID</label>
+              <input type="text" id="mkGa4PropertyId" placeholder="숫자 9자리" autocomplete="off" inputmode="numeric">
+              <div class="field-hint">GA4 관리 → 속성 설정 → 속성 ID</div>
+            </div>
+            <div class="field-row full">
+              <label class="field-label" for="mkGa4SaJson">GA4 서비스 계정 JSON <span id="mkGa4SaBadge"></span></label>
+              <textarea id="mkGa4SaJson" rows="4" placeholder='{"type": "service_account", ...}' autocomplete="off" spellcheck="false" class="mk-ga4-json"></textarea>
+              <label class="check-row mk-clear"><input type="checkbox" id="mkGa4SaClear"> 저장된 값 삭제</label>
+              <div class="field-hint">Google Cloud 서비스 계정 키 JSON 파일 내용 전체. 저장 후 입력칸은 비워지고 연결된 계정 이메일만 표시됩니다. 비워 두면 기존 값 유지</div>
+            </div>
+            <div class="field-row">
               <label class="field-label" for="mkMetaPixelId">Meta 픽셀 ID</label>
               <input type="text" id="mkMetaPixelId" placeholder="숫자 15~16자리" autocomplete="off">
               <div class="field-hint">Meta 이벤트 관리자 → 데이터 소스 → 픽셀 ID</div>
@@ -1402,7 +1473,10 @@
             </div>
           </div>
           <p class="field-hint" id="mkEnvFallbackNote"></p>
-          <button class="btn" id="mkSettingsSave" type="button">저장</button>
+          <div class="mk-ga4-actions">
+            <button class="btn" id="mkSettingsSave" type="button">저장</button>
+            <button class="btn-outline" id="mkGa4Test" type="button" title="저장된 GA4 속성 ID·서비스 계정으로 최근 7일 세션을 조회합니다">GA4 연결 테스트</button>
+          </div>
           <div class="status-text" id="mkSettingsStatus"></div>
         </div>
 
@@ -1435,7 +1509,16 @@
               <li><b>clarity.microsoft.com</b> → 프로젝트 → 설정 → 프로젝트 ID</li>
               <li>GTM에 이미 같은 태그를 넣었다면 위 폼은 비워 두세요(중복 집계 방지)</li>
             </ol>
-            <h3 class="mk-h3">5. 동작 확인</h3>
+            <h3 class="mk-h3" id="mkGuideGa4">5. GA4 Data API 연결 (관리자 방문 통계)</h3>
+            <ol>
+              <li><b>console.cloud.google.com</b> → 프로젝트 만들기 (예: <code>dockteacher-analytics</code>)</li>
+              <li><b>API 및 서비스 → 라이브러리</b> → <b>Google Analytics Data API</b> 검색 → 사용 설정</li>
+              <li><b>IAM 및 관리자 → 서비스 계정 → 만들기</b>: 이름 <code>ga4-reader</code>, 역할은 부여하지 않고 완료 → 생성된 계정 → <b>키 → 키 추가 → 새 키 만들기 → JSON</b> → 내려받은 파일 내용 전체를 "GA4 서비스 계정 JSON"에 붙여넣기</li>
+              <li><b>analytics.google.com</b> → 관리 → 속성 <b>액세스 관리</b> → <b>+ 사용자 추가</b> → 서비스 계정 이메일(<code>ga4-reader@….iam.gserviceaccount.com</code>)을 역할 <b>뷰어</b>로 추가</li>
+              <li>관리 → <b>속성 설정</b>의 <b>속성 ID</b>(숫자 9자리)를 "GA4 속성 ID"에 입력 → 저장 → <b>GA4 연결 테스트</b></li>
+            </ol>
+            <p class="mk-warn">JSON 키 파일은 비밀번호와 같습니다. 메일·메신저로 보내지 말고, 붙여넣어 저장한 뒤 내 컴퓨터에서 삭제하세요. 유출이 의심되면 Cloud 콘솔에서 해당 키를 삭제하고 새로 발급하세요.</p>
+            <h3 class="mk-h3">6. 동작 확인</h3>
             <ol>
               <li>저장 후 최대 5분 뒤 사이트에 접속 → GA4 <b>보고서 → 실시간</b>에 접속이 잡히면 성공 (세부 이벤트는 관리 → DebugView)</li>
               <li>자세한 내용은 저장소의 <code>docs/analytics-setup.md</code>를 참고하세요</li>

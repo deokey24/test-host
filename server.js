@@ -4626,11 +4626,16 @@ const MARKETING_SETTING_ENV = {
   metaPixelId: 'META_PIXEL_ID',
   metaCapiAccessToken: 'META_CAPI_ACCESS_TOKEN',
   naverWcsId: 'NAVER_WCS_ID',
-  clarityProjectId: 'CLARITY_PROJECT_ID'
+  clarityProjectId: 'CLARITY_PROJECT_ID',
+  // GA4 Data API(관리자 방문 통계 조회 전용 — 브라우저/analytics.js에는 절대 싣지 않는다). lib/ga4-data.js
+  ga4PropertyId: 'GA4_PROPERTY_ID',
+  ga4ServiceAccountJson: 'GA4_SERVICE_ACCOUNT_JSON'
 };
 const MARKETING_SETTING_KEYS = Object.keys(MARKETING_SETTING_ENV);
-const MARKETING_SECRET_KEYS = ['ga4ApiSecret', 'metaCapiAccessToken'];
+const MARKETING_SECRET_KEYS = ['ga4ApiSecret', 'metaCapiAccessToken', 'ga4ServiceAccountJson'];
+const { parseServiceAccount, clearGa4Cache, registerGa4Routes } = require('./lib/ga4-data');
 // PUT 입력 형식 — 브라우저에 그대로 실리는 ID라 허용 문자를 좁혀 둔다(응답 JSON 이스케이프와 이중 방어).
+// 값은 [정규식, 오류문구] 또는 검증 함수 val => 오류문구|null.
 const MARKETING_SETTING_FORMATS = {
   gtmContainerId: [/^GTM-[A-Z0-9]{4,15}$/, 'GTM 컨테이너 ID는 GTM-XXXXXXX 형식이어야 합니다.'],
   ga4MeasurementId: [/^G-[A-Z0-9]{4,20}$/, 'GA4 측정 ID는 G-XXXXXXXXXX 형식이어야 합니다.'],
@@ -4638,7 +4643,11 @@ const MARKETING_SETTING_FORMATS = {
   metaPixelId: [/^\d{5,25}$/, 'Meta 픽셀 ID는 숫자여야 합니다.'],
   metaCapiAccessToken: [/^\S{10,1000}$/, 'Meta 전환 API 토큰 형식이 올바르지 않습니다(공백 불가).'],
   naverWcsId: [/^[A-Za-z0-9_-]{4,40}$/, '네이버 애널리틱스 ID는 영문·숫자만 입력하세요.'],
-  clarityProjectId: [/^[A-Za-z0-9]{4,20}$/, 'Clarity 프로젝트 ID는 영문·숫자만 입력하세요.']
+  clarityProjectId: [/^[A-Za-z0-9]{4,20}$/, 'Clarity 프로젝트 ID는 영문·숫자만 입력하세요.'],
+  ga4PropertyId: [/^\d{5,15}$/, 'GA4 속성 ID는 숫자(5~15자리)여야 합니다(GA4 관리 → 속성 설정 → 속성 ID).'],
+  ga4ServiceAccountJson: val => (parseServiceAccount(val)
+    ? null
+    : '서비스 계정 JSON 형식이 올바르지 않습니다. Google Cloud에서 받은 키 파일(JSON) 내용 전체를 그대로 붙여넣으세요.')
 };
 const MARKETING_SETTINGS_TTL_MS = 60 * 1000;
 let marketingSettingsCache = null; // { at, promise }
@@ -4682,6 +4691,7 @@ function getMarketingSettings() {
 function invalidateMarketingSettings() {
   marketingSettingsCache = null;
   analyticsJsRendered = null;
+  clearGa4Cache(); // GA4 Data API 토큰·보고서 캐시(속성/계정이 바뀌었을 수 있음)
 }
 
 function isConversionConfigured(s) {
@@ -4756,16 +4766,21 @@ app.get('/admin/api/marketing/settings', requireAdminApi, wrapAsync(async (req, 
     metaCapiAccessTokenSet: !!v('metaCapiAccessToken'),
     naverWcsId: v('naverWcsId'),
     clarityProjectId: v('clarityProjectId'),
+    // GA4 Data API — 서비스 계정 JSON은 원문·끝자리 모두 내리지 않고 연결된 계정 이메일만 보여준다.
+    ga4PropertyId: v('ga4PropertyId'),
+    ga4ServiceAccountJson: v('ga4ServiceAccountJson') ? '••••' : '',
+    ga4ServiceAccountEmail: (parseServiceAccount(v('ga4ServiceAccountJson')) || {}).client_email || '',
     // DB 값이 비었을 때 서버 전환 전송이 env로 동작하는지(채널별 ID+비밀값 둘 다 env에 있을 때 true)
     envFallback: {
       ga4: !!(env('ga4MeasurementId') && env('ga4ApiSecret')),
-      meta: !!(env('metaPixelId') && env('metaCapiAccessToken'))
+      meta: !!(env('metaPixelId') && env('metaCapiAccessToken')),
+      ga4Data: !!(env('ga4PropertyId') && parseServiceAccount(env('ga4ServiceAccountJson')))
     }
   });
 }));
 
 // body: 설정 키 그대로. 일반 키는 문자열=저장, ''/null=삭제, 키 생략=유지.
-// 비밀값(ga4ApiSecret, metaCapiAccessToken)은 ''·생략=기존 값 유지, null=삭제, 문자열=교체.
+// 비밀값(ga4ApiSecret, metaCapiAccessToken, ga4ServiceAccountJson)은 ''·생략=기존 값 유지, null=삭제, 문자열=교체.
 app.put('/admin/api/marketing/settings', requireAdminApi, wrapAsync(async (req, res) => {
   const body = req.body && typeof req.body === 'object' ? req.body : {};
   const stored = await readStoredMarketingSettings();
@@ -4781,8 +4796,9 @@ app.put('/admin/api/marketing/settings', requireAdminApi, wrapAsync(async (req, 
     let val = raw.trim();
     if (!val) { if (!isSecret) next[key] = ''; continue; }
     if (key === 'gtmContainerId' || key === 'ga4MeasurementId') val = val.toUpperCase();
-    const [re, msg] = MARKETING_SETTING_FORMATS[key];
-    if (!re.test(val)) { res.status(400).json({ error: msg }); return; }
+    const format = MARKETING_SETTING_FORMATS[key];
+    const formatError = typeof format === 'function' ? format(val) : (format[0].test(val) ? null : format[1]);
+    if (formatError) { res.status(400).json({ error: formatError }); return; }
     next[key] = val;
   }
 
@@ -5049,6 +5065,9 @@ app.post('/admin/api/marketing/conversions/:paymentId/resend', requireAdminApi, 
 
 // 관리자 유입·전환 분석(채널·키워드·랜딩·결제 직전 페이지, 결제/회원 여정) — lib/attribution-report.js
 require('./lib/attribution-report')(app, { getPool, requireAdmin: requireAdminApi });
+
+// 관리자 GA4 방문 통계(GA4 Data API) — /admin/api/marketing/ga4, /ga4/realtime, /ga4/test. lib/ga4-data.js
+registerGa4Routes(app, { getMarketingSettings, parseMarketingRange, requireAdmin: requireAdminApi, wrapAsync });
 
 // 기존 사이트(public/)는 /v1 하위로 이전. 신규 루트(피그마 디자인)와 분리.
 app.use('/v1', express.static(path.join(__dirname, 'public')));

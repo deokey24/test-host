@@ -63,6 +63,7 @@
     if (from && to && from > to) { setStatus(status, '시작일이 종료일보다 늦습니다.', 'error'); return; }
     const seq = ++summarySeq;
     loadAttribution(from, to); // 같은 기간으로 유입·전환 분석 카드도 갱신
+    loadGa4(from, to); // GA4 방문 통계도 같은 기간으로
     setStatus(status, '불러오는 중...');
     try {
       const params = new URLSearchParams();
@@ -240,6 +241,238 @@
     a.remove();
   });
 
+  // ── 3-2. GA4 방문 통계 (GET /admin/api/marketing/ga4, /ga4/realtime) ──
+  // 서버가 GA4 Data API 응답을 1시간(realtime 30초) 캐시한다. 비율(engagementRate)은 0~1.
+  // 502 응답의 hint까지 보여줘야 해서 apiFetch 대신 상태코드·본문을 그대로 받는다.
+  async function fetchJson(url, options) {
+    const res = await fetch(url, { ...(options || {}), headers: { 'Content-Type': 'application/json' } });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data: data || {} };
+  }
+
+  const GA4_SITE = 'https://dockteacher.co.kr';
+  const GA4_FUNNEL = [
+    ['page_view', '페이지 조회'], ['view_item', '강좌 상세 조회'], ['begin_checkout', '결제 시작'], ['purchase', '구매']
+  ];
+  const GA4_OTHER_EVENTS = [['sign_up', '회원가입'], ['login', '로그인']];
+  const GA4_REFRESH_COOLDOWN = 60;
+  let ga4Seq = 0;
+  let ga4State = ''; // '' | 'ok' | 'unconfigured' | 'error'
+  let ga4Range = { from: '', to: '' };
+  let realtimeTimer = null;
+  let realtimeLoadedOnce = false;
+
+  function showGa4(state) {
+    ga4State = state;
+    $('mkGa4Body').hidden = state !== 'ok';
+    $('mkGa4Unconfigured').hidden = state !== 'unconfigured';
+    $('mkGa4Error').hidden = state !== 'error';
+  }
+
+  // GA4 date 차원은 'YYYYMMDD'로 온다. 서버가 정규화했더라도 둘 다 받는다.
+  const ga4Date = (v) => {
+    const s = String(v || '');
+    return /^\d{8}$/.test(s) ? `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}` : s.slice(0, 10);
+  };
+  const pathCell = (p) => {
+    const path = String(p || '');
+    if (!path.startsWith('/')) return `<code>${escapeHtml(path || '(not set)')}</code>`;
+    return `<a href="${escapeHtml(GA4_SITE + path)}" target="_blank" rel="noopener noreferrer"><code>${escapeHtml(path)}</code></a>`;
+  };
+
+  async function loadGa4(from, to, opts) {
+    ga4Range = { from, to };
+    const seq = ++ga4Seq;
+    const status = $('mkGa4Status');
+    setStatus(status, '불러오는 중...');
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    if (opts && opts.refresh) params.set('refresh', '1');
+    let res;
+    try {
+      res = await fetchJson(`/admin/api/marketing/ga4?${params}`);
+    } catch (err) {
+      res = { ok: false, status: 0, data: { error: `서버에 연결하지 못했습니다: ${err.message}` } };
+    }
+    if (seq !== ga4Seq) return; // 더 최근 요청이 있으면 버린다
+    const d = res.data;
+    setStatus(status, '');
+    if (res.ok && d.configured === false) {
+      showGa4('unconfigured');
+      return;
+    }
+    if (!res.ok) {
+      showGa4('error');
+      $('mkGa4Error').innerHTML = `
+        <p><b>GA4 통계를 불러오지 못했습니다.</b> ${escapeHtml(d.error || `요청에 실패했습니다 (HTTP ${res.status}).`)}</p>
+        ${d.hint ? `<p class="mk-ga4-hint">${escapeHtml(d.hint)}</p>` : ''}`;
+      return;
+    }
+    showGa4('ok');
+    renderGa4(d);
+    if (!realtimeLoadedOnce) loadGa4Realtime();
+  }
+
+  function renderGa4(d) {
+    const t = d.totals || {};
+    $('mkGa4Totals').innerHTML = [['세션', t.sessions], ['사용자', t.totalUsers], ['신규', t.newUsers], ['페이지뷰', t.screenPageViews]]
+      .map(([label, v]) => `<span class="mk-ga4-chip">${label} <b>${num(v)}</b></span>`).join('');
+
+    const fetched = d.fetchedAt ? new Date(d.fetchedAt) : null;
+    let meta = '';
+    if (fetched && !Number.isNaN(fetched.getTime())) {
+      const mins = Math.max(0, Math.round((Date.now() - fetched.getTime()) / 60000));
+      const time = fetched.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+      meta = d.cached ? `${mins ? `${mins}분 전` : '방금'} 조회 (${time}, 1시간 캐시)` : `${time} 조회`;
+    }
+    $('mkGa4Meta').textContent = meta;
+
+    // 값 없는 날은 0으로 채워 기간 전체를 보여주고, 최근 날짜가 위로 오게 한다.
+    const range = d.range || ga4Range;
+    const byDate = new Map((d.daily || []).map(r => [ga4Date(r.date), r]));
+    let days = [];
+    if (range.from && range.to) {
+      const end = parseYmd(range.to);
+      for (let x = parseYmd(range.from); x <= end && days.length < 400; x.setDate(x.getDate() + 1)) {
+        const key = ymd(x);
+        days.push({ ...(byDate.get(key) || {}), date: key });
+      }
+    } else {
+      days = (d.daily || []).map(r => ({ ...r, date: ga4Date(r.date) }));
+    }
+    const maxSessions = Math.max(0, ...days.map(r => Number(r.sessions) || 0));
+    $('mkGa4DailyTable').innerHTML = days.length ? days.slice().reverse().map(r => {
+      const w = maxSessions > 0 ? Math.round(((Number(r.sessions) || 0) / maxSessions) * 100) : 0;
+      return `
+      <tr>
+        <td>${escapeHtml(r.date)}</td>
+        <td class="mk-num">${num(r.sessions)}</td>
+        <td class="mk-ga4-barcell"><span class="mk-ga4-bar" style="width:${w}%"></span></td>
+        <td class="mk-num">${num(r.totalUsers)}</td>
+        <td class="mk-num">${num(r.newUsers)}</td>
+        <td class="mk-num">${num(r.screenPageViews)}</td>
+        <td class="mk-num">${num(r.keyEvents)}</td>
+      </tr>`;
+    }).join('') : emptyRow(7, '데이터 없음');
+
+    const pages = d.pages || [];
+    $('mkGa4PagesTable').innerHTML = pages.length ? pages.map(r => `
+      <tr>
+        <td>${pathCell(r.pagePath)}</td>
+        <td class="mk-num">${num(r.screenPageViews)}</td>
+        <td class="mk-num">${num(r.totalUsers)}</td>
+        <td class="mk-num">${r.avgEngagementSec === null || r.avgEngagementSec === undefined ? '-' : dwell(Math.round(Number(r.avgEngagementSec) || 0))}</td>
+        <td class="mk-num">${rate(r.engagementRate)}</td>
+      </tr>`).join('') : emptyRow(5, '데이터 없음');
+
+    const sources = d.sources || [];
+    $('mkGa4SourcesTable').innerHTML = sources.length ? sources.map(r => `
+      <tr>
+        <td><code>${escapeHtml(`${r.source || '(not set)'} / ${r.medium || '(not set)'}`)}</code></td>
+        <td class="mk-num">${num(r.sessions)}</td>
+        <td class="mk-num">${num(r.totalUsers)}</td>
+        <td class="mk-num">${num(r.engagedSessions)}</td>
+        <td class="mk-num">${num(r.keyEvents)}</td>
+      </tr>`).join('') : emptyRow(5, '데이터 없음');
+
+    const landings = d.landings || [];
+    $('mkGa4LandingsTable').innerHTML = landings.length ? landings.map(r => `
+      <tr>
+        <td>${pathCell(r.landingPage)}</td>
+        <td class="mk-num">${num(r.sessions)}</td>
+        <td class="mk-num">${num(r.totalUsers)}</td>
+        <td class="mk-num">${num(r.keyEvents)}</td>
+      </tr>`).join('') : emptyRow(4, '데이터 없음');
+
+    // 퍼널: page_view → view_item → begin_checkout → purchase, 이전 단계 사용자 대비 비율.
+    const events = new Map((d.events || []).map(r => [r.eventName, r]));
+    if (!events.size) {
+      $('mkGa4EventsTable').innerHTML = emptyRow(4, '데이터 없음');
+      return;
+    }
+    let prevUsers = 0;
+    const funnelRows = GA4_FUNNEL.map(([name, label], i) => {
+      const r = events.get(name) || {};
+      const users = Number(r.totalUsers) || 0;
+      const ratio = i === 0 ? '<span class="field-hint">기준</span>' : `<span class="mk-ga4-ratio">${pct(users, prevUsers)}</span>`;
+      prevUsers = users;
+      return `
+      <tr>
+        <td><span class="mk-ga4-step">${i + 1}</span><code>${name}</code> <span class="field-hint">${label}</span></td>
+        <td class="mk-num">${num(r.eventCount)}</td>
+        <td class="mk-num">${num(r.totalUsers)}</td>
+        <td class="mk-num">${ratio}</td>
+      </tr>`;
+    }).join('');
+    const otherRows = GA4_OTHER_EVENTS.map(([name, label], i) => {
+      const r = events.get(name) || {};
+      return `
+      <tr class="${i === 0 ? 'mk-ga4-sep' : ''}">
+        <td><code>${name}</code> <span class="field-hint">${label}</span></td>
+        <td class="mk-num">${num(r.eventCount)}</td>
+        <td class="mk-num">${num(r.totalUsers)}</td>
+        <td class="mk-num">-</td>
+      </tr>`;
+    }).join('');
+    $('mkGa4EventsTable').innerHTML = funnelRows + otherRows;
+  }
+
+  // "새로 조회": 서버 캐시를 무시하므로 GA4 쿼터 보호를 위해 클라이언트에서 60초에 1회만.
+  let refreshTimer = null;
+  $('mkGa4Refresh').addEventListener('click', () => {
+    if (refreshTimer) return;
+    const btn = $('mkGa4Refresh');
+    let left = GA4_REFRESH_COOLDOWN;
+    btn.disabled = true;
+    btn.textContent = `새로 조회 (${left}초)`;
+    refreshTimer = setInterval(() => {
+      left -= 1;
+      if (left > 0) { btn.textContent = `새로 조회 (${left}초)`; return; }
+      clearInterval(refreshTimer);
+      refreshTimer = null;
+      btn.disabled = false;
+      btn.textContent = '새로 조회';
+    }, 1000);
+    loadGa4(ga4Range.from, ga4Range.to, { refresh: true });
+    loadGa4Realtime();
+  });
+
+  $('mkGa4GuideOpen').addEventListener('click', () => {
+    const details = section.querySelector('#mkGuideCard details');
+    if (details) details.open = true;
+    ($('mkGuideGa4') || $('mkGuideCard')).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  // 현재 접속자: 마케팅 섹션이 보이는(섹션 active + 브라우저 탭 표시) 동안만 60초 간격.
+  async function loadGa4Realtime() {
+    if (ga4State !== 'ok') return; // 미설정·오류 상태면 호출하지 않는다
+    const el = $('mkGa4Realtime');
+    const off = (title) => { el.innerHTML = '<i></i>현재 접속 -'; el.title = title; el.classList.add('off'); };
+    try {
+      const res = await fetchJson('/admin/api/marketing/ga4/realtime');
+      if (!res.ok) return off(res.data.error || '실시간 조회 실패');
+      if (!res.data.configured) return off('GA4 미연결');
+      realtimeLoadedOnce = true;
+      el.innerHTML = `<i></i>현재 접속 <b>${num(res.data.activeUsers)}</b>명`;
+      el.title = `최근 30분 활성 사용자 · ${dateTime(res.data.fetchedAt)} 기준`;
+      el.classList.remove('off');
+    } catch (err) {
+      off(err.message);
+    }
+  }
+  function syncRealtimeTimer() {
+    const visible = section.classList.contains('active') && document.visibilityState !== 'hidden';
+    if (visible && !realtimeTimer) {
+      if (realtimeLoadedOnce) loadGa4Realtime();
+      realtimeTimer = setInterval(loadGa4Realtime, 60000);
+    } else if (!visible && realtimeTimer) {
+      clearInterval(realtimeTimer);
+      realtimeTimer = null;
+    }
+  }
+  document.addEventListener('visibilitychange', syncRealtimeTimer);
+
   // ── 3. 일별 추이 (인라인 SVG) ──
   // dataviz 규칙: 이중 축 금지 → 건수(가입·승인)와 매출(원)을 별도 차트로.
   // 색은 검증된 범주 팔레트 고정 순서(1 파랑=가입, 2 주황=승인, 3 청록=매출). 청록은 대비 3:1 미만이라
@@ -405,30 +638,46 @@
   const TEXT_FIELDS = [
     ['mkGtmId', 'gtmContainerId'],
     ['mkGa4Id', 'ga4MeasurementId'],
+    ['mkGa4PropertyId', 'ga4PropertyId'],
     ['mkMetaPixelId', 'metaPixelId'],
     ['mkNaverId', 'naverWcsId'],
     ['mkClarityId', 'clarityProjectId']
   ];
+  // 서비스 계정 JSON은 GET 응답 모양이 다르다: ga4ServiceAccountJson('••••' | ''), ga4ServiceAccountEmail.
+  // → isSet/badgeHtml/placeholder를 필드별로 덮어쓴다. PUT 규칙(''=유지, null=삭제)은 같다.
   const SECRET_FIELDS = [
     { input: 'mkGa4Secret', clear: 'mkGa4SecretClear', badge: 'mkGa4SecretBadge', key: 'ga4ApiSecret', masked: 'ga4ApiSecretMasked', set: 'ga4ApiSecretSet' },
-    { input: 'mkMetaToken', clear: 'mkMetaTokenClear', badge: 'mkMetaTokenBadge', key: 'metaCapiAccessToken', masked: 'metaCapiAccessTokenMasked', set: 'metaCapiAccessTokenSet' }
+    { input: 'mkMetaToken', clear: 'mkMetaTokenClear', badge: 'mkMetaTokenBadge', key: 'metaCapiAccessToken', masked: 'metaCapiAccessTokenMasked', set: 'metaCapiAccessTokenSet' },
+    {
+      input: 'mkGa4SaJson', clear: 'mkGa4SaClear', badge: 'mkGa4SaBadge', key: 'ga4ServiceAccountJson',
+      isSet: (s) => !!s.ga4ServiceAccountJson,
+      placeholder: (s, isSet) => (isSet ? '저장됨 — 교체하려면 새 JSON 전체를 붙여넣으세요' : '{"type": "service_account", ...}'),
+      badgeHtml: (s, isSet) => (isSet
+        ? `<span class="badge badge-done mk-ga4-sa">연결된 계정: ${escapeHtml(s.ga4ServiceAccountEmail || '(이메일 확인 불가)')}</span>`
+        : ((s.envFallback || {}).ga4Data
+          ? '<span class="badge badge-done">환경변수(.env) 설정 사용 중</span>'
+          : '<span class="badge badge-off">미설정</span>'))
+    }
   ];
 
   function applySettings(s) {
     TEXT_FIELDS.forEach(([id, key]) => { $(id).value = s[key] || ''; });
     SECRET_FIELDS.forEach(f => {
-      const isSet = !!s[f.set];
+      const isSet = f.isSet ? f.isSet(s) : !!s[f.set];
       $(f.input).value = '';
-      $(f.input).placeholder = isSet ? (s[f.masked] || '••••') : '미설정';
+      $(f.input).placeholder = f.placeholder ? f.placeholder(s, isSet) : (isSet ? (s[f.masked] || '••••') : '미설정');
       $(f.clear).checked = false;
       $(f.clear).closest('label').style.display = isSet ? '' : 'none';
-      $(f.badge).innerHTML = isSet ? '<span class="badge badge-done">설정됨</span>' : '<span class="badge badge-off">미설정</span>';
+      $(f.badge).innerHTML = f.badgeHtml
+        ? f.badgeHtml(s, isSet)
+        : (isSet ? '<span class="badge badge-done">설정됨</span>' : '<span class="badge badge-off">미설정</span>');
     });
     const env = s.envFallback || {};
     const envNames = [env.ga4 && 'GA4', env.meta && 'Meta'].filter(Boolean);
-    $('mkEnvFallbackNote').textContent = envNames.length
-      ? `서버 환경변수에 ${envNames.join('·')} 전환 설정이 있습니다. 여기 값이 비어 있으면 환경변수 값이 대신 쓰입니다.`
-      : '';
+    const notes = [];
+    if (envNames.length) notes.push(`서버 환경변수에 ${envNames.join('·')} 전환 설정이 있습니다. 여기 값이 비어 있으면 환경변수 값이 대신 쓰입니다.`);
+    if (env.ga4Data) notes.push('서버 환경변수에 GA4 Data API(속성 ID·서비스 계정) 설정이 있습니다. 여기 값이 비어 있으면 환경변수 값으로 조회합니다.');
+    $('mkEnvFallbackNote').textContent = notes.join(' ');
   }
 
   async function loadSettings() {
@@ -457,6 +706,9 @@
     SECRET_FIELDS.forEach(f => {
       payload[f.key] = $(f.clear).checked ? null : $(f.input).value.trim(); // '' = 기존 값 유지
     });
+    // GA4 Data API 설정이 바뀌면 방문 통계 카드를 새 설정으로 다시 불러온다(서버가 저장 시 캐시를 비움).
+    const prevPropertyId = (lastSettings && lastSettings.ga4PropertyId) || '';
+    const ga4Changed = payload.ga4PropertyId !== prevPropertyId || payload.ga4ServiceAccountJson !== '';
     const btn = $('mkSettingsSave');
     btn.disabled = true;
     try {
@@ -464,8 +716,32 @@
       SECRET_FIELDS.forEach(f => { $(f.input).disabled = false; });
       await loadSettings();
       setStatus(status, '저장되었습니다. 사이트에는 최대 약 6분(서버 캐시 1분 + 브라우저 캐시 5분) 뒤 반영됩니다.', 'ok');
+      if (ga4Changed && loaded) { realtimeLoadedOnce = false; loadGa4($('mkFrom').value, $('mkTo').value); }
     } catch (err) {
       setStatus(status, err.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // 연결 테스트: 저장된 설정으로 최근 7일 세션을 조회한다(입력칸의 미저장 값은 쓰지 않음).
+  $('mkGa4Test').addEventListener('click', async () => {
+    const status = $('mkSettingsStatus');
+    const btn = $('mkGa4Test');
+    btn.disabled = true;
+    setStatus(status, 'GA4 연결 테스트 중... (저장된 설정 기준)');
+    try {
+      const res = await fetchJson('/admin/api/marketing/ga4/test', { method: 'POST', body: '{}' });
+      const d = res.data;
+      if (res.ok && d.ok) {
+        setStatus(status, `연결 성공 — 최근 7일 세션 ${num(d.sessions7d)}`, 'ok');
+        if (ga4State !== 'ok') { realtimeLoadedOnce = false; loadGa4($('mkFrom').value, $('mkTo').value); }
+      } else {
+        const msg = d.error || `요청에 실패했습니다 (HTTP ${res.status}).`;
+        setStatus(status, `연결 실패 — ${msg}${d.hint ? ` (${d.hint})` : ''}`, 'error');
+      }
+    } catch (err) {
+      setStatus(status, `연결 실패 — ${err.message}`, 'error');
     } finally {
       btn.disabled = false;
     }
@@ -477,12 +753,14 @@
     if (loaded) return;
     loaded = true;
     setRangeDays(30);
-    loadSummary();
+    loadSummary(); // GA4 방문 통계(loadGa4)도 여기서 같은 기간으로 호출된다
     loadSettings();
     loadConversions();
   }
-  if (section.classList.contains('active')) loadAll();
-  new MutationObserver(() => {
+  function onVisibilityChange() {
     if (section.classList.contains('active')) loadAll();
-  }).observe(section, { attributes: true, attributeFilter: ['class'] });
+    syncRealtimeTimer(); // 섹션이 보일 때만 현재 접속자 60초 폴링
+  }
+  onVisibilityChange();
+  new MutationObserver(onVisibilityChange).observe(section, { attributes: true, attributeFilter: ['class'] });
 })();

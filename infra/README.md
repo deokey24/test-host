@@ -68,6 +68,8 @@
 | `GTM_CONTAINER_ID` | (브라우저) GTM 컨테이너 ID(`GTM-XXXXXXX`) |
 | `NAVER_WCS_ID` | (브라우저) 네이버 애널리틱스 사이트 ID(`wcs_add["wa"]` 값) |
 | `CLARITY_PROJECT_ID` | (브라우저) Microsoft Clarity 프로젝트 ID |
+| `GA4_PROPERTY_ID` | (관리자 GA4 방문 통계) GA4 숫자 속성 ID. 보통 관리자 설정을 쓰고 비어 있을 때만 폴백. `docs/analytics-setup.md` 10장 |
+| `GA4_SERVICE_ACCOUNT_JSON` | (관리자 GA4 방문 통계) GA4 속성 뷰어로 추가한 서비스 계정 키 JSON **한 줄**. 보통 관리자 설정을 쓰고 비어 있을 때만 폴백 |
 | `CONVERSION_DEBUG` | `1`이면 GA4를 `/debug/mp/collect`(검증 전용, 집계 안 됨)로 보내고 payload·`validationMessages`, Meta 응답을 `console.log`. 운영에선 비워 둔다 |
 
 ## 2. 프로비저닝 순서 (자격증명 확보 후 실행)
