@@ -20,6 +20,40 @@ const Journey = (() => {
   ];
   const STATUS_LABEL = { pending: '대기중', approved: '승인', failed: '실패', canceled: '취소됨', expired: '만료' };
 
+  // 사이트 경로 → 한글 페이지명. 관리자 화면 전체(유입 분석·GA4 표·여정 모달)가 공유한다.
+  const PAGE_NAMES = {
+    '/': '홈', '/index.html': '홈',
+    '/classDetail.html': '클래스 상세', '/curriculum.html': '커리큘럼', '/faq.html': 'FAQ', '/intro.html': '학습소개',
+    '/join.html': '회원가입', '/lecturePlayer.html': '강의 수강', '/mypage.html': '마이페이지', '/notice.html': '공지사항',
+    '/orderConfirm.html': '주문/결제 확인', '/paymentComplete.html': '결제 완료', '/payupReturn.html': '결제 처리 중',
+    '/privacy.html': '개인정보처리방침', '/terms.html': '이용약관', '/reviews.html': '수강후기', '/cert.html': '합격 인증',
+    '/vod.html': 'VOD 강좌', '/vodDetail.html': 'VOD 강좌 상세', '/vodDetail_v2.html': 'VOD 강좌 상세'
+  };
+  const QUERY_NAMES = { id: '번호', courseId: '강좌', lecture: '강의', orderNumber: '주문', page: '페이지', post: '글' };
+  function pageName(path) {
+    const p = String(path || '').split('?')[0].split('#')[0];
+    if (PAGE_NAMES[p]) return PAGE_NAMES[p];
+    if (p.startsWith('/admin')) return '관리자';
+    if (p.startsWith('/v1')) return '구 사이트';
+    return '';
+  }
+  // "클래스 상세 /classDetail.html" 형태. q("id=12")가 있으면 "(번호 12)"를 이름 뒤에 붙인다.
+  function pageLabelHtml(path, q) {
+    const p = String(path || '');
+    const name = pageName(p);
+    let qText = '';
+    if (q) {
+      qText = String(q).split('&').filter(Boolean).map(kv => {
+        const [k, v] = kv.split('=');
+        let val = v || '';
+        try { val = decodeURIComponent(val); } catch (e) { /* 그대로 */ }
+        return `${QUERY_NAMES[k] || k} ${val}`;
+      }).join(', ');
+    }
+    if (!name) return `<span class="mk-path">${escapeHtml(p || '(없음)')}</span>${qText ? ` <span class="field-hint">(${escapeHtml(qText)})</span>` : ''}`;
+    return `<span class="mk-pagename">${escapeHtml(name)}${qText ? ` <small>(${escapeHtml(qText)})</small>` : ''}</span><span class="mk-path-sub">${escapeHtml(p)}</span>`;
+  }
+
   function fmtTime(v) {
     if (v === null || v === undefined || v === '') return '-';
     const d = new Date(typeof v === 'number' || /^\d+$/.test(String(v)) ? Number(v) : v);
@@ -34,7 +68,7 @@ const Journey = (() => {
   function touchHtml(title, t) {
     if (!t) return '';
     const rows = TOUCH_FIELDS.filter(([k]) => t[k]).map(([k, label]) =>
-      `<tr><th>${label}</th><td>${escapeHtml(t[k])}</td></tr>`);
+      `<tr><th>${label}</th><td>${k === 'landing' ? pageLabelHtml(String(t[k]).split('?')[0], String(t[k]).split('?')[1] || '') : escapeHtml(t[k])}</td></tr>`);
     if (t.gclid) rows.push('<tr><th>gclid</th><td>있음 (구글 광고 클릭)</td></tr>');
     if (!t.referrer) rows.splice(1, 0, '<tr><th>리퍼러</th><td class="field-hint">없음 (직접 방문·앱·북마크)</td></tr>');
     return `
@@ -63,7 +97,7 @@ const Journey = (() => {
     return `<ol class="jr-steps">${list.map(e => `
       <li>
         <span class="jr-time">${e.t ? escapeHtml(new Date(e.t).toLocaleTimeString('ko-KR')) : ''}</span>
-        <span class="jr-path"><code>${escapeHtml(e.path)}</code>${e.q ? ` <span class="field-hint">?${escapeHtml(e.q)}</span>` : ''}</span>
+        <span class="jr-path">${pageLabelHtml(e.path, e.q)}</span>
         <span class="jr-dwell">${escapeHtml(fmtDwell(e.d))}</span>
       </li>`).join('')}</ol>`;
   }
@@ -137,5 +171,5 @@ const Journey = (() => {
     }
   }
 
-  return { openPayment, renderMemberSignup, close };
+  return { openPayment, renderMemberSignup, close, pageName, pageLabelHtml };
 })();

@@ -155,6 +155,11 @@
   // ── 4-2. 유입·전환 분석 (GET /admin/api/marketing/attribution) ──
   // 비율(conversionRate = 결제자 ÷ 가입, 가입 코호트 기준)은 0~1 소수, 가입 0이면 null.
   const ATTR_TARGETS = [['mkAttrChannelTable', 6], ['mkAttrKeywordTable', 6], ['mkAttrLandingTable', 6], ['mkAttrPrePurchaseTable', 4]];
+  // 경로 → 한글 페이지명(journey.js 공유). journey.js가 없으면 경로만.
+  const pageLabel = (path) => {
+    try { if (Journey && Journey.pageLabelHtml) return Journey.pageLabelHtml(path); } catch (e) { /* journey.js 미로드 */ }
+    return `<span class="mk-path">${escapeHtml(path || '')}</span>`;
+  };
   const dwell = (s) => (s === null || s === undefined ? '-' : s >= 60 ? `${Math.floor(s / 60)}분 ${s % 60}초` : `${s}초`);
   let attrSeq = 0;
   let attrRange = { from: '', to: '' };
@@ -283,14 +288,14 @@
     const landings = data.landings || [];
     const ldMax = maxOf(landings, 'signups');
     fillAttrTable('mkAttrLandingTable', landings, (r, attrs) => `
-      <tr${attrs}><td class="mk-labelcell"><span class="mk-path">${escapeHtml(r.landing)}</span>${demoPill(r)}</td>${metricCells(r, ldMax)}</tr>`,
+      <tr${attrs}><td class="mk-labelcell">${pageLabel(r.landing)}${demoPill(r)}</td>${metricCells(r, ldMax)}</tr>`,
       6, '랜딩 페이지가 수집된 가입·결제가 없습니다.');
 
     const pages = data.prePurchasePages || [];
     const pgMax = maxOf(pages, 'count');
     fillAttrTable('mkAttrPrePurchaseTable', pages, (r, attrs) => `
       <tr${attrs}>
-        <td class="mk-labelcell"><span class="mk-path">${escapeHtml(r.path)}</span>${demoPill(r)}</td>
+        <td class="mk-labelcell">${pageLabel(r.path)}${demoPill(r)}</td>
         ${numCell(r.count, { bar: barPct(r.count, pgMax) })}
         ${numCell(r.lastPageCount)}
         <td class="mk-num${r.avgDwellSec === null || r.avgDwellSec === undefined ? ' mk-zero' : ''}" title="체류초 표본 ${num(r.dwellSamples)}건">${dwell(r.avgDwellSec)}</td>
@@ -355,7 +360,7 @@
   const pathCell = (p) => {
     const path = String(p || '');
     if (!path.startsWith('/')) return `<code>${escapeHtml(path || '(not set)')}</code>`;
-    return `<a href="${escapeHtml(GA4_SITE + path)}" target="_blank" rel="noopener noreferrer"><code>${escapeHtml(path)}</code></a>`;
+    return `<a class="mk-pagelink" href="${escapeHtml(GA4_SITE + path)}" target="_blank" rel="noopener noreferrer" title="새 창에서 열기">${pageLabel(path)}</a>`;
   };
 
   async function loadGa4(from, to, opts) {
@@ -611,7 +616,7 @@
         xLabels += `<text x="${padL + band * i + band / 2}" y="${H - 8}" text-anchor="middle" class="mk-axis">${d.date.slice(5).replace('-', '/')}</text>`;
       }
       const tip = `${d.date}\n` + keys.map(k => `${SERIES[k].label}: ${unitFmt(d[k])}`).join('\n');
-      hits += `<rect x="${padL + band * i}" y="${padT}" width="${band}" height="${plotH}" class="mk-hit"><title>${escapeHtml(tip)}</title></rect>`;
+      hits += `<rect x="${padL + band * i}" y="${padT}" width="${band}" height="${plotH}" class="mk-hit" data-tip="${escapeHtml(tip)}"></rect>`;
     });
 
     const legend = keys.length > 1
@@ -620,11 +625,39 @@
     const total = keys.map(k => `${SERIES[k].label} 합계 ${unitFmt(days.reduce((s, d) => s + d[k], 0))}`).join(' · ');
     return `
       <div class="mk-chart-head"><h3 class="mk-h3">${escapeHtml(title)}</h3>${legend}</div>
-      <svg viewBox="0 0 ${W} ${H}" class="mk-svg" role="img" aria-label="${escapeHtml(`${title} — ${total}`)}">
-        ${grid}${bars}${xLabels}${hits}
-      </svg>
+      <div class="mk-chart-box">
+        <svg viewBox="0 0 ${W} ${H}" class="mk-svg" role="img" aria-label="${escapeHtml(`${title} — ${total}`)}">
+          ${grid}${bars}${xLabels}${hits}
+        </svg>
+        <div class="mk-tip" hidden></div>
+      </div>
       <div class="field-hint">${escapeHtml(total)} · 막대에 마우스를 올리면 날짜별 값이 보입니다.</div>`;
   }
+
+  // 차트 툴팁: SVG <title>은 브라우저마다 지연·미표시가 있어 HTML 툴팁을 마우스 위치에 띄운다(터치는 탭으로).
+  (function wireChartTips() {
+    const section = $('marketingSection');
+    if (!section) return;
+    const hideAll = () => section.querySelectorAll('.mk-tip').forEach(t => { t.hidden = true; });
+    const show = (e) => {
+      const hit = e.target.closest && e.target.closest('.mk-hit');
+      const box = hit && hit.closest('.mk-chart-box');
+      if (!hit || !box) return hideAll();
+      const tip = box.querySelector('.mk-tip');
+      if (!tip) return;
+      tip.textContent = hit.dataset.tip || '';
+      tip.hidden = false;
+      const rect = box.getBoundingClientRect();
+      const x = e.clientX - rect.left, y = e.clientY - rect.top;
+      const flip = x > rect.width * 0.6;
+      tip.style.left = flip ? 'auto' : `${x + 14}px`;
+      tip.style.right = flip ? `${rect.width - x + 14}px` : 'auto';
+      tip.style.top = `${Math.max(0, y - 12)}px`;
+    };
+    section.addEventListener('mousemove', show);
+    section.addEventListener('mouseleave', hideAll);
+    section.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('.mk-hit')) show(e); });
+  })();
 
   function renderDaily(days) {
     if (!days.length) {
