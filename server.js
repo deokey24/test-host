@@ -6,6 +6,7 @@ const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const { getPool } = require('./lib/db');
+const { MySQLSessionStore } = require('./lib/session-store');
 const r2 = require('./lib/r2');
 const { sendVideoJob } = require('./lib/sqs');
 const { ensureWorkerCapacity } = require('./lib/asg');
@@ -98,29 +99,35 @@ function sendHlsKey(res, hlsKeyBase64) {
   res.send(Buffer.from(hlsKeyBase64, 'base64'));
 }
 
-// 기본값도 MemoryStore지만, 회원 삭제 시 그 회원의 세션을 찾아 끊어야 해서 인스턴스를 변수로 잡아둔다.
-const sessionStore = new session.MemoryStore();
+// 세션은 MySQL web_sessions에 둔다(lib/session-store.js) — MemoryStore면 배포(pm2 reload)마다 전원 로그아웃됐다.
+// 회원 삭제·기기 삭제 시 세션을 찾아 끊어야 해서 인스턴스를 변수로 잡아둔다.
+// rolling: 응답마다 쿠키·만료를 다시 연장 → 12시간/로그인 유지 30일이 "마지막 활동 기준"이 된다.
+const sessionStore = new MySQLSessionStore();
 app.use(session({
   store: sessionStore,
   secret: process.env.SESSION_SECRET || 'dockteacher-admin-session',
   resave: false,
   saveUninitialized: false,
+  rolling: true,
   cookie: { httpOnly: true, maxAge: 1000 * 60 * 60 * 12 }
 }));
 
 // 관리자가 회원을 삭제/탈퇴 처리했을 때 그 회원의 웹 로그인 세션을 즉시 끊는다.
 // requireMember는 session.memberId 존재만 보므로, 이걸 안 하면 쿠키 만료까지 로그인 상태가 유지된다.
 function destroyMemberSessions(memberId) {
-  return new Promise((resolve) => {
-    sessionStore.all((err, sessions) => {
-      if (err || !sessions) { resolve(0); return; }
-      const sids = Object.keys(sessions).filter(sid => sessions[sid] && String(sessions[sid].memberId) === String(memberId));
-      let pending = sids.length;
-      if (!pending) { resolve(0); return; }
-      sids.forEach(sid => sessionStore.destroy(sid, () => { if (--pending === 0) resolve(sids.length); }));
-    });
+  // 호출부는 커밋 이후라 여기서 실패해도 삭제 응답은 성공으로 돌려준다(세션은 cleanup/만료로 정리됨).
+  return sessionStore.destroyByMember(memberId).catch(err => {
+    console.error('[session] destroyByMember failed:', err.message);
+    return 0;
   });
 }
+
+// 만료된 세션 행 정리 — 기동 직후 1회, 이후 1시간마다.
+function cleanupExpiredSessions() {
+  sessionStore.cleanup().catch(err => console.error('[session] cleanup failed:', err.message));
+}
+cleanupExpiredSessions();
+setInterval(cleanupExpiredSessions, 60 * 60 * 1000).unref();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
@@ -3117,7 +3124,7 @@ app.get('/api/members/devices', requireMember, wrapAsync(async (req, res) => {
 
 app.delete('/api/members/devices/:id', requireMember, wrapAsync(async (req, res) => {
   const [[device]] = await getPool().query(
-    'SELECT device_id FROM member_devices WHERE id = ? AND member_id = ?',
+    'SELECT device_id, session_id FROM member_devices WHERE id = ? AND member_id = ?',
     [req.params.id, req.session.memberId]
   );
   if (!device) {
@@ -3130,6 +3137,10 @@ app.delete('/api/members/devices/:id', requireMember, wrapAsync(async (req, res)
     [req.session.memberId, device.device_id]
   );
   await getPool().query('DELETE FROM member_devices WHERE id = ?', [req.params.id]);
+  // 다른 브라우저의 웹 로그인이면 그 세션도 즉시 끊는다. 지금 요청한 세션은 응답을 돌려줘야 하므로 건드리지 않는다.
+  if (device.session_id && device.session_id !== req.sessionID) {
+    sessionStore.destroy(device.session_id, () => {});
+  }
   res.json({ ok: true });
 }));
 

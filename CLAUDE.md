@@ -30,9 +30,9 @@ npm start   # http://localhost:3000
 
 ### 관리자 페이지 (`/admin`)
 
-세션 쿠키(`express-session`) 기반 비밀번호 인증. `GET /admin`은 미인증 시 로그인 폼, 인증 시 관리자 화면을 반환. `POST /admin/login`으로 비밀번호(`dockAdmin`) 확인 후 세션에 `isAdmin` 플래그 설정, `POST /admin/logout`으로 세션 파기.
+세션 쿠키(`express-session`) 기반 비밀번호 인증. `GET /admin`은 미인증 시 로그인 폼, 인증 시 관리자 화면을 반환. `POST /admin/login`으로 비밀번호(`dockAdmin`) 확인 후 세션에 `isAdmin` 플래그 설정, `POST /admin/logout`으로 세션 파기. 세션 저장소는 MySQL `web_sessions`(`lib/session-store.js`의 `MySQLSessionStore`, 외부 패키지 없음 — `sid`·`member_id`·`expires_at`(UTC)·`data` JSON, 만료 행은 기동 시+1시간마다 `cleanup()`, 마이그레이션 `infra/migrations/2026-10-15-web-sessions.sql`). 마이페이지 기기 삭제(`DELETE /api/members/devices/:id`)는 그 기기의 `member_devices.session_id`가 현재 세션이 아니면 해당 웹 세션도 즉시 파기.
 
-**회원 삭제**(`DELETE /admin/api/members/:id`, body `{confirmUsername}` — 클라이언트가 대상 아이디를 자동으로 실어 보냄): 회원 상세 모달의 "회원 삭제" 버튼(confirm 한 번) 또는 회원목록 체크박스 선택 → 우측 상단 "선택 삭제 (N)"(같은 단건 API를 순차 호출, 회원별 트랜잭션·성공/실패 개별 보고, `admin/members.js`). `GET .../delete-preview`는 서버에 남아 있으나 현재 UI는 쓰지 않음. `payments` 행이 없으면 하드 삭제, 있으면 결제기록 보존(`payments.member_id`가 CASCADE라 하드 삭제 불가)을 위해 개인정보를 NULL로 지우고 `username='withdrawn_<id>_<ts>'`, `member_group='withdrawn'`으로 익명화(목록에서 기본 제외). pending 결제가 있으면 409. 수강·진도·기기·api_tokens·Q&A 삭제, 미사용 등록 쿠폰은 미등록으로 반환, 웹 세션은 `destroyMemberSessions()`로 MemoryStore에서 즉시 파기.
+**회원 삭제**(`DELETE /admin/api/members/:id`, body `{confirmUsername}` — 클라이언트가 대상 아이디를 자동으로 실어 보냄): 회원 상세 모달의 "회원 삭제" 버튼(confirm 한 번) 또는 회원목록 체크박스 선택 → 우측 상단 "선택 삭제 (N)"(같은 단건 API를 순차 호출, 회원별 트랜잭션·성공/실패 개별 보고, `admin/members.js`). `GET .../delete-preview`는 서버에 남아 있으나 현재 UI는 쓰지 않음. `payments` 행이 없으면 하드 삭제, 있으면 결제기록 보존(`payments.member_id`가 CASCADE라 하드 삭제 불가)을 위해 개인정보를 NULL로 지우고 `username='withdrawn_<id>_<ts>'`, `member_group='withdrawn'`으로 익명화(목록에서 기본 제외). pending 결제가 있으면 409. 수강·진도·기기·api_tokens·Q&A 삭제, 미사용 등록 쿠폰은 미등록으로 반환, 웹 세션은 `destroyMemberSessions()`(→ `sessionStore.destroyByMember()`, `web_sessions.member_id` 인덱스로 DELETE)로 즉시 파기.
 
 ### 대용량 영상 업로드 파이프라인
 
@@ -63,7 +63,7 @@ npm start   # http://localhost:3000
 
 ### 네이티브 앱(일렉트론/RN) API — `/api/v1/*`
 
-일렉트론 데스크톱 플레이어(추후 React Native로 iOS/Android 재사용 예정)를 위한 별도 API 네임스페이스. 기존 웹의 `express-session`(인메모리 MemoryStore, 서버 재시작 시 전부 로그아웃됨)과 완전히 분리된 DB 기반 opaque Bearer 토큰 인증을 쓴다. **VOD 강좌(`vod_course_lectures`)만 지원, class 강의는 아직 없음.**
+일렉트론 데스크톱 플레이어(추후 React Native로 iOS/Android 재사용 예정)를 위한 별도 API 네임스페이스. 기존 웹의 `express-session`(MySQL `web_sessions` 저장소 `lib/session-store.js`, 재시작·배포에도 로그인 유지, `rolling: true`라 12시간/로그인 유지 30일이 마지막 활동 기준)과 완전히 분리된 DB 기반 opaque Bearer 토큰 인증을 쓴다. **VOD 강좌(`vod_course_lectures`)만 지원, class 강의는 아직 없음.**
 
 - **`api_tokens` 테이블**(`infra/schema.sql`) — `member_id`, `device_id`, `token_hash`(원본 토큰의 SHA-256, 원본은 저장 안 함), `platform`(`electron`/`ios`/`android`). `member_devices.token_id`가 이 테이블을 참조 — 마이페이지에서 기기를 삭제하면 대응하는 `api_tokens` 행도 같이 삭제되어 즉시 토큰이 무효화됨(`DELETE /api/members/devices/:id`).
 - **`requireApiToken`/`hashApiToken`**(`server.js`) — `Authorization: Bearer <token>` 검증 미들웨어, `req.memberId`/`req.apiTokenId` 설정. **`requireMemberOrApiToken`**은 세션 쿠키와 Bearer 토큰을 모두 받아 `req.memberId`로 통일하는 이중 인증 미들웨어(`/api/stream/vod-lecture/:id/master.m3u8`에 적용 — 웹 플레이어와 네이티브 앱이 같은 라우트를 공유).

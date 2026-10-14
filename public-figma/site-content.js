@@ -1092,7 +1092,9 @@ async function hydrateLecturePlayer() {
     const contentTabBtn = document.querySelector('#lpTabs [data-tab="lpTabContent"]');
     if (contentTabBtn) contentTabBtn.style.display = hasContent ? '' : 'none';
     if (hasContent) renderMarkdownInto(document.getElementById('lpLectureContent'), lecture.content_markdown);
-    switchTab(hasContent ? 'lpTabContent' : 'lpTabCurriculum');
+    // 기본은 커리큘럼 탭. 사용자가 "강의 내용"을 보고 있던 중 강의를 바꾸면(내용이 있을 때만) 그 탭을 유지한다.
+    const activeTab = document.querySelector('#lpTabs button.active')?.dataset.tab;
+    switchTab(activeTab === 'lpTabContent' && hasContent ? 'lpTabContent' : 'lpTabCurriculum');
 
     renderMaterials(lecture);
     if (nextBtn) nextBtn.disabled = currentIndex >= lectures.length - 1;
@@ -1565,34 +1567,40 @@ function startLecturePlayerWatermark(wrapEl, identity) {
     const d = new Date();
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
+  // 가장자리 순환형: 좌상 → 우상 → 우하 → 좌하 모서리를 2~4분마다 바꾼다.
+  // 화면을 가로지르지 않고 가장자리 영역(모서리 안쪽 여백)에서만 옮겨 시청 방해를 줄이고,
+  // 한 자리에 고정된 워터마크보다 잘라내기·마스킹으로 지우기 어렵게 한다.
+  // 위치는 CSS 클래스(.lp-wm--tl 등, %·px 기준)라 전체화면 진입/해제나 창 크기 변경에도 그대로 모서리에 붙는다.
+  const CORNERS = ['tl', 'tr', 'br', 'bl'];
+  const CORNER_MIN_MS = 2 * 60 * 1000;
+  const CORNER_MAX_MS = 4 * 60 * 1000;
+  let cornerIndex = Math.floor(Math.random() * CORNERS.length); // 시작 모서리는 세션마다 다르게
+  let nextCornerAt = 0;
+
+  function applyCorner() {
+    CORNERS.forEach(c => el.classList.remove(`lp-wm--${c}`));
+    el.classList.add(`lp-wm--${CORNERS[cornerIndex]}`);
+  }
   function tick() {
     // 개발자도구로 지워도 다음 주기에 다시 붙인다(억제 수단일 뿐 완전 차단은 아님).
     if (el.parentNode !== wrapEl) wrapEl.appendChild(el);
     el.removeAttribute('style');
+    const now = Date.now();
+    if (now >= nextCornerAt) {
+      if (nextCornerAt) cornerIndex = (cornerIndex + 1) % CORNERS.length;
+      nextCornerAt = now + CORNER_MIN_MS + Math.random() * (CORNER_MAX_MS - CORNER_MIN_MS);
+    }
+    applyCorner();
     el.textContent = [identity, stamp()].filter(Boolean).join(' · ');
-    const w = wrapEl.clientWidth;
-    const h = wrapEl.clientHeight;
-    const ew = el.offsetWidth;
-    const eh = el.offsetHeight;
-    // 상하좌우 6% 안전 영역, 하단은 컨트롤 바 높이만큼 더 피한다.
-    const marginX = w * 0.06;
-    const marginTop = h * 0.06;
-    const marginBottom = h * 0.06 + 56;
-    const left = marginX + Math.random() * Math.max(0, w - ew - marginX * 2);
-    const top = marginTop + Math.random() * Math.max(0, h - eh - marginTop - marginBottom);
-    // %로 두어 창 크기가 바뀌어도 영역 밖으로 크게 벗어나지 않게 한다.
-    el.style.left = w ? `${((left / w) * 100).toFixed(2)}%` : '10%';
-    el.style.top = h ? `${((top / h) * 100).toFixed(2)}%` : '10%';
     clearTimeout(_watermarkTimer);
-    _watermarkTimer = setTimeout(tick, 30000 + Math.random() * 30000);
+    // 시각 표기(분)와 DOM 재부착 점검은 30초마다, 모서리 이동은 nextCornerAt 기준으로만 바뀐다.
+    _watermarkTimer = setTimeout(tick, 30000);
   }
   tick();
-  // 전체화면 진입/해제 시 크기가 바뀌므로 바로 다시 배치한다.
-  const relayout = () => tick();
-  document.addEventListener('fullscreenchange', relayout);
-  document.addEventListener('webkitfullscreenchange', relayout);
-  let resizeTimer = null;
-  window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(relayout, 200); });
+  // 전체화면 진입/해제 시 다른 스크립트가 오버레이를 재구성해도 워터마크가 빠지지 않게 다시 붙인다.
+  const reattach = () => { if (el.parentNode !== wrapEl) wrapEl.appendChild(el); };
+  document.addEventListener('fullscreenchange', reattach);
+  document.addEventListener('webkitfullscreenchange', reattach);
 }
 
 // ── 합격 인증 차트(퍼센트/막대) + 갤러리 ──

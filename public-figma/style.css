@@ -1978,6 +1978,17 @@ body.lp2-page { background: var(--grey-bg); }
 
 .lp2-tabs button:hover:not(.active) { opacity: 0.7; }
 
+/* 사이드 카드 안의 탭(커리큘럼/강의 내용): 카드 상단에 붙이고, 목록이 길면 카드 안에서만 스크롤 */
+.lp2-tabs-card { padding-top: 0; display: flex; flex-direction: column; }
+.lp2-tabs-card .lp2-tabs { margin: 0 -33px 16px; padding: 0 16px; }
+.lp2-tabs-card .lp2-tabs button { flex: 1; padding: 14px 8px; }
+.lp2-tabs-body { overflow-y: auto; max-height: calc(100vh - 88px - 56px - 16px - 120px); }
+.lp2-tabs-body .lp-curriculum-list { margin: 0; }
+.lp2-tabs-body .lp-curriculum-list li { margin: 0; padding-left: 10px; padding-right: 10px; flex-wrap: nowrap; gap: 10px; align-items: flex-start; }
+.lp2-tabs-body .lp-curriculum-list .num { flex: none; margin-top: 1px; }
+.lp2-tabs-body .lp-curriculum-list .step-title { flex: 1 1 auto; min-width: 0; font-size: 14px; line-height: 1.45; }
+.lp2-tabs-body .lp-curriculum-list .lp-progress { margin-left: 0; margin-top: 4px; }
+
 .lp2-side {
   display: flex;
   flex-direction: column;
@@ -2048,6 +2059,8 @@ body.lp2-page { background: var(--grey-bg); }
 @media (max-width: 900px) {
   .lp2-layout { grid-template-columns: 1fr; padding: 28px 24px 60px; }
   .lp2-side { position: static; }
+  .lp2-tabs-body { max-height: none; }
+  .lp2-tabs-card .lp2-tabs { margin: 0 -22px 14px; padding: 0 8px; }
   .lp2-topbar { padding: 0 16px; }
   .lp2-topbar-title { display: none; }
 }
@@ -2097,6 +2110,14 @@ body.lp2-page { background: var(--grey-bg); }
   transition: left 0.6s ease, top 0.6s ease;
 }
 .lp-video-wrap.is-fullscreen .lp-watermark { font-size: 18px; }
+/* 가장자리 순환형 위치(좌상→우상→우하→좌하, site-content.js가 2~4분마다 클래스 교체).
+   하단 모서리는 컨트롤 바(약 56px)와 겹치지 않게 그만큼 띄운다. 전체화면도 같은 규칙. */
+.lp-watermark.lp-wm--tl { left: 3%; top: 4%; right: auto; bottom: auto; }
+.lp-watermark.lp-wm--tr { left: auto; top: 4%; right: 3%; bottom: auto; }
+.lp-watermark.lp-wm--br { left: auto; top: auto; right: 3%; bottom: calc(4% + 56px); }
+.lp-watermark.lp-wm--bl { left: 3%; top: auto; right: auto; bottom: calc(4% + 56px); }
+.lp-video-wrap.is-fullscreen .lp-watermark.lp-wm--br,
+.lp-video-wrap.is-fullscreen .lp-watermark.lp-wm--bl { bottom: calc(3% + 64px); }
 
 /* ── 가운데 큰 재생 버튼 · 단축키 힌트 ── */
 .lp-big-play {
