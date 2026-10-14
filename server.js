@@ -11,6 +11,7 @@ const { sendVideoJob } = require('./lib/sqs');
 const { ensureWorkerCapacity } = require('./lib/asg');
 const { sendEmail } = require('./lib/ses');
 const payup = require('./lib/payup');
+const { captureClientContext, sendPurchaseConversion } = require('./lib/conversions');
 
 const app = express();
 app.set('trust proxy', 1); // nginx가 X-Forwarded-For를 넘겨줌 — req.ip가 실제 클라이언트 IP를 보게 함
@@ -1653,6 +1654,7 @@ app.get('/api/payments/coupons', requireMember, wrapAsync(async (req, res) => {
   const coupons = await getEligibleCoupons(req.session.memberId, vodCourseId);
   res.json(coupons.map(c => ({
     id: c.id,
+    code: c.code,
     label: couponDisplayLabel(c),
     discountAmount: computeCouponDiscountAmount(basePrice, c)
   })));
@@ -1687,6 +1689,9 @@ app.post('/api/payments/init', requireMember, wrapAsync(async (req, res) => {
 
   const [[member]] = await getPool().query('SELECT name FROM members WHERE id = ?', [req.session.memberId]);
   const orderNumber = makeOrderNumber(req.session.memberId);
+  // 승인은 PG 콜백·관리자 수동승인처럼 브라우저 쿠키가 없는 요청에서도 일어나므로, 서버측 전환 전송에 쓸
+  // GA/Meta 식별자(_ga·_ga_<ID>·_fbp·_fbc)와 IP·UA를 결제창을 띄우는 이 시점에 결제 행에 스냅샷해 둔다.
+  const clientContext = JSON.stringify(captureClientContext(req, await getMarketingSettings()));
 
   // 쿠폰으로 최종 금액이 0원이 되면 PayUp을 거치지 않는다 — PG는 0원 거래를 거절해 결제창에서 "결제가 취소
   // 되었습니다"만 뜨고 승인 요청이 서버에 오지 않는다(실DB에 amount=0 행이 전부 transaction_id 없이 expired로
@@ -1694,9 +1699,9 @@ app.post('/api/payments/init', requireMember, wrapAsync(async (req, res) => {
   // 결제창 대신 완료 페이지로 이동하도록 free 플래그를 돌려준다. transaction_id는 없다(PG 거래가 아님).
   if (amount === 0) {
     const [result] = await getPool().query(
-      `INSERT INTO payments (member_id, vod_course_id, order_number, item_name, amount, status, coupon_id, response_msg, approved_at)
-       VALUES (?, ?, ?, ?, 0, 'approved', ?, '쿠폰 전액할인(0원, PG 미경유)', NOW())`,
-      [req.session.memberId, vodCourseId, orderNumber, course.title, couponId]
+      `INSERT INTO payments (member_id, vod_course_id, order_number, item_name, amount, status, coupon_id, response_msg, approved_at, client_context)
+       VALUES (?, ?, ?, ?, 0, 'approved', ?, '쿠폰 전액할인(0원, PG 미경유)', NOW(), ?)`,
+      [req.session.memberId, vodCourseId, orderNumber, course.title, couponId, clientContext]
     );
     await enrollMemberInVod(req.session.memberId, vodCourseId, 'payment');
     if (couponId) {
@@ -1705,6 +1710,7 @@ app.post('/api/payments/init', requireMember, wrapAsync(async (req, res) => {
         [result.insertId, couponId, req.session.memberId]
       );
     }
+    reportPurchaseConversion(result.insertId);
     res.json({
       free: true,
       redirect: paymentCompleteRedirect({ order_number: orderNumber, vod_course_id: vodCourseId, item_name: course.title, amount: 0 }, true)
@@ -1713,9 +1719,9 @@ app.post('/api/payments/init', requireMember, wrapAsync(async (req, res) => {
   }
 
   await getPool().query(
-    `INSERT INTO payments (member_id, vod_course_id, order_number, item_name, amount, status, coupon_id)
-     VALUES (?, ?, ?, ?, ?, 'pending', ?)`,
-    [req.session.memberId, vodCourseId, orderNumber, course.title, amount, couponId]
+    `INSERT INTO payments (member_id, vod_course_id, order_number, item_name, amount, status, coupon_id, client_context)
+     VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)`,
+    [req.session.memberId, vodCourseId, orderNumber, course.title, amount, couponId, clientContext]
   );
 
   res.json({
@@ -1743,6 +1749,44 @@ function paymentCompleteRedirect(payment, ok, reason) {
   return `paymentComplete.html?${params.toString()}`;
 }
 
+// 결제 승인 직후 서버가 GA4 Measurement Protocol·Meta 전환 API로 purchase를 직접 보낸다(lib/conversions.js).
+// 승인 경로 3곳(settlePayment·0원 쿠폰 즉시승인·관리자 수동승인)이 공유. 호출부는 await하지 않는다 — 내부에서
+// 모든 오류를 삼키므로 전환 전송 실패가 결제 응답을 막거나 바꾸지 않는다(fire-and-forget).
+// 멱등성: conversion_sent_at을 NULL → NOW()로 선점한 요청(affectedRows=1)만 전송하고, 실패한 채널이 있으면
+// NULL로 되돌린다. GA4는 transaction_id, Meta는 event_id를 order_number로 보내 브라우저 픽셀과 중복 제거된다.
+// 설정은 getMarketingSettings()(관리자 "마케팅" 설정 > env 폴백, 60초 캐시)에서 읽는다.
+function reportPurchaseConversion(paymentId) {
+  if (!paymentId) return Promise.resolve(null);
+  return (async () => {
+    const settings = await getMarketingSettings();
+    if (!isConversionConfigured(settings)) return null;
+    const [[payment]] = await getPool().query(
+      `SELECT p.*, c.code AS coupon_code FROM payments p LEFT JOIN coupons c ON c.id = p.coupon_id
+       WHERE p.id = ? AND p.status = 'approved'`, [paymentId]
+    );
+    if (!payment) return null;
+    const [[member]] = await getPool().query('SELECT id, email, mobile, phone FROM members WHERE id = ?', [payment.member_id]);
+    const [claim] = await getPool().query(
+      'UPDATE payments SET conversion_sent_at = NOW() WHERE id = ? AND conversion_sent_at IS NULL', [paymentId]
+    );
+    if (claim.affectedRows !== 1) return null; // 이미 다른 승인 경로가 보냈거나 보내는 중
+    let result;
+    try {
+      result = await sendPurchaseConversion({ payment, member, settings });
+    } catch (err) {
+      result = { ga4: 'failed', meta: 'failed' };
+      console.error('[conversion] 전송 중 예외', payment.order_number, err);
+    }
+    if (result.ga4 === 'failed' || result.meta === 'failed') {
+      await getPool().query('UPDATE payments SET conversion_sent_at = NULL WHERE id = ?', [paymentId]);
+    }
+    return result;
+  })().catch(err => {
+    console.error('[conversion] reportPurchaseConversion 실패', paymentId, err);
+    return null;
+  });
+}
+
 async function settlePayment({ orderNumber, transactionId, amount, memberId }) {
   const [[payment]] = await getPool().query('SELECT * FROM payments WHERE order_number = ?', [orderNumber]);
   if (!payment) return { ok: false, redirect: 'vod.html', reason: '주문 정보를 찾을 수 없습니다.' };
@@ -1766,6 +1810,7 @@ async function settlePayment({ orderNumber, transactionId, amount, memberId }) {
       [transactionId, data.responseCode || null, data.responseMsg || null, orderNumber]
     );
     await enrollMemberInVod(memberId, payment.vod_course_id, 'payment');
+    reportPurchaseConversion(payment.id);
     if (payment.coupon_id) {
       await getPool().query(
         `UPDATE coupons SET status = '사용완료', used_at = NOW(), payment_id = ? WHERE id = ? AND member_id = ?`,
@@ -1948,6 +1993,7 @@ app.post('/admin/api/payments/:id/manual-approve', requireAdminApi, wrapAsync(as
     [transactionId || null, `관리자 수동승인${note ? `: ${note}` : ''}`, req.params.id]
   );
   await enrollMemberInVod(payment.member_id, payment.vod_course_id, 'payment');
+  reportPurchaseConversion(payment.id);
   res.json({ ok: true });
 }));
 
@@ -3067,10 +3113,34 @@ app.post('/admin/api/site/upload/presign', requireAdminApi, wrapAsync(async (req
 }));
 
 // ── site_sections: 페이지별 단일 섹션 콘텐츠 (JSON blob) ──
-app.get('/api/site/:page', wrapAsync(async (req, res) => {
+// page='marketing'(분석 도구 설정, 비밀값 포함)은 공개 API로 절대 내보내지 않는다 — 전용 /admin/api/marketing/* 사용.
+const PRIVATE_SITE_PAGES = ['marketing'];
+const PRIVATE_SITE_PAGES_SQL = PRIVATE_SITE_PAGES.map(() => '?').join(', ');
+
+// 주의: site_sections.page는 utf8mb4_unicode_ci라 'MARKETING', 'marketing '(후행 공백, PAD SPACE),
+// 'maŕketing'(악센트 변형) 등이 모두 'marketing' 행과 일치한다. 아래 JS 정규화(trim+toLowerCase)는
+// 대소문자·공백만 잡는 1차 방어일 뿐 악센트/유니코드 등가는 못 잡으므로, 최종 판정은 반드시
+// DB 콜레이션 기준(isPrivateSitePage / 쿼리의 page NOT IN (...))으로 한다.
+function isPrivateSitePageFast(page) {
+  return PRIVATE_SITE_PAGES.includes(String(page || '').trim().toLowerCase());
+}
+async function isPrivateSitePage(page) {
+  if (isPrivateSitePageFast(page)) return true;
   const [rows] = await getPool().query(
-    'SELECT section_key, content FROM site_sections WHERE page = ?',
-    [req.params.page]
+    `SELECT 1 AS hit FROM DUAL
+      WHERE CONVERT(? USING utf8mb4) COLLATE utf8mb4_unicode_ci IN (${PRIVATE_SITE_PAGES_SQL})`,
+    [String(page), ...PRIVATE_SITE_PAGES]
+  );
+  return rows.length > 0;
+}
+
+app.get('/api/site/:page', wrapAsync(async (req, res) => {
+  if (isPrivateSitePageFast(req.params.page)) { res.json({}); return; }
+  // 비공개 페이지 차단은 DB 콜레이션 기준으로 쿼리 안에서 한 번 더 건다 (결과가 비면 {}).
+  const [rows] = await getPool().query(
+    `SELECT section_key, content FROM site_sections
+      WHERE page = ? AND page NOT IN (${PRIVATE_SITE_PAGES_SQL})`,
+    [req.params.page, ...PRIVATE_SITE_PAGES]
   );
   const result = {};
   for (const row of rows) {
@@ -3080,15 +3150,19 @@ app.get('/api/site/:page', wrapAsync(async (req, res) => {
 }));
 
 app.get('/admin/api/site/:page/:section', requireAdminApi, wrapAsync(async (req, res) => {
+  if (await isPrivateSitePage(req.params.page)) { res.status(400).json({ error: '/admin/api/marketing/settings를 사용하세요.' }); return; }
   const [rows] = await getPool().query(
-    'SELECT content FROM site_sections WHERE page = ? AND section_key = ?',
-    [req.params.page, req.params.section]
+    `SELECT content FROM site_sections
+      WHERE page = ? AND section_key = ? AND page NOT IN (${PRIVATE_SITE_PAGES_SQL})`,
+    [req.params.page, req.params.section, ...PRIVATE_SITE_PAGES]
   );
   if (!rows[0]) { res.json({}); return; }
   try { res.json(JSON.parse(rows[0].content)); } catch { res.json({}); }
 }));
 
 app.put('/admin/api/site/:page/:section', requireAdminApi, wrapAsync(async (req, res) => {
+  // INSERT 전에 DB 콜레이션 기준으로 막는다 ('MARKETING' 등으로 marketing 행을 덮어쓰는 것 방지).
+  if (await isPrivateSitePage(req.params.page)) { res.status(400).json({ error: '/admin/api/marketing/settings를 사용하세요.' }); return; }
   const content = JSON.stringify(req.body || {});
   await getPool().query(
     `INSERT INTO site_sections (page, section_key, content) VALUES (?, ?, ?)
@@ -4519,6 +4593,462 @@ app.delete('/admin/api/content-banners/:id', requireAdminApi, wrapAsync(async (r
   const [result] = await getPool().query('DELETE FROM content_banners WHERE id = ?', [req.params.id]);
   if (result.affectedRows === 0) { res.status(404).json({ error: '배너를 찾을 수 없습니다.' }); return; }
   res.json({ ok: true });
+}));
+
+// ══════════════════════════════════════════════════════════════════
+// 마케팅 — 분석 도구 설정(site_sections marketing/analytics) + 기간별 조회 + 전환 전송 상태
+// 계획서: docs/plans/admin-marketing-page.md
+// ══════════════════════════════════════════════════════════════════
+
+// 설정 키 ↔ 폴백 환경변수. DB 값이 비어 있는 키만 env로 채운다(DB > env).
+const MARKETING_SETTING_ENV = {
+  gtmContainerId: 'GTM_CONTAINER_ID',
+  ga4MeasurementId: 'GA4_MEASUREMENT_ID',
+  ga4ApiSecret: 'GA4_API_SECRET',
+  metaPixelId: 'META_PIXEL_ID',
+  metaCapiAccessToken: 'META_CAPI_ACCESS_TOKEN',
+  naverWcsId: 'NAVER_WCS_ID',
+  clarityProjectId: 'CLARITY_PROJECT_ID'
+};
+const MARKETING_SETTING_KEYS = Object.keys(MARKETING_SETTING_ENV);
+const MARKETING_SECRET_KEYS = ['ga4ApiSecret', 'metaCapiAccessToken'];
+// PUT 입력 형식 — 브라우저에 그대로 실리는 ID라 허용 문자를 좁혀 둔다(응답 JSON 이스케이프와 이중 방어).
+const MARKETING_SETTING_FORMATS = {
+  gtmContainerId: [/^GTM-[A-Z0-9]{4,15}$/, 'GTM 컨테이너 ID는 GTM-XXXXXXX 형식이어야 합니다.'],
+  ga4MeasurementId: [/^G-[A-Z0-9]{4,20}$/, 'GA4 측정 ID는 G-XXXXXXXXXX 형식이어야 합니다.'],
+  ga4ApiSecret: [/^\S{4,200}$/, 'GA4 API Secret 형식이 올바르지 않습니다(공백 불가).'],
+  metaPixelId: [/^\d{5,25}$/, 'Meta 픽셀 ID는 숫자여야 합니다.'],
+  metaCapiAccessToken: [/^\S{10,1000}$/, 'Meta 전환 API 토큰 형식이 올바르지 않습니다(공백 불가).'],
+  naverWcsId: [/^[A-Za-z0-9_-]{4,40}$/, '네이버 애널리틱스 ID는 영문·숫자만 입력하세요.'],
+  clarityProjectId: [/^[A-Za-z0-9]{4,20}$/, 'Clarity 프로젝트 ID는 영문·숫자만 입력하세요.']
+};
+const MARKETING_SETTINGS_TTL_MS = 60 * 1000;
+let marketingSettingsCache = null; // { at, promise }
+
+// DB에 저장된 원본(env 미적용). 행이 없거나 손상됐으면 {}.
+async function readStoredMarketingSettings() {
+  const [rows] = await getPool().query(
+    "SELECT content FROM site_sections WHERE page = 'marketing' AND section_key = 'analytics'"
+  );
+  if (!rows[0]) return {};
+  try {
+    const parsed = JSON.parse(rows[0].content);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch { return {}; }
+}
+
+function cleanSettingValue(v) {
+  return typeof v === 'string' ? v.trim() : (typeof v === 'number' ? String(v) : '');
+}
+
+// 실사용 설정(DB > env). 60초 메모리 캐시 — 저장 시 invalidateMarketingSettings()로 즉시 무효화.
+// DB 조회가 실패해도 env 폴백만으로 동작한다(전환 전송·analytics.js가 DB 장애로 멈추지 않게).
+function getMarketingSettings() {
+  const now = Date.now();
+  if (marketingSettingsCache && now - marketingSettingsCache.at < MARKETING_SETTINGS_TTL_MS) {
+    return marketingSettingsCache.promise;
+  }
+  const promise = readStoredMarketingSettings()
+    .catch(err => { console.error('[marketing] 설정 조회 실패 — env 폴백만 사용:', err.message); return {}; })
+    .then(stored => {
+      const out = {};
+      for (const key of MARKETING_SETTING_KEYS) {
+        out[key] = cleanSettingValue(stored[key]) || cleanSettingValue(process.env[MARKETING_SETTING_ENV[key]]);
+      }
+      return out;
+    });
+  marketingSettingsCache = { at: now, promise };
+  return promise;
+}
+
+function invalidateMarketingSettings() {
+  marketingSettingsCache = null;
+  analyticsJsRendered = null;
+}
+
+function isConversionConfigured(s) {
+  return !!((s.ga4MeasurementId && s.ga4ApiSecret) || (s.metaPixelId && s.metaCapiAccessToken));
+}
+
+// '••••' + 끝 4자. 너무 짧은 값은 끝자리도 노출하지 않는다.
+function maskSecret(v) {
+  if (!v) return '';
+  return '••••' + (v.length > 8 ? v.slice(-4) : '');
+}
+
+// ── GET /analytics.js — 정적 파일의 `var DT_ANALYTICS_CONFIG = {};` 한 줄을 설정값으로 치환 ──
+// express.static(public-figma)보다 먼저 등록돼야 한다(아래 정적 미들웨어가 원본을 내려주지 않도록).
+const ANALYTICS_JS_PATH = path.join(__dirname, 'public-figma', 'analytics.js');
+const ANALYTICS_CONFIG_LINE_RE = /^var DT_ANALYTICS_CONFIG = \{\};$/m;
+let analyticsJsSource = null;   // 파일 원문(프로세스당 1회 읽음 — 배포는 PM2 리로드)
+let analyticsJsRendered = null; // { at, body } — 설정 캐시와 같은 60초
+
+(function checkAnalyticsConfigLine() {
+  try {
+    const src = fs.readFileSync(ANALYTICS_JS_PATH, 'utf8');
+    const count = (src.match(new RegExp(ANALYTICS_CONFIG_LINE_RE.source, 'gm')) || []).length;
+    if (count !== 1) {
+      console.error(`[analytics.js] 치환 대상 줄 'var DT_ANALYTICS_CONFIG = {};'이 ${count}개입니다(정확히 1개여야 함) — 분석 설정이 브라우저에 전달되지 않습니다.`);
+    }
+  } catch (err) {
+    console.error('[analytics.js] 파일을 읽을 수 없습니다:', err.message);
+  }
+})();
+
+async function renderAnalyticsJs() {
+  if (analyticsJsRendered && Date.now() - analyticsJsRendered.at < MARKETING_SETTINGS_TTL_MS) {
+    return analyticsJsRendered.body;
+  }
+  if (analyticsJsSource === null) analyticsJsSource = await fs.promises.readFile(ANALYTICS_JS_PATH, 'utf8');
+  const s = await getMarketingSettings();
+  const config = {
+    gtmId: s.gtmContainerId || '',
+    ga4MeasurementId: s.ga4MeasurementId || '',
+    naverWcsId: s.naverWcsId || '',
+    clarityId: s.clarityProjectId || ''
+  };
+  // `</script`·HTML 주석·줄 구분자가 문자열 안에 있어도 스크립트를 깨지 못하게 이스케이프.
+  const json = JSON.stringify(config)
+    .replace(/</g, '\\u003c').replace(/>/g, '\\u003e')
+    .replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+  const body = analyticsJsSource.replace(ANALYTICS_CONFIG_LINE_RE, () => `var DT_ANALYTICS_CONFIG = ${json};`);
+  analyticsJsRendered = { at: Date.now(), body };
+  return body;
+}
+
+app.get('/analytics.js', wrapAsync(async (req, res) => {
+  const body = await renderAnalyticsJs();
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.send(body);
+}));
+
+// ── 설정 조회/저장 ──
+app.get('/admin/api/marketing/settings', requireAdminApi, wrapAsync(async (req, res) => {
+  const stored = await readStoredMarketingSettings();
+  const v = key => cleanSettingValue(stored[key]);
+  const env = key => cleanSettingValue(process.env[MARKETING_SETTING_ENV[key]]);
+  res.json({
+    gtmContainerId: v('gtmContainerId'),
+    ga4MeasurementId: v('ga4MeasurementId'),
+    ga4ApiSecretMasked: maskSecret(v('ga4ApiSecret')),
+    ga4ApiSecretSet: !!v('ga4ApiSecret'),
+    metaPixelId: v('metaPixelId'),
+    metaCapiAccessTokenMasked: maskSecret(v('metaCapiAccessToken')),
+    metaCapiAccessTokenSet: !!v('metaCapiAccessToken'),
+    naverWcsId: v('naverWcsId'),
+    clarityProjectId: v('clarityProjectId'),
+    // DB 값이 비었을 때 서버 전환 전송이 env로 동작하는지(채널별 ID+비밀값 둘 다 env에 있을 때 true)
+    envFallback: {
+      ga4: !!(env('ga4MeasurementId') && env('ga4ApiSecret')),
+      meta: !!(env('metaPixelId') && env('metaCapiAccessToken'))
+    }
+  });
+}));
+
+// body: 설정 키 그대로. 일반 키는 문자열=저장, ''/null=삭제, 키 생략=유지.
+// 비밀값(ga4ApiSecret, metaCapiAccessToken)은 ''·생략=기존 값 유지, null=삭제, 문자열=교체.
+app.put('/admin/api/marketing/settings', requireAdminApi, wrapAsync(async (req, res) => {
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const stored = await readStoredMarketingSettings();
+  const next = {};
+  for (const key of MARKETING_SETTING_KEYS) next[key] = cleanSettingValue(stored[key]);
+
+  for (const key of MARKETING_SETTING_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(body, key)) continue;
+    const raw = body[key];
+    const isSecret = MARKETING_SECRET_KEYS.includes(key);
+    if (raw === null) { next[key] = ''; continue; }
+    if (typeof raw !== 'string') { res.status(400).json({ error: `${key} 값은 문자열이어야 합니다.` }); return; }
+    let val = raw.trim();
+    if (!val) { if (!isSecret) next[key] = ''; continue; }
+    if (key === 'gtmContainerId' || key === 'ga4MeasurementId') val = val.toUpperCase();
+    const [re, msg] = MARKETING_SETTING_FORMATS[key];
+    if (!re.test(val)) { res.status(400).json({ error: msg }); return; }
+    next[key] = val;
+  }
+
+  await getPool().query(
+    `INSERT INTO site_sections (page, section_key, content) VALUES ('marketing', 'analytics', ?)
+     ON DUPLICATE KEY UPDATE content = VALUES(content)`,
+    [JSON.stringify(next)]
+  );
+  invalidateMarketingSettings();
+  res.json({ ok: true });
+}));
+
+// ── 기간별 요약 ──
+// 날짜는 KST 달력일 기준. DB DATETIME은 UTC(NOW() 기록, DB time_zone=SYSTEM=UTC)라 경계를 -9시간 옮겨 비교하고,
+// 일별 그룹은 +9시간 한 뒤 날짜로 자른다.
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const MARKETING_MAX_RANGE_DAYS = 400;
+const DAY_MS = 24 * 60 * 60 * 1000;
+// join.html 가입경로 체크박스 값
+const KNOWN_SIGNUP_CHANNELS = ['학원 재원생', '지인 등 소개', '독편사 카페', '제휴 거래처', '인터넷 검색', '언론 기사', '광고 홍보물', '기타'];
+
+function parseYmd(s) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(s || ''))) return null;
+  const [y, m, d] = s.split('-').map(Number);
+  const t = Date.UTC(y, m - 1, d);
+  return new Date(t).toISOString().slice(0, 10) === s ? t : null;
+}
+const ymdOf = t => new Date(t).toISOString().slice(0, 10);
+const utcSqlOf = t => new Date(t).toISOString().slice(0, 19).replace('T', ' ');
+
+function parseMarketingRange(query) {
+  const todayKst = Date.parse(ymdOf(Date.now() + KST_OFFSET_MS));
+  let toT = todayKst, fromT;
+  if (query.to !== undefined && query.to !== '') {
+    toT = parseYmd(query.to);
+    if (toT === null) return { error: 'to는 YYYY-MM-DD 형식이어야 합니다.' };
+  }
+  if (query.from !== undefined && query.from !== '') {
+    fromT = parseYmd(query.from);
+    if (fromT === null) return { error: 'from은 YYYY-MM-DD 형식이어야 합니다.' };
+  } else {
+    fromT = toT - 29 * DAY_MS;
+  }
+  if (fromT > toT) return { error: 'from은 to보다 늦을 수 없습니다.' };
+  const days = Math.round((toT - fromT) / DAY_MS) + 1;
+  if (days > MARKETING_MAX_RANGE_DAYS) return { error: `조회 기간은 최대 ${MARKETING_MAX_RANGE_DAYS}일입니다.` };
+  return {
+    from: ymdOf(fromT), to: ymdOf(toT), days, fromT,
+    startUtc: utcSqlOf(fromT - KST_OFFSET_MS),     // from 00:00 KST
+    endUtc: utcSqlOf(toT + DAY_MS - KST_OFFSET_MS) // to 다음날 00:00 KST (미포함)
+  };
+}
+
+// 가입경로는 체크박스 복수선택을 ', '로 이어 저장한다. 구 데이터 일부는 구분자 없이 붙어 있어
+// ('학원 재원생독편사 카페') 알려진 경로명으로 다시 쪼갠다. 끝까지 못 쪼개면 원문 그대로 한 경로로 센다.
+function splitSignupChannels(raw) {
+  const out = new Set();
+  for (const piece of String(raw || '').split(',')) {
+    const trimmed = piece.trim();
+    if (!trimmed) continue;
+    if (KNOWN_SIGNUP_CHANNELS.includes(trimmed)) { out.add(trimmed); continue; }
+    let rest = trimmed;
+    const tokens = [];
+    while (rest) {
+      const hit = KNOWN_SIGNUP_CHANNELS.find(c => rest.startsWith(c));
+      if (!hit) break;
+      tokens.push(hit);
+      rest = rest.slice(hit.length).trim();
+    }
+    if (!rest && tokens.length) tokens.forEach(t => out.add(t));
+    else out.add(trimmed);
+  }
+  return [...out];
+}
+
+const toInt = v => Math.round(Number(v) || 0);
+const ratio = (num, den) => (den ? Math.round((num / den) * 10000) / 10000 : 0); // 0~1 비율(소수 4자리) — 화면에서 ×100
+
+app.get('/admin/api/marketing/summary', requireAdminApi, wrapAsync(async (req, res) => {
+  const range = parseMarketingRange(req.query);
+  if (range.error) { res.status(400).json({ error: range.error }); return; }
+  const { startUtc, endUtc } = range;
+  const pool = getPool();
+  const notWithdrawn = "COALESCE(m.member_group, '') <> ?";
+  const W = WITHDRAWN_MEMBER_GROUP;
+
+  const [
+    [[signupKpi]], [[attemptKpi]], [[approvedKpi]],
+    [dailySignups], [dailyApproved],
+    [cohortRows], [courseRows], [couponRows], [funnelRows]
+  ] = await Promise.all([
+    pool.query(
+      `SELECT COUNT(*) AS signups,
+              SUM(m.email_marketing_consent = '허용') AS emailConsent,
+              SUM(m.sms_marketing_consent = '허용') AS smsConsent
+       FROM members m WHERE m.joined_at >= ? AND m.joined_at < ? AND ${notWithdrawn}`,
+      [startUtc, endUtc, W]),
+    pool.query(
+      `SELECT COUNT(*) AS attempts, SUM(p.status = 'approved') AS attemptsApproved
+       FROM payments p JOIN members m ON m.id = p.member_id
+       WHERE p.created_at >= ? AND p.created_at < ? AND ${notWithdrawn}`,
+      [startUtc, endUtc, W]),
+    pool.query(
+      `SELECT COUNT(*) AS approvedCount, COALESCE(SUM(p.amount), 0) AS revenue,
+              SUM(p.coupon_id IS NOT NULL) AS couponPayments
+       FROM payments p JOIN members m ON m.id = p.member_id
+       WHERE p.status = 'approved' AND p.approved_at >= ? AND p.approved_at < ? AND ${notWithdrawn}`,
+      [startUtc, endUtc, W]),
+    pool.query(
+      `SELECT DATE_FORMAT(DATE_ADD(m.joined_at, INTERVAL 9 HOUR), '%Y-%m-%d') AS d, COUNT(*) AS n
+       FROM members m WHERE m.joined_at >= ? AND m.joined_at < ? AND ${notWithdrawn} GROUP BY d`,
+      [startUtc, endUtc, W]),
+    pool.query(
+      `SELECT DATE_FORMAT(DATE_ADD(p.approved_at, INTERVAL 9 HOUR), '%Y-%m-%d') AS d,
+              COUNT(*) AS n, COALESCE(SUM(p.amount), 0) AS revenue
+       FROM payments p JOIN members m ON m.id = p.member_id
+       WHERE p.status = 'approved' AND p.approved_at >= ? AND p.approved_at < ? AND ${notWithdrawn} GROUP BY d`,
+      [startUtc, endUtc, W]),
+    // 가입 코호트: 기간 내 가입 회원 + 그 회원의 기간 내 승인 결제 합계(결제 없으면 NULL)
+    pool.query(
+      `SELECT m.id, m.signup_channel, TRIM(LOWER(m.search_keyword)) AS keyword, TRIM(m.referrer_code) AS referrer,
+              b.revenue AS buyRevenue
+       FROM members m
+       LEFT JOIN (
+         SELECT member_id, SUM(amount) AS revenue FROM payments
+         WHERE status = 'approved' AND approved_at >= ? AND approved_at < ? GROUP BY member_id
+       ) b ON b.member_id = m.id
+       WHERE m.joined_at >= ? AND m.joined_at < ? AND ${notWithdrawn}`,
+      [startUtc, endUtc, startUtc, endUtc, W]),
+    pool.query(
+      `SELECT p.vod_course_id AS vodCourseId, COALESCE(MAX(vc.title), MAX(p.item_name)) AS title,
+              COUNT(*) AS approvedCount, COALESCE(SUM(p.amount), 0) AS revenue
+       FROM payments p JOIN members m ON m.id = p.member_id
+       LEFT JOIN vod_courses vc ON vc.id = p.vod_course_id
+       WHERE p.status = 'approved' AND p.approved_at >= ? AND p.approved_at < ? AND ${notWithdrawn}
+       GROUP BY p.vod_course_id ORDER BY revenue DESC, approvedCount DESC`,
+      [startUtc, endUtc, W]),
+    pool.query(
+      `SELECT c.code, c.label, c.discount_type, c.discount_value, p.amount, vc.new_price
+       FROM payments p JOIN members m ON m.id = p.member_id
+       JOIN coupons c ON c.id = p.coupon_id
+       LEFT JOIN vod_courses vc ON vc.id = p.vod_course_id
+       WHERE p.status = 'approved' AND p.approved_at >= ? AND p.approved_at < ? AND ${notWithdrawn}`,
+      [startUtc, endUtc, W]),
+    pool.query(
+      `SELECT p.status, COUNT(*) AS n
+       FROM payments p JOIN members m ON m.id = p.member_id
+       WHERE p.created_at >= ? AND p.created_at < ? AND ${notWithdrawn} GROUP BY p.status`,
+      [startUtc, endUtc, W])
+  ]);
+
+  const signups = toInt(signupKpi.signups);
+  const attempts = toInt(attemptKpi.attempts);
+
+  // 일별: 기간의 모든 날짜를 0으로 채운 뒤 덮어쓴다(차트가 빈 날을 건너뛰지 않게).
+  const dailyMap = new Map();
+  for (let i = 0; i < range.days; i++) {
+    const date = ymdOf(range.fromT + i * DAY_MS);
+    dailyMap.set(date, { date, signups: 0, approved: 0, revenue: 0 });
+  }
+  for (const r of dailySignups) if (dailyMap.has(r.d)) dailyMap.get(r.d).signups = toInt(r.n);
+  for (const r of dailyApproved) {
+    if (!dailyMap.has(r.d)) continue;
+    dailyMap.get(r.d).approved = toInt(r.n);
+    dailyMap.get(r.d).revenue = toInt(r.revenue);
+  }
+
+  // 코호트 집계(가입경로 복수선택은 각 경로에 1씩, 결제자·매출도 각 경로에 중복 반영)
+  const bump = (map, key, row, init) => {
+    if (!map.has(key)) map.set(key, { ...init, signups: 0, buyers: 0, revenue: 0 });
+    const g = map.get(key);
+    g.signups++;
+    if (row.buyRevenue !== null && row.buyRevenue !== undefined) { g.buyers++; g.revenue += toInt(row.buyRevenue); }
+  };
+  const channelMap = new Map(), keywordMap = new Map(), referrerMap = new Map();
+  for (const row of cohortRows) {
+    const chs = splitSignupChannels(row.signup_channel);
+    for (const ch of (chs.length ? chs : ['(미입력)'])) bump(channelMap, ch, row, { channel: ch });
+    if (row.keyword) bump(keywordMap, row.keyword, row, { keyword: row.keyword });
+    if (row.referrer) bump(referrerMap, row.referrer, row, { code: row.referrer });
+  }
+  const bySignups = (a, b) => b.signups - a.signups || b.revenue - a.revenue;
+  const channels = [...channelMap.values()].sort(bySignups);
+  const keywords = [...keywordMap.values()].sort(bySignups).slice(0, 20);
+  const referrers = [...referrerMap.values()].sort(bySignups).slice(0, 20)
+    .map(({ code, signups: s, buyers }) => ({ code, signups: s, buyers }));
+
+  // 쿠폰: 발급 코드가 회원별로 하나씩이라 코드 단위로 묶으면 전부 1건이 된다 → 쿠폰명(표시 라벨) 단위로 묶는다
+  // (코드가 하나뿐인 묶음만 code를 채우고, 아니면 null + codeCount).
+  // 할인액은 결제 행에 저장돼 있지 않아 "현재 강좌 정가 − 결제금액"으로 추정(정가를 못 읽으면 쿠폰 규칙으로 근사).
+  const couponMap = new Map();
+  for (const r of couponRows) {
+    const label = couponDisplayLabel(r);
+    if (!couponMap.has(label)) couponMap.set(label, { label, codes: new Set(), usedCount: 0, discountTotal: 0 });
+    const g = couponMap.get(label);
+    g.codes.add(r.code);
+    g.usedCount++;
+    const base = parseKoreanWonPrice(r.new_price);
+    const amount = toInt(r.amount);
+    g.discountTotal += base ? Math.max(0, base - amount) : computeCouponDiscountAmount(amount, r);
+  }
+  const coupons = [...couponMap.values()]
+    .map(g => ({ label: g.label, code: g.codes.size === 1 ? [...g.codes][0] : null, codeCount: g.codes.size, usedCount: g.usedCount, discountTotal: g.discountTotal }))
+    .sort((a, b) => b.usedCount - a.usedCount || b.discountTotal - a.discountTotal);
+
+  const funnel = { pending: 0, expired: 0, failed: 0, canceled: 0, approved: 0 };
+  for (const r of funnelRows) if (r.status in funnel) funnel[r.status] = toInt(r.n);
+
+  res.json({
+    range: { from: range.from, to: range.to },
+    kpi: {
+      signups,
+      paymentAttempts: attempts,
+      approvedCount: toInt(approvedKpi.approvedCount),
+      revenue: toInt(approvedKpi.revenue),
+      // 승인 전환율 = 기간 내 생성된 결제 시도 중 approved 비율(같은 코호트 기준). 비율은 모두 0~1.
+      approvalRate: ratio(toInt(attemptKpi.attemptsApproved), attempts),
+      couponPayments: toInt(approvedKpi.couponPayments),
+      emailConsentRate: ratio(toInt(signupKpi.emailConsent), signups),
+      smsConsentRate: ratio(toInt(signupKpi.smsConsent), signups),
+      withdrawnExcluded: true
+    },
+    daily: [...dailyMap.values()],
+    channels,
+    keywords,
+    referrers,
+    courses: courseRows.map(r => ({ vodCourseId: r.vodCourseId, title: r.title, approvedCount: toInt(r.approvedCount), revenue: toInt(r.revenue) })),
+    coupons,
+    funnel
+  });
+}));
+
+// ── 전환 전송 상태 ──
+app.get('/admin/api/marketing/conversions', requireAdminApi, wrapAsync(async (req, res) => {
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 30));
+  const [rows] = await getPool().query(
+    `SELECT p.id, p.order_number, p.amount, p.approved_at, p.conversion_sent_at, p.client_context, m.name
+     FROM payments p LEFT JOIN members m ON m.id = p.member_id
+     WHERE p.status = 'approved'
+     ORDER BY p.approved_at DESC, p.id DESC LIMIT ?`,
+    [limit]
+  );
+  res.json(rows.map(r => {
+    let ctx = {};
+    try { ctx = r.client_context ? JSON.parse(r.client_context) || {} : {}; } catch { ctx = {}; }
+    return {
+      paymentId: r.id,
+      orderNumber: r.order_number,
+      memberName: r.name,
+      amount: toInt(r.amount),
+      approvedAt: r.approved_at,
+      conversionSentAt: r.conversion_sent_at,
+      hasGaClientId: !!ctx.ga_client_id,
+      hasFbp: !!ctx.fbp
+    };
+  }));
+}));
+
+// conversion_sent_at을 NULL로 되돌린 뒤 승인 경로와 같은 reportPurchaseConversion을 await 해 결과를 돌려준다.
+app.post('/admin/api/marketing/conversions/:paymentId/resend', requireAdminApi, wrapAsync(async (req, res) => {
+  const paymentId = parseInt(req.params.paymentId, 10);
+  if (!paymentId) { res.status(400).json({ error: '잘못된 결제 ID입니다.' }); return; }
+  const [[payment]] = await getPool().query('SELECT id, status FROM payments WHERE id = ?', [paymentId]);
+  if (!payment) { res.status(404).json({ error: '결제를 찾을 수 없습니다.' }); return; }
+  if (payment.status !== 'approved') { res.status(400).json({ error: '승인된 결제만 재전송할 수 있습니다.' }); return; }
+  const settings = await getMarketingSettings();
+  if (!isConversionConfigured(settings)) { res.status(400).json({ error: 'GA4/Meta 설정이 없습니다' }); return; }
+
+  // 방금(10초 이내) 전송된 결제는 되돌리지 않는다 — 동시 클릭·승인 경로 전송과 겹쳐 두 번 보내는 것 방지.
+  const [resetResult] = await getPool().query(
+    `UPDATE payments SET conversion_sent_at = NULL
+      WHERE id = ? AND (conversion_sent_at IS NULL OR conversion_sent_at < NOW() - INTERVAL 10 SECOND)`,
+    [paymentId]
+  );
+  if (resetResult.affectedRows === 0) {
+    res.status(409).json({ error: '방금 전송된 결제입니다. 잠시 후 다시 시도하세요.' });
+    return;
+  }
+  const result = await reportPurchaseConversion(paymentId);
+  if (!result) {
+    res.status(409).json({ error: '다른 요청이 이미 전송 중이거나 전송하지 못했습니다. 잠시 후 다시 시도하세요.' });
+    return;
+  }
+  res.json({ ok: result.ga4 !== 'failed' && result.meta !== 'failed', result });
 }));
 
 // 기존 사이트(public/)는 /v1 하위로 이전. 신규 루트(피그마 디자인)와 분리.

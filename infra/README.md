@@ -53,6 +53,23 @@
 5. 재신청 승인 전까지는 `nickname_m@naver.com`(검증된 테스트 주소)로만 실제 발송 테스트가 가능하다.
 6. 운영 서버(EC2)에 연결된 `dockteacher-production-role`에 `infra/iam-policy-production-role.json`의 `SendMemberEmail` 문(`ses:SendEmail`, 리소스 `identity/mail.dockteacher.co.kr` + 기본 설정 세트 `configuration-set/dockteacher-notifications` — 설정 세트가 빠지면 모든 발송이 AccessDenied)이 반영되어 있어야 한다.
 
+### 1-5. 웹 분석·서버측 전환 전송 환경변수 (운영 서버 `.env`, **폴백 전용**)
+
+분석 도구 ID와 전환 API 키의 **기본 설정 위치는 관리자 페이지 "마케팅 → 분석 도구 설정"**(DB `site_sections` page=`marketing`, section_key=`analytics`)이다. 아래 env는 **관리자 설정에서 해당 키가 비어 있을 때만 쓰는 폴백**이다(키별로 DB > env, `server.js`의 `getMarketingSettings()`, 60초 캐시). 새로 설정할 때는 env 대신 관리자 페이지를 쓴다.
+
+결제 승인 시 서버가 `purchase`를 직접 보내는 `lib/conversions.js`와, 브라우저용 `GET /analytics.js` 응답의 `DT_ANALYTICS_CONFIG` 치환에 쓰인다. 값이 비어 있으면 해당 채널은 조용히 skip(no-op)하므로 로컬·미설정 상태에서도 에러가 나지 않는다. 운영 서버 `.env`에 사용자가 직접 넣고 커밋하지 않는다. 배포 전에 `infra/migrations/2026-10-14-payments-conversion.sql`이 운영 DB에 적용돼 있어야 한다.
+
+| 변수 | 설명 |
+|---|---|
+| `GA4_MEASUREMENT_ID` | GA4 웹 데이터 스트림 측정 ID(`G-XXXXXXX`). `GA4_API_SECRET`과 둘 다 있어야 GA4 전송 |
+| `GA4_API_SECRET` | GA4 관리 → 데이터 스트림 → Measurement Protocol API 비밀번호 |
+| `META_PIXEL_ID` | Meta 픽셀(데이터세트) ID. `META_CAPI_ACCESS_TOKEN`과 둘 다 있어야 Meta 전송 |
+| `META_CAPI_ACCESS_TOKEN` | 이벤트 관리자 → 설정 → 전환 API 액세스 토큰 |
+| `GTM_CONTAINER_ID` | (브라우저) GTM 컨테이너 ID(`GTM-XXXXXXX`) |
+| `NAVER_WCS_ID` | (브라우저) 네이버 애널리틱스 사이트 ID(`wcs_add["wa"]` 값) |
+| `CLARITY_PROJECT_ID` | (브라우저) Microsoft Clarity 프로젝트 ID |
+| `CONVERSION_DEBUG` | `1`이면 GA4를 `/debug/mp/collect`(검증 전용, 집계 안 됨)로 보내고 payload·`validationMessages`, Meta 응답을 `console.log`. 운영에선 비워 둔다 |
+
 ## 2. 프로비저닝 순서 (자격증명 확보 후 실행)
 
 워커는 단일 인스턴스가 아니라 **Auto Scaling Group(min=0)** 으로 운영한다. 전체 설계와 근거는 `infra/autoscaling-design.md` 참고.

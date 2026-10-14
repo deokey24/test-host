@@ -212,6 +212,12 @@ CREATE TABLE IF NOT EXISTS payments (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   approved_at DATETIME,
   canceled_at DATETIME,
+  -- 서버측 purchase 전환 전송(lib/conversions.js)용 브라우저 식별 스냅샷 JSON — {ga_client_id, ga_session_id, fbp, fbc, ip, ua}.
+  -- 승인은 PG 콜백·관리자 수동승인처럼 쿠키 없는 요청에서도 일어나므로 /api/payments/init 시점에 미리 저장한다.
+  client_context TEXT NULL,
+  -- GA4 MP·Meta CAPI로 purchase를 보낸 시각. NULL → NOW() 선점에 성공한 요청만 전송(멱등), 전송 실패 시 NULL로 복구.
+  -- 운영 DB 적용분: infra/migrations/2026-10-14-payments-conversion.sql
+  conversion_sent_at DATETIME NULL,
   UNIQUE KEY uq_order_number (order_number),
   CONSTRAINT fk_payment_member FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
   CONSTRAINT fk_payment_vod_course FOREIGN KEY (vod_course_id) REFERENCES vod_courses(id) ON DELETE CASCADE

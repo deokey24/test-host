@@ -76,6 +76,7 @@ async function submitLoginForm(e) {
       errEl.style.display = 'block';
       return;
     }
+    if (typeof window.dtTrack === 'function') window.dtTrack('login', { method: 'email' });
     closeLoginModal();
     applyLoggedInUI(data.name);
   } catch {

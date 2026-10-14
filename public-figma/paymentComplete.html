@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8"><script src="analytics.js?v=20261014"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>결제 완료 · 독편사 DOCK PASS</title>
 <link rel="icon" type="image/png" href="assets/favicon.png">
@@ -143,8 +143,8 @@ body{background:var(--warm-white)}
   </div>
 
 </div>
-<script src="site-content.js?v=20260729"></script>
-<script src="auth.js?v=20260728"></script>
+<script src="site-content.js?v=20261014"></script>
+<script src="auth.js?v=20261014"></script>
 <script>
 (() => {
   const params = new URLSearchParams(location.search);
@@ -166,6 +166,24 @@ body{background:var(--warm-white)}
   document.getElementById('pcOrderNumber').textContent = orderNumber;
   document.getElementById('pcItemName').textContent = itemName;
   document.getElementById('pcAmount').textContent = amount ? `${Number(amount).toLocaleString('ko-KR')}원` : '-';
+
+  // 분석: 결제 완료(purchase). 새로고침·뒤로가기로 같은 주문이 두 번 잡히지 않게 주문번호별로 1회만 보낸다.
+  // 같은 transaction_id를 서버(GA4 MP·Meta CAPI)도 보내므로 GA4/Meta 쪽에서 중복 제거된다.
+  if (ok && orderNumber !== '-' && typeof window.dtTrack === 'function') {
+    const dedupKey = 'dt_purchase_' + orderNumber;
+    let already = false;
+    try { already = !!localStorage.getItem(dedupKey); } catch { /* 저장소 차단 환경 — 중복 방지 없이 전송 */ }
+    if (!already) {
+      const value = Number(amount) || 0;
+      window.dtTrack('purchase', {
+        transaction_id: orderNumber,
+        currency: 'KRW',
+        value,
+        items: [{ item_id: courseIdNum ? String(courseIdNum) : '', item_name: itemName, price: value, quantity: 1 }]
+      });
+      try { localStorage.setItem(dedupKey, String(Date.now())); } catch { /* 무시 */ }
+    }
+  }
 
   document.getElementById('pcActions').innerHTML = ok
     ? `<a class="btn-fill" href="${courseLink}">강좌로 이동</a><a class="btn-outline-link" href="mypage.html">마이페이지에서 확인</a>`

@@ -528,3 +528,53 @@ tbody.drag-item.dragging { opacity: 0.6; background: rgba(14,169,104,0.08); }
   tbody.drag-item .drag-handle { width: 36px; height: 36px; font-size: 20px; }
   .lecture-move-btns .row-btn { padding: 6px 10px; font-size: 13px; }
 }
+
+/* ── 마케팅 섹션 (admin/marketing.js) ── */
+input.mk-date, #marketingSection input[type="password"] {
+  padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: 8px;
+  font-size: 14px; background: var(--white); color: var(--text); font-family: inherit;
+}
+#marketingSection input[type="password"] { width: 100%; }
+#marketingSection input:disabled { background: var(--grey-bg); color: var(--text-soft); }
+.mk-range-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mk-date { width: auto; }
+.mk-preset-group { display: inline-flex; gap: 6px; margin-left: 8px; }
+.mk-kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 10px; }
+.mk-kpi { border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; background: var(--grey-bg); }
+.mk-kpi-label { font-size: 12px; font-weight: 700; color: var(--text-soft); }
+.mk-kpi-value { font-size: 22px; font-weight: 800; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.mk-error { color: var(--danger); font-size: 13px; margin: 0; grid-column: 1 / -1; }
+.mk-chart { margin-bottom: 18px; }
+.mk-chart-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.mk-chart-head .mk-h3 { margin: 0; }
+.mk-legend { display: flex; gap: 14px; font-size: 12px; color: var(--text-soft); font-weight: 700; }
+.mk-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.mk-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.mk-svg { width: 100%; height: auto; display: block; }
+.mk-svg .mk-grid { stroke: var(--border); stroke-width: 1; }
+.mk-svg .mk-baseline { stroke: var(--border-strong); }
+.mk-svg .mk-axis { fill: var(--text-soft); font-size: 12px; font-family: inherit; }
+.mk-svg .mk-hit { fill: transparent; }
+.mk-svg .mk-hit:hover { fill: rgba(21, 25, 28, 0.05); }
+.mk-h3 { font-size: 13px; font-weight: 800; margin: 0 0 8px; }
+.mk-table-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+.mk-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.mk-table-wrap table { min-width: 100%; }
+th.mk-num, td.mk-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mk-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+#marketingSection .card-head-row h2 { font-size: 15px; font-weight: 800; }
+.mk-resend-result { font-size: 11.5px; color: var(--text-soft); margin-top: 4px; }
+.mk-resend-result.ok { color: var(--green-dark); }
+.mk-resend-result.error { color: var(--danger); }
+.mk-warn { background: #fdf0d5; color: #7a5418; border-radius: 8px; padding: 10px 12px; font-size: 12.5px; margin: 0 0 16px; }
+.mk-clear { font-size: 12px; font-weight: 600; margin-top: 6px; }
+#marketingSection .field-label .badge { padding: 0 7px; margin-left: 4px; line-height: 16px; font-size: 10.5px; vertical-align: 1px; }
+.mk-details > summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--green-dark); }
+.mk-details[open] > summary { margin-bottom: 12px; }
+.mk-guide > summary { font-size: 15px; font-weight: 800; color: var(--text); }
+.mk-guide ol { margin: 0 0 16px; padding-left: 20px; font-size: 13px; line-height: 1.75; }
+.mk-guide code, #marketingSection td code { background: var(--grey-bg); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+@media (max-width: 900px) {
+  .mk-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mk-preset-group { margin-left: 0; }
+}

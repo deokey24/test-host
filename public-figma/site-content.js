@@ -468,6 +468,16 @@ async function hydrateHomeVodPreview() {
   }
 }
 
+// ── 분석 이벤트(analytics.js의 window.dtTrack) — GA4 권장 전자상거래 스키마로 보낸다 ──
+function vodCourseAnalyticsItem(course, price) {
+  return { item_id: String(course.id), item_name: course.title || '', price, quantity: 1 };
+}
+function trackVodViewItem(course) {
+  if (typeof window.dtTrack !== 'function' || !course) return;
+  const price = parseKoreanWonPriceClient(course.new_price) || 0;
+  window.dtTrack('view_item', { currency: 'KRW', value: price, items: [vodCourseAnalyticsItem(course, price)] });
+}
+
 // ── VOD 강좌 상세보기(classDetail.html) — ?id= 쿼리로 넘어온 강좌를 하이드레이션 ──
 async function hydrateClassDetail() {
   const courseId = new URLSearchParams(location.search).get('id');
@@ -486,6 +496,7 @@ async function hydrateClassDetail() {
     return;
   }
   const course = courseRes;
+  trackVodViewItem(course);
 
   document.title = `${course.title} · 독편사 DOCK PASS`;
 
@@ -771,7 +782,7 @@ async function hydrateOrderConfirm() {
 
   if (coupons.length) {
     select.innerHTML = '<option value="">쿠폰을 적용하지 않음</option>'
-      + coupons.map(c => `<option value="${c.id}">${escapeCmsHtml(c.label)} (-${Number(c.discountAmount).toLocaleString('ko-KR')}원)</option>`).join('');
+      + coupons.map(c => `<option value="${c.id}" data-code="${escapeCmsHtml(c.code || '').replace(/"/g, '&quot;')}">${escapeCmsHtml(c.label)} (-${Number(c.discountAmount).toLocaleString('ko-KR')}원)</option>`).join('');
   } else {
     select.style.display = 'none';
     emptyMsg.style.display = '';
@@ -803,6 +814,21 @@ function wireOrderConfirmPayButton(vodCourseId, course, couponSelect) {
     if (typeof goPayupPay !== 'function') { alert('결제 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.'); return; }
     if (!(await confirmVodPurchasePeriod(course))) return;
     payBtn.style.pointerEvents = 'none';
+    if (typeof window.dtTrack === 'function') {
+      // value는 화면의 최종 결제금액(#ocFinalAmount = 정가 - 선택 쿠폰 할인)을 그대로 쓴다. 읽지 못하면 정가.
+      const basePrice = parseKoreanWonPriceClient(course.new_price) || 0;
+      const finalEl = document.getElementById('ocFinalAmount');
+      const finalDigits = finalEl ? finalEl.textContent.replace(/[^0-9]/g, '') : '';
+      const value = finalDigits ? Number(finalDigits) : basePrice;
+      const couponOpt = couponSelect && couponSelect.value ? couponSelect.options[couponSelect.selectedIndex] : null;
+      window.dtTrack('begin_checkout', {
+        currency: 'KRW',
+        value,
+        // 서버측 purchase(payments.coupon_id → coupons.code)와 같은 값이 되도록 화면 라벨이 아닌 쿠폰 코드를 보낸다.
+        coupon: couponOpt && couponOpt.dataset.code ? couponOpt.dataset.code : undefined,
+        items: [vodCourseAnalyticsItem(course, basePrice)]
+      });
+    }
     try {
       const res = await fetch('/api/payments/init', {
         method: 'POST',
