@@ -224,6 +224,8 @@ async function openMemberDetailModal(memberId) {
   webToggle.checked = false;
   webToggle.disabled = true; // 상세 로딩 전 토글 방지
   document.getElementById('memberWebPlayerMeta').textContent = '';
+  document.getElementById('memberWebPlayerMeta').classList.remove('on');
+  document.getElementById('memberWebPlayerCard').classList.remove('is-on', 'is-disabled');
   setStatus(document.getElementById('memberWebPlayerStatus'), '');
   document.getElementById('memberDetailModalOverlay').classList.add('open');
   loadMemberDevices();
@@ -257,13 +259,18 @@ function renderMemberWebPlayer(m) {
   const isWithdrawn = m.member_group === 'withdrawn';
   toggle.checked = !!m.web_player_enabled;
   toggle.disabled = isWithdrawn;
+  const card = document.getElementById('memberWebPlayerCard');
+  card.classList.toggle('is-on', !!m.web_player_enabled && !isWithdrawn);
+  card.classList.toggle('is-disabled', isWithdrawn);
   const meta = document.getElementById('memberWebPlayerMeta');
   const updatedAt = m.web_player_updated_at ? new Date(m.web_player_updated_at) : null;
   const ymd = updatedAt
     ? `${updatedAt.getFullYear()}-${String(updatedAt.getMonth() + 1).padStart(2, '0')}-${String(updatedAt.getDate()).padStart(2, '0')}`
     : '';
-  meta.textContent = isWithdrawn ? ' 탈퇴 회원은 변경할 수 없습니다.'
-    : ymd ? ` ${m.web_player_enabled ? '허용일' : '해제일'} ${ymd}` : '';
+  meta.classList.toggle('on', !!m.web_player_enabled && !isWithdrawn);
+  meta.textContent = isWithdrawn ? '탈퇴 회원은 변경할 수 없습니다'
+    : m.web_player_enabled ? `허용 중${ymd ? ` · ${ymd}부터` : ''}`
+    : `허용 안 함${ymd ? ` · ${ymd} 해제` : ''}`;
 }
 
 document.getElementById('memberWebPlayerToggle').addEventListener('change', async (e) => {

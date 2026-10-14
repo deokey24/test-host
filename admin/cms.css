@@ -690,3 +690,52 @@ textarea.mk-ga4-json { font-family: ui-monospace, Consolas, monospace; font-size
   .jr-time { display: none; }
   .mk-preset-group { margin-left: 0; }
 }
+
+/* ── 회원 상세 > 웹 브라우저 재생 허용 카드 (members.web_player_enabled) ── */
+.wp-card {
+  margin: 28px 0 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--white);
+  overflow: hidden;
+  transition: border-color .2s, box-shadow .2s;
+}
+.wp-card.is-on { border-color: var(--green-light); box-shadow: 0 0 0 3px rgba(169, 130, 84, 0.08); }
+.wp-card.is-disabled { opacity: .6; }
+.wp-card-main { display: flex; align-items: center; gap: 14px; padding: 16px 18px; }
+.wp-card-icon {
+  flex: 0 0 40px; width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--grey-bg); color: var(--text-soft);
+  transition: background .2s, color .2s;
+}
+.wp-card.is-on .wp-card-icon { background: #f5ede2; color: var(--green-dark); }
+.wp-card-text { flex: 1; min-width: 0; }
+.wp-card-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.wp-card-desc { margin-top: 3px; font-size: 12px; line-height: 1.5; color: var(--text-soft); }
+.wp-card-foot {
+  display: flex; align-items: center; gap: 10px; min-height: 36px;
+  padding: 8px 18px; border-top: 1px solid var(--border); background: #fafbfa;
+  font-size: 12px;
+}
+.wp-card-foot .status-text { margin: 0; font-size: 12px; }
+.wp-state { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--text-soft); }
+.wp-state::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #c9d1cd; }
+.wp-state.on { color: var(--green-dark); }
+.wp-state.on::before { background: var(--green); }
+
+/* 토글 스위치 — 네이티브 체크박스를 숨기고 track/knob로 표시 (id는 members.js가 그대로 사용) */
+.wp-switch { position: relative; flex: 0 0 auto; cursor: pointer; }
+.wp-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.wp-switch-track {
+  display: block; width: 44px; height: 24px; border-radius: 12px;
+  background: #d6dedb; transition: background .2s;
+}
+.wp-switch-knob {
+  position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--white); box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s;
+}
+.wp-switch input:checked + .wp-switch-track { background: var(--green); }
+.wp-switch input:checked + .wp-switch-track .wp-switch-knob { transform: translateX(20px); }
+.wp-switch input:focus-visible + .wp-switch-track { outline: 2px solid var(--green-light); outline-offset: 2px; }
+.wp-switch input:disabled + .wp-switch-track { cursor: not-allowed; opacity: .5; }
