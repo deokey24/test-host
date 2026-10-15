@@ -285,6 +285,16 @@
     header.classList.remove('header--no-anim');
   }
 
+  // 화면 상단에 실제로 보이는 고정 헤더 높이를 CSS 변수로 공개한다.
+  // 페이지의 sticky 요소(상세 탭 등)가 top:var(--site-header-offset)로 참조하면
+  // 헤더가 숨어 있을 땐 화면 맨 위에, 헤더가 내려와 있을 땐 그 바로 아래에 붙는다.
+  function publishOffset() {
+    const visible = header.classList.contains('header--stuck') && !header.classList.contains('header--hidden');
+    const px = visible ? navRow.offsetHeight : 0;
+    const rootStyle = document.documentElement.style;
+    if (rootStyle.getPropertyValue('--site-header-offset') !== px + 'px') rootStyle.setProperty('--site-header-offset', px + 'px');
+  }
+
   function onScroll() {
     const y = window.scrollY;
     const delta = y - lastY;
@@ -300,6 +310,7 @@
       unstick();
     }
     if (Math.abs(delta) > 5) lastY = y;
+    publishOffset();
   }
 
   window.addEventListener('scroll', () => {
