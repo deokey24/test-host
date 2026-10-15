@@ -52,7 +52,7 @@
   // ── 2~5. summary ──
   const SUMMARY_TARGETS = [
     ['mkChannelTable', 5], ['mkKeywordTable', 5], ['mkReferrerTable', 4],
-    ['mkCourseTable', 3], ['mkCouponTable', 4], ['mkFunnelTable', 2], ['mkDailyTable', 4]
+    ['mkCourseTable', 3], ['mkCouponTable', 4], ['mkFunnelTable', 2]
   ];
 
   let summarySeq = 0;
@@ -80,6 +80,7 @@
       $('mkKpiGrid').innerHTML = `<p class="mk-error">${escapeHtml(err.message)}</p>`;
       $('mkDailyCounts').innerHTML = `<p class="mk-error">일별 추이를 불러오지 못했습니다.</p>`;
       $('mkDailyRevenue').innerHTML = '';
+      $('mkDailyCalendar').innerHTML = '<div class="mk-tip" hidden></div><p class="mk-error">불러오지 못했습니다.</p>';
       SUMMARY_TARGETS.forEach(([id, cols]) => { $(id).innerHTML = emptyRow(cols, '불러오지 못했습니다.'); });
     }
   }
@@ -324,6 +325,390 @@
     a.remove();
   });
 
+  // ── 4-3. 추적 링크 만들기 (UTM) — GET/POST/DELETE /admin/api/marketing/links (lib/attribution-report.js) ──
+  // ① 채널 → ② 페이지(특정 강의 상세 포함) → ③ 이름(캠페인) 순서의 세로 폼.
+  // 미리보기는 서버(validateLinkInput·buildTrackedUrl)와 같은 규칙으로 조립한다. 저장 시 url은 서버가 다시 만든다.
+  const LINK_ORIGIN = 'https://dockteacher.co.kr';
+  const LINK_TOKEN_RE = /^[a-z0-9_\-가-힣.]{1,60}$/;
+  const LINK_PATH_RE = /^\/(?!\/)[^\s?#\u0000-\u001f]*(\?[^\s#\u0000-\u001f]*)?$/;
+  const LINK_CHANNELS = [
+    { key: 'instagram', name: '인스타그램', desc: '프로필 링크·스토리', icon: 'IG', source: 'instagram', medium: 'social' },
+    { key: 'youtube', name: '유튜브', desc: '영상 설명·고정 댓글', icon: 'YT', source: 'youtube', medium: 'social' },
+    { key: 'naver_blog', name: '네이버 블로그', desc: '글 본문·하단 링크', icon: 'B', source: 'naver_blog', medium: 'social' },
+    { key: 'naver_cafe', name: '네이버 카페', desc: '카페 게시글·댓글', icon: 'C', source: 'naver_cafe', medium: 'social' },
+    { key: 'kakao', name: '카카오톡 채널', desc: '채널 메시지·소식', icon: 'K', source: 'kakao', medium: 'message' },
+    { key: 'facebook', name: '페이스북', desc: '게시물·페이지', icon: 'f', source: 'facebook', medium: 'social' },
+    { key: 'sms', name: '문자(SMS)', desc: '단체 문자·알림톡', icon: 'SMS', source: 'sms', medium: 'message' },
+    { key: 'custom', name: '기타', desc: '출처·매체 직접 입력', icon: '+' }
+  ];
+  // 홍보용 페이지만(결제 완료·결제 처리 중·강의 수강·마이페이지·약관·개인정보 제외)
+  const LINK_PAGES = [
+    { key: 'home', name: '홈', path: '/' },
+    { key: 'vod', name: 'VOD 강좌 목록', path: '/vod.html' },
+    { key: 'reviews', name: '수강후기', path: '/reviews.html' },
+    { key: 'curriculum', name: '커리큘럼', path: '/curriculum.html' },
+    { key: 'cert', name: '합격 인증', path: '/cert.html' },
+    { key: 'intro', name: '학습소개', path: '/intro.html' },
+    { key: 'join', name: '회원가입', path: '/join.html' },
+    { key: 'course', name: '특정 강의 상세' },
+    { key: 'custom', name: '직접 입력' }
+  ];
+  const COURSE_KINDS = {
+    vod: { name: 'VOD 강좌 상세', label: 'VOD 강좌', path: id => `/vodDetail.html?id=${encodeURIComponent(id)}` },
+    class: { name: '클래스 상세', label: '클래스', path: id => `/classDetail.html?id=${encodeURIComponent(id)}` }
+  };
+  const linkToken = (v) => String(v || '').trim().toLowerCase().replace(/\s+/g, '_');
+  let linkChannel = null;          // 아직 고르지 않음
+  let linkPage = LINK_PAGES[0];
+  let courseKind = 'vod';
+  // 강의 목록: null=아직, 'loading', 'error', 또는 [{id, title, hidden, ended}]
+  const linkCourses = { vod: null, class: null };
+  let campaignEdited = false;      // 한 번 직접 고치면 자동 제안 중단
+  let linkRows = [];
+
+  const journeyPageName = (p) => {
+    try { if (typeof Journey !== 'undefined' && Journey.pageName) return Journey.pageName(p); } catch (e) { /* journey.js 미로드 */ }
+    return '';
+  };
+  // 오늘(KST) YYMMDD
+  const kstYmd = () => {
+    const d = new Date(Date.now() + 9 * 3600000);
+    return `${String(d.getUTCFullYear()).slice(2)}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`;
+  };
+
+  function renderLinkChannels() {
+    $('mkLinkChannel').innerHTML = LINK_CHANNELS.map(c => `
+      <button class="mk-link-channel${c === linkChannel ? ' active' : ''}" type="button" data-mk-channel="${c.key}" aria-pressed="${c === linkChannel}">
+        <span class="mk-link-ch-icon mk-ch-${c.key}">${escapeHtml(c.icon)}</span>
+        <span class="mk-link-ch-text"><b>${escapeHtml(c.name)}</b><small>${escapeHtml(c.desc)}</small></span>
+      </button>`).join('');
+  }
+  function renderLinkPages() {
+    $('mkLinkPages').innerHTML = LINK_PAGES.map(p => `
+      <button class="mk-link-chip${p === linkPage ? ' active' : ''}${p.key === 'course' ? ' mk-link-chip-course' : ''}" type="button" data-mk-page="${p.key}" aria-pressed="${p === linkPage}">${escapeHtml(p.name)}</button>`).join('');
+  }
+
+  // ── 특정 강의 상세: GET /admin/api/vod-courses, /admin/api/classes (마케팅 섹션 첫 로드 시 1회) ──
+  const truthy = v => v === true || v === 1 || v === '1';
+  async function loadLinkCourses() {
+    const load = async (kind, url, map) => {
+      linkCourses[kind] = 'loading';
+      try {
+        const rows = await apiFetch(url);
+        linkCourses[kind] = (Array.isArray(rows) ? rows : []).map(map).filter(c => c.id && c.title);
+      } catch (e) {
+        linkCourses[kind] = 'error';
+      }
+      if (linkPage.key === 'course') { renderCourseSelect(); updateLinkForm(); }
+    };
+    await Promise.all([
+      load('vod', '/admin/api/vod-courses', r => ({
+        id: String(r.id), title: String(r.title || '').replace(/\s+/g, ' ').trim(),
+        hidden: r.is_active !== undefined && !truthy(r.is_active), ended: truthy(r.is_ended)
+      })),
+      load('class', '/admin/api/classes', r => ({
+        id: String(r.id), title: String(r.name || r.thumb_title || '').replace(/\s+/g, ' ').trim(),
+        hidden: r.is_active !== undefined && !truthy(r.is_active), ended: false
+      }))
+    ]);
+  }
+  function renderCourseSelect() {
+    document.querySelectorAll('#mkLinkCourseTabs [data-mk-course-kind]').forEach(b => b.classList.toggle('active', b.dataset.mkCourseKind === courseKind));
+    const sel = $('mkLinkCourse');
+    const hint = $('mkLinkCourseHint');
+    const list = linkCourses[courseKind];
+    const prev = sel.value;
+    const kindName = COURSE_KINDS[courseKind].label;
+    if (!Array.isArray(list)) {
+      sel.innerHTML = `<option value="">${list === 'error' ? '목록을 불러오지 못했습니다' : '불러오는 중…'}</option>`;
+      sel.disabled = true;
+      hint.textContent = list === 'error' ? `${kindName} 목록을 불러오지 못했습니다. '직접 입력'으로 경로를 넣어도 됩니다.` : '';
+      return;
+    }
+    const q = $('mkLinkCourseSearch').value.trim().toLowerCase();
+    const shown = q ? list.filter(c => c.title.toLowerCase().includes(q) || c.id === q) : list;
+    sel.disabled = false;
+    sel.innerHTML = `<option value="">${shown.length ? `${kindName}를 고르세요 (${shown.length}개)` : '검색 결과가 없습니다'}</option>`
+      + shown.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.title)}${c.hidden ? ' (비공개)' : c.ended ? ' (종료)' : ''}</option>`).join('');
+    if (prev && shown.some(c => c.id === prev)) sel.value = prev;
+    const cur = selectedCourse();
+    hint.textContent = cur && (cur.hidden || cur.ended)
+      ? `이 강의는 현재 ${cur.hidden ? '비공개' : '판매 종료'} 상태라 방문자에게 안 보이거나 구매할 수 없습니다.`
+      : '';
+  }
+  function selectedCourse() {
+    const list = linkCourses[courseKind];
+    const id = $('mkLinkCourse').value;
+    return Array.isArray(list) && id ? list.find(c => c.id === id) || null : null;
+  }
+
+  // 현재 대상 페이지 → { path, pageTitle, pageName }
+  function linkTarget() {
+    if (linkPage.key === 'course') {
+      const c = selectedCourse();
+      return c
+        ? { path: COURSE_KINDS[courseKind].path(c.id), pageTitle: c.title, pageName: c.title }
+        : { path: '', pageTitle: '', pageName: '' };
+    }
+    if (linkPage.key === 'custom') {
+      const p = $('mkLinkPathCustom').value.trim();
+      return { path: p, pageTitle: '', pageName: journeyPageName(p) || p };
+    }
+    return { path: linkPage.path, pageTitle: '', pageName: linkPage.name };
+  }
+  function channelSource() {
+    if (!linkChannel) return '';
+    return linkChannel.key === 'custom' ? linkToken($('mkLinkSource').value) : linkChannel.source;
+  }
+  function channelDisplayName() {
+    if (!linkChannel) return '';
+    if (linkChannel.key !== 'custom') return linkChannel.name;
+    return $('mkLinkSource').value.trim() || '기타';
+  }
+  function suggestCampaign() {
+    if (campaignEdited || !linkChannel) return;
+    const s = `${kstYmd()}_${channelSource() || 'etc'}`;
+    $('mkLinkCampaign').value = LINK_TOKEN_RE.test(s) ? s : `${kstYmd()}_etc`;
+  }
+  const clip = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+  const autoLabel = (v, t) => clip([channelDisplayName(), v.campaign, t.pageName].filter(Boolean).join(' · '), 60);
+
+  function readLinkForm() {
+    const custom = !!linkChannel && linkChannel.key === 'custom';
+    const t = linkTarget();
+    const v = {
+      path: t.path,
+      source: channelSource(),
+      medium: !linkChannel ? '' : custom ? linkToken($('mkLinkMedium').value) : linkChannel.medium,
+      campaign: linkToken($('mkLinkCampaign').value),
+      content: linkToken($('mkLinkContent').value),
+      term: $('mkLinkTerm').value.trim().replace(/\s+/g, ' '),
+      channelLabel: clip(channelDisplayName(), 60)
+    };
+    if (t.pageTitle) v.pageTitle = clip(t.pageTitle, 120);
+    v.label = $('mkLinkLabel').value.trim() || autoLabel(v, t);
+    return v;
+  }
+  // 받침 유무로 을/를, 과/와
+  const hasBatchim = (w) => {
+    const c = w.charCodeAt(w.length - 1);
+    return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 > 0;
+  };
+  const objJosa = (w) => (hasBatchim(w) ? '을' : '를');
+  // 빠진 단계 안내 → 형식 오류 순으로 첫 문제를 돌려준다(없으면 '')
+  function linkUrlError(v) {
+    const missing = [];
+    if (!linkChannel) missing.push('① 채널');
+    else if (linkChannel.key === 'custom' && (!v.source || !v.medium)) missing.push('① 출처·매체');
+    if (linkPage.key === 'course' && !v.path) missing.push('② 강의');
+    else if (linkPage.key === 'custom' && !v.path) missing.push('② 페이지 경로');
+    if (!v.campaign) missing.push('③ 이름');
+    if (missing.length) {
+      const last = missing[missing.length - 1];
+      const prev = missing[missing.length - 2] || '';
+      const head = prev ? `${missing.slice(0, -1).join(', ')}${hasBatchim(prev) ? '과' : '와'} ` : '';
+      return `${head}${last}${objJosa(last)} 정하면 링크가 만들어집니다.`;
+    }
+    if (v.path.length > 200 || !LINK_PATH_RE.test(v.path)) return '② 페이지 경로는 /로 시작해야 합니다 (예: /notice.html).';
+    if (!LINK_TOKEN_RE.test(v.source)) return '① 출처 이름(utm_source)은 영문 소문자·숫자·한글·_ - . 만 쓸 수 있습니다.';
+    if (!LINK_TOKEN_RE.test(v.medium)) return '① 매체(utm_medium)는 영문 소문자·숫자·한글·_ - . 만 쓸 수 있습니다.';
+    if (!LINK_TOKEN_RE.test(v.campaign)) return '③ 이름은 60자 이내의 영문 소문자·숫자·한글·_ - . 만 쓸 수 있습니다.';
+    if (v.content && !LINK_TOKEN_RE.test(v.content)) return '세부(고급 옵션)는 60자 이내의 영문 소문자·숫자·한글·_ - . 만 쓸 수 있습니다.';
+    if (v.term.length > 60) return '검색어(고급 옵션)는 60자 이내로 입력하세요.';
+    return '';
+  }
+  function buildLinkUrl(v) {
+    const qi = v.path.indexOf('?');
+    const base = qi >= 0 ? v.path.slice(0, qi) : v.path;
+    const params = new URLSearchParams(qi >= 0 ? v.path.slice(qi + 1) : '');
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach(k => params.delete(k));
+    params.set('utm_source', v.source);
+    params.set('utm_medium', v.medium);
+    params.set('utm_campaign', v.campaign);
+    if (v.content) params.set('utm_content', v.content);
+    if (v.term) params.set('utm_term', v.term);
+    return `${LINK_ORIGIN}${base}?${params}`;
+  }
+  let linkPreviewUrl = '';
+  function updateLinkForm() {
+    const custom = !!linkChannel && linkChannel.key === 'custom';
+    $('mkLinkCustomRow').hidden = !custom;
+    $('mkLinkCourseBox').hidden = linkPage.key !== 'course';
+    $('mkLinkPathCustomRow').hidden = linkPage.key !== 'custom';
+    const v = readLinkForm();
+    $('mkLinkLabel').placeholder = !$('mkLinkLabel').value.trim() && linkChannel && v.campaign
+      ? `자동: ${v.label}` : '비우면 채널 · 이름 · 페이지로 자동';
+    const err = linkUrlError(v);
+    linkPreviewUrl = err ? '' : buildLinkUrl(v);
+    const preview = $('mkLinkPreview');
+    preview.textContent = err || linkPreviewUrl;
+    preview.classList.toggle('empty', !!err);
+    $('mkLinkCopy').disabled = !!err;
+    $('mkLinkSave').disabled = !!err;
+  }
+
+  // 클립보드: navigator.clipboard(HTTPS·권한 필요) 실패 시 임시 입력칸 select + execCommand('copy')
+  async function copyText(text) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(text); return true; }
+    } catch (e) { /* 폴백 */ }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    ta.remove();
+    return ok;
+  }
+  async function copyWithStatus(text, okMsg) {
+    const status = $('mkLinkStatus');
+    if (await copyText(text)) setStatus(status, okMsg || '복사했습니다', 'ok');
+    else setStatus(status, '자동 복사에 실패했습니다. 위 링크를 직접 선택해 복사하세요.', 'error');
+  }
+
+  // 페이지 열: 강의 상세는 "VOD 강좌 상세 · 제목"(pageTitle), 그 외 한글 페이지명
+  const linkPageText = (l) => {
+    const [base, q] = String(l.path || '').split('?');
+    const name = journeyPageName(base);
+    if (l.pageTitle) {
+      return `<span class="mk-pagename">${escapeHtml(name || base)} · ${escapeHtml(l.pageTitle)}</span>`;
+    }
+    const qText = q ? ` ?${q}` : '';
+    return name
+      ? `<span class="mk-pagename">${escapeHtml(name)}${qText ? ` <small>${escapeHtml(qText)}</small>` : ''}</span>`
+      : `<span class="mk-path">${escapeHtml(l.path || '')}</span>`;
+  };
+  const linkChannelCell = (l) => {
+    const known = LINK_CHANNELS.find(c => c.source && c.source === l.source && c.medium === l.medium);
+    return `<span class="mk-src mk-src-tracked">${escapeHtml(known ? known.name : '직접')}</span><span class="mk-label">${escapeHtml(`${l.source} / ${l.medium}`)}</span>`;
+  };
+  const shortDate = (iso) => {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' });
+  };
+
+  function renderLinks() {
+    const tbody = $('mkLinkTable');
+    if (!linkRows.length) { tbody.innerHTML = emptyRow(10, '아직 만든 링크가 없습니다.'); return; }
+    const STAT_TIP = '이 링크로 들어와 가입/결제한 수(추적 쿠키 기준, 설치 이후)';
+    tbody.innerHTML = linkRows.map(l => {
+      const s = l.stats || {};
+      const shortUrl = `${l.path || '/'} · ${l.campaign}`; // 경로 + 캠페인만. 전체 주소는 툴팁·복사 버튼
+      return `
+      <tr>
+        <td><span class="mk-label mk-label-strong">${escapeHtml(l.label || '-')}</span></td>
+        <td><div class="mk-labelcell">${linkChannelCell(l)}</div></td>
+        <td>${escapeHtml(l.campaign)}${l.content ? `<div class="field-hint" style="margin:2px 0 0;">${escapeHtml(l.content)}</div>` : ''}</td>
+        <td class="mk-link-pagecell">${linkPageText(l)}</td>
+        <td><div class="mk-link-urlcell"><span class="mk-link-url" title="${escapeHtml(l.url)}">${escapeHtml(shortUrl)}</span>
+          <button class="row-btn" type="button" data-mk-link-copy="${escapeHtml(l.id)}">복사</button></div></td>
+        ${numCell(s.signups, { title: STAT_TIP })}
+        ${numCell(s.payments, { title: STAT_TIP })}
+        <td class="mk-num${Number(s.revenue || 0) === 0 ? ' mk-zero' : ''}">${won(s.revenue)}</td>
+        <td class="mk-link-date">${escapeHtml(shortDate(l.createdAt))}${s.lastSeen ? `<div class="field-hint" style="margin:2px 0 0;" title="이 링크로 들어온 마지막 가입·결제">최근 ${escapeHtml(shortDate(s.lastSeen))}</div>` : ''}</td>
+        <td><button class="row-btn danger" type="button" data-mk-link-del="${escapeHtml(l.id)}">삭제</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function loadLinks() {
+    const status = $('mkLinkListStatus');
+    try {
+      const data = await apiFetch('/admin/api/marketing/links');
+      linkRows = Array.isArray(data.links) ? data.links : [];
+      renderLinks();
+      setStatus(status, '');
+    } catch (err) {
+      $('mkLinkTable').innerHTML = emptyRow(10, '불러오지 못했습니다.');
+      setStatus(status, `링크 목록을 불러오지 못했습니다: ${err.message}`, 'error');
+    }
+  }
+
+  $('mkLinkChannel').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-mk-channel]');
+    if (!btn) return;
+    linkChannel = LINK_CHANNELS.find(c => c.key === btn.dataset.mkChannel) || null;
+    renderLinkChannels();
+    suggestCampaign();
+    updateLinkForm();
+    if (linkChannel && linkChannel.key === 'custom') $('mkLinkSource').focus();
+  });
+  $('mkLinkPages').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-mk-page]');
+    if (!btn) return;
+    linkPage = LINK_PAGES.find(p => p.key === btn.dataset.mkPage) || LINK_PAGES[0];
+    renderLinkPages();
+    if (linkPage.key === 'course') renderCourseSelect();
+    updateLinkForm();
+    if (linkPage.key === 'custom') $('mkLinkPathCustom').focus();
+  });
+  $('mkLinkCourseTabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-mk-course-kind]');
+    if (!btn || btn.dataset.mkCourseKind === courseKind) return;
+    courseKind = btn.dataset.mkCourseKind;
+    $('mkLinkCourse').value = '';
+    renderCourseSelect();
+    updateLinkForm();
+  });
+  $('mkLinkCourseSearch').addEventListener('input', () => { renderCourseSelect(); updateLinkForm(); });
+  $('mkLinkCourse').addEventListener('change', () => { renderCourseSelect(); updateLinkForm(); });
+  $('mkLinkSource').addEventListener('input', () => { suggestCampaign(); updateLinkForm(); });
+  $('mkLinkCampaign').addEventListener('input', () => { campaignEdited = true; updateLinkForm(); });
+  ['mkLinkPathCustom', 'mkLinkMedium', 'mkLinkContent', 'mkLinkTerm', 'mkLinkLabel'].forEach(id => {
+    $(id).addEventListener('input', updateLinkForm);
+  });
+  $('mkLinkCopy').addEventListener('click', () => {
+    updateLinkForm();
+    if (linkPreviewUrl) copyWithStatus(linkPreviewUrl, '복사했습니다 (목록에는 저장하지 않았습니다)');
+  });
+  $('mkLinkSave').addEventListener('click', async () => {
+    updateLinkForm();
+    const status = $('mkLinkStatus');
+    const v = readLinkForm();
+    if (!linkPreviewUrl) return;
+    const btn = $('mkLinkSave');
+    btn.disabled = true;
+    try {
+      const res = await apiFetch('/admin/api/marketing/links', { method: 'POST', body: JSON.stringify(v) });
+      await loadLinks();
+      await copyWithStatus(res.link.url, '저장하고 복사했습니다 — 아래 목록 맨 위에 추가됐습니다');
+    } catch (err) {
+      setStatus(status, err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      updateLinkForm();
+    }
+  });
+  $('mkLinkTable').addEventListener('click', async (e) => {
+    const copyBtn = e.target.closest('[data-mk-link-copy]');
+    if (copyBtn) {
+      const l = linkRows.find(r => r.id === copyBtn.dataset.mkLinkCopy);
+      if (l) copyWithStatus(l.url, `복사했습니다 — ${l.label}`);
+      return;
+    }
+    const delBtn = e.target.closest('[data-mk-link-del]');
+    if (!delBtn) return;
+    const l = linkRows.find(r => r.id === delBtn.dataset.mkLinkDel);
+    if (!l) return;
+    if (!confirm(`'${l.label}' 링크를 목록에서 삭제할까요?\n이미 올린 링크는 그대로 동작하고 유입·전환 분석에도 계속 집계됩니다.`)) return;
+    delBtn.disabled = true;
+    try {
+      await apiFetch(`/admin/api/marketing/links/${encodeURIComponent(l.id)}`, { method: 'DELETE' });
+      await loadLinks();
+      setStatus($('mkLinkStatus'), '삭제했습니다', 'ok');
+    } catch (err) {
+      delBtn.disabled = false;
+      setStatus($('mkLinkStatus'), err.message, 'error');
+    }
+  });
+  renderLinkChannels();
+  renderLinkPages();
+  updateLinkForm();
+
   // ── 3-2. GA4 방문 통계 (GET /admin/api/marketing/ga4, /ga4/realtime) ──
   // 서버가 GA4 Data API 응답을 1시간(realtime 30초) 캐시한다. 비율(engagementRate)은 0~1.
   // 502 응답의 hint까지 보여줘야 해서 apiFetch 대신 상태코드·본문을 그대로 받는다.
@@ -559,7 +944,7 @@
   // ── 3. 일별 추이 (인라인 SVG) ──
   // dataviz 규칙: 이중 축 금지 → 건수(가입·승인)와 매출(원)을 별도 차트로.
   // 색은 검증된 범주 팔레트 고정 순서(1 파랑=가입, 2 주황=승인, 3 청록=매출). 청록은 대비 3:1 미만이라
-  // "표로 보기" 테이블을 함께 제공(relief rule). 텍스트는 시리즈 색이 아니라 텍스트 토큰.
+  // 매출 달력(칸마다 금액 텍스트)을 함께 제공(relief rule). 텍스트는 시리즈 색이 아니라 텍스트 토큰.
   const SERIES = {
     signups: { label: '가입', color: '#2a78d6' },
     approved: { label: '승인', color: '#eb6834' },
@@ -663,13 +1048,68 @@
     if (!days.length) {
       $('mkDailyCounts').innerHTML = '<p class="field-hint">표시할 데이터가 없습니다.</p>';
       $('mkDailyRevenue').innerHTML = '';
-      $('mkDailyTable').innerHTML = emptyRow(4, '데이터가 없습니다.');
+      renderCalendar([]);
       return;
     }
     $('mkDailyCounts').innerHTML = barChart({ title: '가입 · 승인 (건)', unitFmt: (v) => num(v), keys: ['signups', 'approved'], days });
     $('mkDailyRevenue').innerHTML = barChart({ title: '매출 (원)', unitFmt: won, keys: ['revenue'], days });
-    $('mkDailyTable').innerHTML = days.slice().reverse().map(d => `
-      <tr><td>${d.date}</td><td class="mk-num">${num(d.signups)}</td><td class="mk-num">${num(d.approved)}</td><td class="mk-num">${won(d.revenue)}</td></tr>`).join('');
+    renderCalendar(days);
+  }
+
+  // 일별 매출 달력. days = fillDaily() 결과(기간 내 모든 날짜, 오름차순, 키는 ymd() 로컬 날짜).
+  function renderCalendar(days) {
+    const wrap = $('mkDailyCalendar');
+    if (!wrap) return;
+    const tip = '<div class="mk-tip" hidden></div>';
+    if (!days.length) { wrap.innerHTML = tip + '<p class="field-hint">데이터가 없습니다.</p>'; return; }
+    const byDate = new Map(days.map(d => [d.date, d]));
+    const maxRev = Math.max(0, ...days.map(d => d.revenue));
+    const first = parseYmd(days[0].date), last = parseYmd(days[days.length - 1].date);
+    const today = ymd(new Date());
+    const months = [];
+    for (let m = new Date(first.getFullYear(), first.getMonth(), 1); m <= last; m.setMonth(m.getMonth() + 1)) {
+      months.push(new Date(m));
+    }
+    const DOW = ['일', '월', '화', '수', '목', '금', '토'];
+    const dowCls = (i) => (i === 0 ? ' mk-cal-sun' : i === 6 ? ' mk-cal-sat' : '');
+    const html = months.map(m => {
+      const y = m.getFullYear(), mo = m.getMonth();
+      const daysInMonth = new Date(y, mo + 1, 0).getDate();
+      const lead = new Date(y, mo, 1).getDay();
+      let cells = '';
+      for (let i = 0; i < lead; i++) cells += '<div class="mk-cal-cell mk-cal-empty"></div>';
+      for (let d = 1; d <= daysInMonth; d++) {
+        const key = ymd(new Date(y, mo, d));
+        const row = byDate.get(key);
+        const dow = (lead + d - 1) % 7;
+        if (!row) { cells += `<div class="mk-cal-cell mk-cal-out${dowCls(dow)}"><span class="mk-cal-day">${d}</span></div>`; continue; }
+        const level = row.revenue <= 0 || maxRev <= 0 ? 0 : Math.min(4, Math.max(1, Math.ceil((row.revenue / maxRev) * 4))); // 0~4 단계
+        const tipText = `${key}\n매출 ${won(row.revenue)}\n승인 ${num(row.approved)}건 · 가입 ${num(row.signups)}명`;
+        cells += `<div class="mk-cal-cell mk-hit mk-cal-l${level}${key === today ? ' mk-cal-today' : ''}${dowCls(dow)}" data-tip="${escapeHtml(tipText)}">
+          <span class="mk-cal-day">${d}</span>
+          <span class="mk-cal-rev">${row.revenue > 0 ? wonShort(row.revenue) : ''}</span>
+          ${row.approved > 0 ? `<span class="mk-cal-cnt">${num(row.approved)}건</span>` : ''}
+        </div>`;
+      }
+      const prefix = `${y}-${String(mo + 1).padStart(2, '0')}-`;
+      const monthTotal = days.filter(x => x.date.startsWith(prefix)).reduce((s, x) => s + x.revenue, 0);
+      return `<section class="mk-cal-month">
+        <div class="mk-cal-month-head"><b>${y}년 ${mo + 1}월</b><span class="mk-cal-month-total">월 매출 ${won(monthTotal)}</span></div>
+        <div class="mk-cal-grid">${DOW.map((n, i) => `<div class="mk-cal-dow${dowCls(i)}">${n}</div>`).join('')}${cells}</div>
+      </section>`;
+    }).join('');
+    wrap.innerHTML = tip + `<div class="mk-cal-months">${html}</div>`;
+  }
+
+  // 칸 안에 들어갈 짧은 금액: 1,250,000 → "125만", 3,200 → "3.2천", 12,000,000 → "1,200만"
+  function wonShort(v) {
+    v = Number(v) || 0;
+    if (v >= 10000) {
+      const man = v / 10000;
+      return (man >= 100 ? Math.round(man).toLocaleString('ko-KR') : (Math.round(man * 10) / 10).toLocaleString('ko-KR')) + '만';
+    }
+    if (v >= 1000) return (Math.round(v / 100) / 10) + '천';
+    return v.toLocaleString('ko-KR');
   }
 
   // ── 6. 전환 전송 상태 ──
@@ -867,6 +1307,8 @@
     loadSummary(); // GA4 방문 통계(loadGa4)도 여기서 같은 기간으로 호출된다
     loadSettings();
     loadConversions();
+    loadLinks();
+    loadLinkCourses(); // 특정 강의 상세용 목록. 실패해도 다른 기능은 동작(강의 선택칸만 안내)
   }
   function onVisibilityChange() {
     if (section.classList.contains('active')) loadAll();

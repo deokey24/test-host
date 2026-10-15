@@ -37,6 +37,18 @@ html, body {
   flex-direction: column;
   padding: 24px 0;
 }
+/* PC: 스크롤해도 사이드바 전체가 보이도록 화면 높이에 고정 (box-sizing은 전역 border-box) */
+@media (min-width: 901px) {
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;      /* 세로 해상도가 낮으면 사이드바 안에서만 스크롤 */
+    align-self: flex-start;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,.25) transparent;
+  }
+}
 .sidebar-logo {
   display: flex;
   align-items: center;
@@ -99,6 +111,10 @@ header button {
 header button:hover { background: var(--grey-bg); }
 
 main { max-width: 1200px; width: 100%; margin: 0 auto; padding: 28px 32px 60px; flex: 1; display: flex; flex-direction: column; }
+/* 마케팅 섹션은 표·달력이 많아 PC에서 본문 폭 제한(1200px)을 풀고 화면 전체를 쓴다 */
+@media (min-width: 901px) {
+  main:has(#marketingSection.active) { max-width: none; }
+}
 
 @media (max-width: 900px) {
   .layout { flex-direction: column; }
@@ -544,7 +560,7 @@ input.mk-date, #marketingSection input[type="password"] {
 .mk-kpi-label { font-size: 12px; font-weight: 700; color: var(--text-soft); }
 .mk-kpi-value { font-size: 22px; font-weight: 800; margin-top: 6px; font-variant-numeric: tabular-nums; }
 .mk-error { color: var(--danger); font-size: 13px; margin: 0; grid-column: 1 / -1; }
-.mk-chart { margin-bottom: 18px; }
+.mk-chart { margin-bottom: 18px; max-width: 1140px; } /* viewBox 1000px 기준 SVG라 더 넓히면 글자만 커진다 — 본문이 넓어져도(마케팅 전체폭) 차트 폭은 기존과 동일하게 유지 */
 .mk-chart-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
 .mk-chart-head .mk-h3 { margin: 0; }
 .mk-legend { display: flex; gap: 14px; font-size: 12px; color: var(--text-soft); font-weight: 700; }
@@ -573,6 +589,34 @@ th.mk-num, td.mk-num { text-align: right; font-variant-numeric: tabular-nums; wh
 #marketingSection .field-label .badge { padding: 0 7px; margin-left: 4px; line-height: 16px; font-size: 10.5px; vertical-align: 1px; }
 .mk-details > summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--green-dark); }
 .mk-details[open] > summary { margin-bottom: 12px; }
+
+/* 매출 달력 */
+.mk-cal-wrap { position: relative; }
+.mk-cal-months { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+.mk-cal-month-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
+.mk-cal-month-total { color: var(--text-soft); font-size: 12px; font-variant-numeric: tabular-nums; }
+.mk-cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.mk-cal-dow { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-soft); padding: 2px 0; }
+.mk-cal-cell { min-height: 52px; min-width: 0; border-radius: 6px; border: 1px solid var(--border); background: var(--white); padding: 4px 5px; display: flex; flex-direction: column; gap: 1px; font-variant-numeric: tabular-nums; cursor: default; overflow: hidden; white-space: nowrap; }
+.mk-cal-empty { border: none; background: transparent; }
+.mk-cal-out { opacity: .35; }
+.mk-cal-day { font-size: 11px; font-weight: 700; color: var(--text-soft); }
+.mk-cal-rev { font-size: 12px; font-weight: 800; color: var(--text); margin-top: auto; }
+.mk-cal-cnt { font-size: 10.5px; color: var(--text-soft); }
+.mk-cal-sun .mk-cal-day { color: #c0392b; }
+.mk-cal-sat .mk-cal-day { color: #2a78d6; }
+.mk-cal-today { box-shadow: inset 0 0 0 2px var(--green-dark); }
+/* 매출 단계: SERIES.revenue(#1baf7a) 기반 순차 농도. 글자는 항상 텍스트 토큰(대비 유지) */
+.mk-cal-l1 { background: #e6f7ef; }
+.mk-cal-l2 { background: #c4ecd9; }
+.mk-cal-l3 { background: #9ddfbf; }
+.mk-cal-l4 { background: #6fcfa2; }
+.mk-cal-l4 .mk-cal-day, .mk-cal-l4 .mk-cal-cnt { color: #1f3b2e; }
+@media (max-width: 600px) {
+  .mk-cal-months { grid-template-columns: 1fr; }
+  .mk-cal-cell { min-height: 44px; padding: 3px 4px; }
+  .mk-cal-rev { font-size: 11px; }
+}
 .mk-guide > summary { font-size: 15px; font-weight: 800; color: var(--text); }
 .mk-guide ol { margin: 0 0 16px; padding-left: 20px; font-size: 13px; line-height: 1.75; }
 .mk-guide code, #marketingSection td code { background: var(--grey-bg); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
@@ -655,6 +699,76 @@ th.mk-num, td.mk-num { text-align: right; font-variant-numeric: tabular-nums; wh
 #mkGa4Card td code { word-break: normal; white-space: nowrap; }
 textarea.mk-ga4-json { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
 #marketingSection .field-label .badge.mk-ga4-sa { white-space: normal; word-break: break-all; }
+
+/* 추적 링크 만들기 (UTM) 카드 (admin/marketing.js 4-3) */
+.mk-link-form { border: 1px solid var(--border); border-radius: 12px; background: var(--grey-bg); padding: 4px 18px 18px; margin-bottom: 22px; }
+.mk-link-step { padding: 16px 0 14px; border-bottom: 1px solid var(--border); }
+.mk-link-step-head { display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 800; color: var(--text); margin-bottom: 12px; }
+.mk-link-step-no { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--dark); color: var(--white); font-size: 12px; font-weight: 800; flex-shrink: 0; }
+.mk-link-channels { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 8px; }
+.mk-link-channel { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px 12px; border: 1.5px solid var(--border-strong); border-radius: 10px; background: var(--white); color: var(--text); cursor: pointer; font-family: inherit; text-align: left; transition: border-color .12s, box-shadow .12s; }
+.mk-link-channel:hover { border-color: var(--green); }
+.mk-link-channel.active { border-color: var(--green-dark); box-shadow: 0 0 0 3px rgba(169, 130, 84, .22); background: #fffaf3; }
+.mk-link-ch-icon { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; color: var(--white); font-size: 12.5px; font-weight: 800; letter-spacing: -.02em; background: #7a8580; }
+.mk-ch-instagram { background: linear-gradient(135deg, #f58529, #dd2a7b 55%, #8134af); }
+.mk-ch-youtube { background: #e62117; }
+.mk-ch-naver_blog, .mk-ch-naver_cafe { background: #03a94d; }
+.mk-ch-kakao { background: #fee500; color: #3a1d1d; }
+.mk-ch-facebook { background: #1877f2; font-size: 17px; }
+.mk-ch-sms { background: #4b5a6a; font-size: 10.5px; }
+.mk-ch-custom { background: var(--white); color: var(--text-soft); border: 1.5px dashed var(--border-strong); font-size: 17px; }
+.mk-link-ch-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.mk-link-ch-text b { font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mk-link-ch-text small { font-size: 11.5px; color: var(--text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mk-link-channel.active .mk-link-ch-text b { color: var(--green-dark); }
+.mk-link-pages { display: flex; flex-wrap: wrap; gap: 6px; }
+.mk-link-chip { padding: 8px 14px; border: 1.5px solid var(--border-strong); border-radius: 999px; background: var(--white); color: var(--text); font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; white-space: nowrap; }
+.mk-link-chip:hover { border-color: var(--green); }
+.mk-link-chip.active, .mk-link-chip.active:hover { background: var(--dark); border-color: var(--dark); color: var(--white); }
+.mk-link-chip-course { border-style: dashed; }
+.mk-link-chip-course.active { border-style: solid; }
+.mk-link-course { margin-top: 12px; padding: 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--white); }
+.mk-link-course-tabs { display: inline-flex; padding: 3px; border-radius: 8px; background: var(--grey-bg); border: 1px solid var(--border); margin-bottom: 10px; }
+.mk-link-course-tab { padding: 6px 14px; border: none; border-radius: 6px; background: transparent; color: var(--text-soft); font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; }
+.mk-link-course-tab.active { background: var(--white); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, .1); }
+.mk-link-course-pick { display: grid; grid-template-columns: minmax(160px, 220px) 1fr; gap: 8px; }
+.mk-link-course-pick input[type="search"] { width: 100%; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: 8px; font-size: 14px; font-family: inherit; background: var(--white); color: var(--text); }
+.mk-link-course-pick input[type="search"]:focus { outline: none; border-color: var(--green); }
+.mk-link-course .field-hint:empty { display: none; }
+.mk-link-pathrow { margin: 12px 0 0; max-width: 520px; }
+.mk-link-grid { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-top: 12px; }
+.mk-link-grid .field-row { margin-bottom: 0; }
+.mk-link-namerow { margin-bottom: 8px; max-width: 520px; }
+.mk-link-namerow input { font-weight: 600; }
+.mk-link-adv { margin-top: 4px; }
+.mk-link-adv[open] > summary { margin-bottom: 0; }
+.mk-link-result { margin-top: 16px; padding: 14px 16px; border: 1.5px solid var(--green-light); border-radius: 10px; background: var(--white); }
+.mk-link-result-label { font-size: 12px; font-weight: 800; color: var(--green-dark); margin-bottom: 6px; }
+.mk-link-preview { display: block; padding: 4px 0 2px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; line-height: 1.55; color: var(--text); word-break: break-all; overflow-wrap: anywhere; white-space: normal; }
+.mk-link-preview.empty { color: var(--text-soft); font-family: inherit; font-size: 13.5px; word-break: keep-all; }
+.mk-link-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.mk-link-actions .btn, .mk-link-actions .btn-outline { white-space: nowrap; }
+.mk-link-actions .btn { padding: 10px 22px; }
+.mk-link-result .status-text { margin-top: 8px; text-align: right; }
+.mk-link-result .status-text:empty { display: none; }
+.mk-link-list-title { margin-top: 4px; }
+.mk-link-table td { vertical-align: middle; white-space: nowrap; }
+.mk-link-table td .row-btn { white-space: nowrap; margin-right: 0; }
+.mk-link-table td.mk-link-pagecell { white-space: normal; min-width: 140px; max-width: 200px; }
+.mk-link-table td.mk-link-pagecell .mk-pagename { white-space: normal; word-break: keep-all; overflow-wrap: anywhere; }
+.mk-link-table td:first-child { white-space: normal; min-width: 130px; max-width: 220px; }
+.mk-link-table td:first-child .mk-label { white-space: normal; word-break: keep-all; overflow-wrap: anywhere; }
+.mk-link-urlcell { display: flex; align-items: center; gap: 6px; max-width: 200px; }
+.mk-link-url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; color: var(--text-soft); }
+.mk-link-date { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mk-link-guide { margin-bottom: 16px; }
+.mk-link-guide td, .mk-link-guide th { font-size: 12.5px; }
+.mk-link-guide .field-hint { margin-left: 4px; }
+@media (max-width: 600px) {
+  .mk-link-form { padding: 4px 12px 14px; }
+  .mk-link-course-pick { grid-template-columns: 1fr; }
+  .mk-link-actions .btn, .mk-link-actions .btn-outline { flex: 1; }
+}
 
 /* 결제 여정 모달 · 회원 상세 "가입 시 유입" (admin/journey.js) */
 .jr-modal { width: 820px; }

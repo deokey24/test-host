@@ -1226,15 +1226,9 @@
           <h2>일별 추이</h2>
           <div id="mkDailyCounts" class="mk-chart"></div>
           <div id="mkDailyRevenue" class="mk-chart"></div>
-          <details class="mk-details">
-            <summary>표로 보기</summary>
-            <div class="mk-table-wrap">
-              <table>
-                <thead><tr><th>날짜</th><th class="mk-num">가입</th><th class="mk-num">승인</th><th class="mk-num">매출</th></tr></thead>
-                <tbody id="mkDailyTable"></tbody>
-              </table>
-            </div>
-          </details>
+          <h3 class="mk-h3" style="margin-top:16px;">매출 달력</h3>
+          <p class="field-hint" style="margin:0 0 8px;">날짜별 승인 매출(원)입니다. 칸 색이 진할수록 매출이 큽니다. 조회 기간 밖의 날은 흐리게 표시됩니다.</p>
+          <div id="mkDailyCalendar" class="mk-cal-wrap mk-chart-box"><div class="mk-tip" hidden></div></div>
         </div>
 
         <!-- 3-2. GA4 방문 통계 (GA4 Data API, lib/ga4-data.js) -->
@@ -1389,6 +1383,88 @@
           </div>
         </div>
 
+        <!-- 4-3. 추적 링크 만들기 (UTM, lib/attribution-report.js /admin/api/marketing/links) -->
+        <div class="card" id="mkLinksCard">
+          <div class="card-head-row">
+            <h2>추적 링크 만들기 (UTM)</h2>
+            <div class="status-text" id="mkLinkListStatus"></div>
+          </div>
+          <p class="mk-attr-lead">SNS·메신저·블로그에 올리는 링크에 꼬리표(UTM)를 붙이면, 그 링크로 들어온 방문·가입·결제가 유입·전환 분석에 <b>'추적'</b>으로 잡힙니다. 아래 세 가지만 고르면 링크가 만들어집니다.</p>
+          <div class="mk-link-form">
+            <div class="mk-link-step">
+              <div class="mk-link-step-head"><span class="mk-link-step-no">1</span>어디에 올리나요?</div>
+              <div class="mk-link-channels" id="mkLinkChannel"></div>
+              <div class="field-grid mk-link-grid" id="mkLinkCustomRow" hidden>
+                <div class="field-row">
+                  <label class="field-label" for="mkLinkSource">출처 이름 (utm_source)</label>
+                  <input type="text" id="mkLinkSource" maxlength="60" placeholder="예: band, daum_cafe">
+                </div>
+                <div class="field-row">
+                  <label class="field-label" for="mkLinkMedium">매체 (utm_medium)</label>
+                  <input type="text" id="mkLinkMedium" maxlength="60" placeholder="예: social, message, banner">
+                </div>
+              </div>
+            </div>
+            <div class="mk-link-step">
+              <div class="mk-link-step-head"><span class="mk-link-step-no">2</span>어디로 보내나요?</div>
+              <div class="mk-link-pages" id="mkLinkPages"></div>
+              <div class="mk-link-course" id="mkLinkCourseBox" hidden>
+                <div class="mk-link-course-tabs" id="mkLinkCourseTabs">
+                  <button class="mk-link-course-tab active" type="button" data-mk-course-kind="vod">VOD 강좌</button>
+                  <button class="mk-link-course-tab" type="button" data-mk-course-kind="class">클래스</button>
+                </div>
+                <div class="mk-link-course-pick">
+                  <input type="search" id="mkLinkCourseSearch" maxlength="60" placeholder="강의 제목으로 찾기">
+                  <select id="mkLinkCourse"></select>
+                </div>
+                <div class="field-hint" id="mkLinkCourseHint"></div>
+              </div>
+              <div class="field-row mk-link-pathrow" id="mkLinkPathCustomRow" hidden>
+                <label class="field-label" for="mkLinkPathCustom">페이지 경로</label>
+                <input type="text" id="mkLinkPathCustom" maxlength="200" placeholder="예: /notice.html 또는 /classDetail.html?id=12">
+              </div>
+            </div>
+            <div class="mk-link-step">
+              <div class="mk-link-step-head"><span class="mk-link-step-no">3</span>이 링크의 이름</div>
+              <div class="field-row mk-link-namerow">
+                <input type="text" id="mkLinkCampaign" maxlength="60" placeholder="예: 261014_instagram, 겨울특강">
+                <div class="field-hint">채널을 고르면 날짜_채널로 자동 제안됩니다. 분석 화면에 '캠페인'으로 보이니 알아보기 쉽게 바꿔도 됩니다.</div>
+              </div>
+              <details class="mk-details mk-link-adv">
+                <summary>고급 옵션 (선택)</summary>
+                <div class="field-grid mk-link-grid">
+                  <div class="field-row">
+                    <label class="field-label" for="mkLinkContent">세부 (utm_content)</label>
+                    <input type="text" id="mkLinkContent" maxlength="60" placeholder="예: 프로필링크, 릴스1">
+                  </div>
+                  <div class="field-row">
+                    <label class="field-label" for="mkLinkTerm">검색어 (utm_term)</label>
+                    <input type="text" id="mkLinkTerm" maxlength="60" placeholder="예: 편입논술">
+                  </div>
+                  <div class="field-row">
+                    <label class="field-label" for="mkLinkLabel">목록 이름</label>
+                    <input type="text" id="mkLinkLabel" maxlength="60" placeholder="비우면 채널 · 이름 · 페이지로 자동">
+                  </div>
+                </div>
+              </details>
+            </div>
+            <div class="mk-link-result">
+              <div class="mk-link-result-label">완성된 링크</div>
+              <div class="mk-link-preview" id="mkLinkPreview"></div>
+              <div class="mk-link-actions">
+                <button class="btn-outline" id="mkLinkCopy" type="button">링크 복사</button>
+                <button class="btn" id="mkLinkSave" type="button">저장하고 복사</button>
+              </div>
+              <div class="status-text" id="mkLinkStatus"></div>
+            </div>
+          </div>
+          <h3 class="mk-h3 mk-link-list-title">만든 링크 <span class="mk-h3-sub">최신순 · 가입/결제는 기간 무관 누적</span></h3>
+          <div class="mk-table-wrap"><table class="mk-attr-table mk-link-table">
+            <thead><tr><th>이름</th><th>채널</th><th>캠페인</th><th>페이지</th><th>링크</th><th class="mk-num" title="이 링크로 들어와 가입/결제한 수(추적 쿠키 기준, 설치 이후)">가입</th><th class="mk-num" title="이 링크로 들어와 가입/결제한 수(추적 쿠키 기준, 설치 이후)">결제</th><th class="mk-num">매출</th><th>만든 날</th><th></th></tr></thead>
+            <tbody id="mkLinkTable"></tbody>
+          </table></div>
+        </div>
+
         <!-- 5. 강좌별 매출 / 쿠폰 사용 -->
         <div class="card" id="mkSalesCard">
           <h2>매출 상세</h2>
@@ -1536,6 +1612,23 @@
               <li>저장 후 최대 5분 뒤 사이트에 접속 → GA4 <b>보고서 → 실시간</b>에 접속이 잡히면 성공 (세부 이벤트는 관리 → DebugView)</li>
               <li>자세한 내용은 저장소의 <code>docs/analytics-setup.md</code>를 참고하세요</li>
             </ol>
+            <h3 class="mk-h3">7. 추적 링크 사용법</h3>
+            <ol>
+              <li>위 <b>추적 링크 만들기</b>에서 ① 올릴 곳(채널) → ② 보낼 페이지 → ③ 링크 이름 순서로 고르고 <b>저장하고 복사</b> → 게시물·프로필·메시지에 그대로 붙여넣기</li>
+              <li>특정 강좌를 홍보할 때는 ②에서 <b>특정 강의 상세</b>를 고르고 VOD 강좌/클래스 중 해당 강의를 선택하세요. 목록에 강의 제목이 함께 표시됩니다</li>
+              <li>③ 이름은 <code>날짜_채널</code>(예: <code>261014_instagram</code>)로 자동 제안됩니다. 같은 채널에 여러 번 올리면 <code>겨울특강</code>처럼 알아보기 쉬운 이름으로 바꾸세요</li>
+              <li>단축 URL(bit.ly, naver.me 등)을 써도 됩니다. 꼬리표가 붙은 긴 링크를 단축 URL 안에 넣으면 그대로 전달됩니다</li>
+              <li>꼬리표는 <b>첫 방문 기준 90일 쿠키</b>로 기억되어, 나중에 다시 와서 가입·결제해도 그 링크 성과로 잡힙니다</li>
+            </ol>
+            <div class="mk-table-wrap"><table class="mk-link-guide">
+              <thead><tr><th>올리는 곳</th><th>① 채널</th><th>② 페이지</th><th>③ 이름 · 세부(고급) 예시</th></tr></thead>
+              <tbody>
+                <tr><td>인스타그램 프로필 링크</td><td>인스타그램 <span class="field-hint">instagram / social</span></td><td>홈</td><td><code>상시</code> · <code>프로필링크</code></td></tr>
+                <tr><td>인스타그램 스토리 링크 스티커</td><td>인스타그램 <span class="field-hint">instagram / social</span></td><td>특정 강의 상세</td><td><code>261014_instagram</code></td></tr>
+                <tr><td>카카오톡 채널 메시지</td><td>카카오톡 채널 <span class="field-hint">kakao / message</span></td><td>특정 강의 상세</td><td><code>겨울특강</code> · <code>1차발송</code></td></tr>
+                <tr><td>네이버 블로그 글 본문</td><td>네이버 블로그 <span class="field-hint">naver_blog / social</span></td><td>수강후기</td><td><code>합격수기</code> · <code>본문하단</code></td></tr>
+              </tbody>
+            </table></div>
           </details>
         </div>
       </section>

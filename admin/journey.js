@@ -171,5 +171,5 @@ const Journey = (() => {
     }
   }
 
-  return { openPayment, renderMemberSignup, close, pageName, pageLabelHtml };
+  return { openPayment, renderMemberSignup, close, pageName, pageLabelHtml, PAGE_NAMES };
 })();
