@@ -467,11 +467,12 @@ app.get('/admin/api/videos/:id/stream/key', wrapAsync(async (req, res) => {
 // 이전 영상은 그 즉시 다시 회원 전용으로 잠긴다. 플래그를 직접 0으로 내리는 것만으로도 공개가 끊긴다.
 const PUBLIC_VOD_INTRO_LECTURE_ID = 24; // 관리자가 아직 지정하지 않았을 때의 기본값
 
-// 관리자가 인트로를 "삭제"하면 {removed: true}로 저장되고, 이때는 공개 영상이 하나도 없다(null).
+// 관리자가 인트로를 "삭제"하면 {removed: true}, "숨김"이면 기존 값 + hidden: true로 저장된다.
+// 둘 다 페이지에 영상이 안 나오므로 공개 영상이 하나도 없다(null). 숨김을 풀면 저장해 둔 영상이 다시 공개된다.
 function parseIntroVideoId(content) {
   try {
     const parsed = JSON.parse(content);
-    if (parsed && parsed.removed === true) return null;
+    if (parsed && (parsed.removed === true || parsed.hidden === true)) return null;
     const id = Number(parsed.lectureVideoId);
     return Number.isInteger(id) && id > 0 ? id : PUBLIC_VOD_INTRO_LECTURE_ID;
   } catch {
@@ -489,7 +490,7 @@ async function getPublicVodIntroVideoId() {
 // 인트로에 걸린 영상 하나만 공개로 남긴다. 지금은 공개 노출 자리가 인트로뿐이라
 // "나머지 전부 0"으로 되돌리는 게 곧 이전 영상 자동 잠금이다.
 // 공개 자리가 늘어나면 여기서 다른 자리에 쓰이는 영상을 제외해야 한다.
-// 인트로가 삭제된 상태(publicId=null)면 전부 0으로 내려 공개 영상을 없앤다.
+// 인트로가 삭제·숨김 상태(publicId=null)면 전부 0으로 내려 공개 영상을 없앤다.
 async function syncPublicIntroVideo(introContent) {
   const publicId = parseIntroVideoId(JSON.stringify(introContent || {}));
   if (publicId === null) {

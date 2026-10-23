@@ -821,6 +821,9 @@ async function initVodIntroCard() {
   const editorEl = document.getElementById('vod-intro-editor');
   const addBtn = document.getElementById('vod-intro-add');
   const deleteBtn = document.getElementById('vod-intro-delete');
+  const hideBtn = document.getElementById('vod-intro-hide');
+  const hiddenNoteEl = document.getElementById('vod-intro-hidden-note');
+  let hidden = false;
   let heroImage = '';
   let thumbnail = '';
   let playButtonColor = VOD_INTRO_DEFAULTS.playButtonColor;
@@ -869,6 +872,13 @@ async function initVodIntroCard() {
     editorEl.style.display = removed ? 'none' : '';
   }
 
+  // 숨김 상태: 설정은 그대로 두고 페이지 노출·영상 공개만 끈다. 버튼 문구로 현재 상태를 보여준다.
+  function setHiddenView(value) {
+    hidden = value;
+    hideBtn.textContent = hidden ? '다시 보이기' : '숨기기';
+    hiddenNoteEl.style.display = hidden ? '' : 'none';
+  }
+
   const [data, videos, folders] = await Promise.all([
     apiFetch('/admin/api/site/vod/intro').catch(() => ({})),
     apiFetch('/admin/api/videos?all=1').catch(() => []),
@@ -882,6 +892,7 @@ async function initVodIntroCard() {
   setPlayColor(data.playButtonColor || VOD_INTRO_DEFAULTS.playButtonColor);
   playToggleEl.checked = data.playButtonEnabled !== undefined ? data.playButtonEnabled : VOD_INTRO_DEFAULTS.playButtonEnabled;
   setRemovedView(data.removed === true);
+  setHiddenView(data.hidden === true);
 
   const videoOptions = videos
     .filter(v => v.status === 'done' && v.final_r2_key)
@@ -928,14 +939,32 @@ async function initVodIntroCard() {
     }
   });
 
+  function introBody(hiddenValue) {
+    const body = { heroImage, thumbnail, playButtonEnabled: playToggleEl.checked, playButtonColor, lectureVideoId: lectureVideoId || '' };
+    if (hiddenValue) body.hidden = true;
+    return JSON.stringify(body);
+  }
+
+  // 저장은 현재 숨김 상태를 그대로 유지한다
   saveBtn.addEventListener('click', async () => {
     const status = document.getElementById('vod-intro-status');
     try {
-      await apiFetch('/admin/api/site/vod/intro', {
-        method: 'PUT',
-        body: JSON.stringify({ heroImage, thumbnail, playButtonEnabled: playToggleEl.checked, playButtonColor, lectureVideoId: lectureVideoId || '' })
-      });
+      await apiFetch('/admin/api/site/vod/intro', { method: 'PUT', body: introBody(hidden) });
       setStatus(status, '저장되었습니다.', 'ok');
+    } catch (err) {
+      setStatus(status, err.message, 'error');
+    }
+  });
+
+  // 숨기기/다시 보이기: 지금 폼의 값과 함께 hidden 플래그만 뒤집어 저장한다
+  hideBtn.addEventListener('click', async () => {
+    const next = !hidden;
+    if (next && !confirm('VOD 페이지에서 인트로를 숨길까요? 소개 영상도 즉시 비공개로 바뀌며, 설정은 그대로 보관됩니다.')) return;
+    const status = document.getElementById('vod-intro-status');
+    try {
+      await apiFetch('/admin/api/site/vod/intro', { method: 'PUT', body: introBody(next) });
+      setHiddenView(next);
+      setStatus(status, next ? '인트로를 숨겼습니다.' : '인트로를 다시 보이게 했습니다.', 'ok');
     } catch (err) {
       setStatus(status, err.message, 'error');
     }
@@ -962,6 +991,7 @@ async function initVodIntroCard() {
     renderThumb();
     setPlayColor(VOD_INTRO_DEFAULTS.playButtonColor);
     playToggleEl.checked = VOD_INTRO_DEFAULTS.playButtonEnabled;
+    setHiddenView(false);
     setRemovedView(false);
     setStatus(document.getElementById('vod-intro-status'), '이미지·영상을 확인한 뒤 저장을 눌러야 페이지에 반영됩니다.');
   });

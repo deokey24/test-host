@@ -56,6 +56,7 @@
               <button class="btn" id="vod-intro-add" type="button" style="margin-top:10px;">인트로 추가</button>
             </div>
             <div id="vod-intro-editor">
+            <p class="field-hint" id="vod-intro-hidden-note" style="display:none; color:var(--danger); font-weight:600;">현재 숨김 상태입니다. VOD 페이지에 인트로가 보이지 않고 소개 영상도 비공개입니다. 설정은 그대로 보관됩니다.</p>
             <p class="field-hint">수강신청(vod.html) 페이지 맨 위의 이미지·소개 영상 영역입니다. 권장 이미지 가로 크기 1280px (세로는 자유, 가로에 맞춰 비율대로 표시됩니다).</p>
             <div class="image-picker" style="margin-top:12px;">
               <div class="image-picker-preview" id="vod-intro-hero-preview" style="width:260px; height:110px;">
@@ -101,6 +102,7 @@
               <p class="field-hint">"영상 업로드"에 등록된 영상 중 하나를 고릅니다.</p>
             </div>
             <button class="btn" id="vod-intro-save" type="button" style="margin-top:10px;">저장</button>
+            <button class="btn btn-outline" id="vod-intro-hide" type="button" style="margin-top:10px; margin-left:6px;">숨기기</button>
             <button class="btn btn-danger" id="vod-intro-delete" type="button" style="margin-top:10px; margin-left:6px;">인트로 삭제</button>
             </div>
             <div class="status-text" id="vod-intro-status"></div>
