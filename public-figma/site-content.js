@@ -220,8 +220,14 @@ function hydrateCmsListItem(node, item, index) {
 
 // vod.html 인트로 재생 버튼 — 관리자가 끄면(playButtonEnabled===false) 버튼을 숨기고(영상 재생 자체는 그대로 동작),
 // 켜져 있으면 색상(--vod-play-color)을 지정값으로 덮어쓴다(없으면 CSS 기본값 유지)
+// 관리자가 인트로를 삭제했으면({removed:true}) 상단 이미지·소개 영상 영역을 통째로 숨긴다
 function applyVodIntroPlayButton(intro) {
   if (!intro) return;
+  if (intro.removed === true) {
+    const section = document.querySelector('.vod-intro');
+    if (section) section.remove();
+    return;
+  }
   const playBtn = document.querySelector('.vod-intro__play');
   if (!playBtn) return;
   if (intro.playButtonEnabled === false) { playBtn.style.display = 'none'; return; }

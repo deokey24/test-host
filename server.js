@@ -467,9 +467,12 @@ app.get('/admin/api/videos/:id/stream/key', wrapAsync(async (req, res) => {
 // 이전 영상은 그 즉시 다시 회원 전용으로 잠긴다. 플래그를 직접 0으로 내리는 것만으로도 공개가 끊긴다.
 const PUBLIC_VOD_INTRO_LECTURE_ID = 24; // 관리자가 아직 지정하지 않았을 때의 기본값
 
+// 관리자가 인트로를 "삭제"하면 {removed: true}로 저장되고, 이때는 공개 영상이 하나도 없다(null).
 function parseIntroVideoId(content) {
   try {
-    const id = Number(JSON.parse(content).lectureVideoId);
+    const parsed = JSON.parse(content);
+    if (parsed && parsed.removed === true) return null;
+    const id = Number(parsed.lectureVideoId);
     return Number.isInteger(id) && id > 0 ? id : PUBLIC_VOD_INTRO_LECTURE_ID;
   } catch {
     return PUBLIC_VOD_INTRO_LECTURE_ID;
@@ -486,8 +489,13 @@ async function getPublicVodIntroVideoId() {
 // 인트로에 걸린 영상 하나만 공개로 남긴다. 지금은 공개 노출 자리가 인트로뿐이라
 // "나머지 전부 0"으로 되돌리는 게 곧 이전 영상 자동 잠금이다.
 // 공개 자리가 늘어나면 여기서 다른 자리에 쓰이는 영상을 제외해야 한다.
-async function syncPublicIntroVideo(lectureVideoId) {
-  const publicId = parseIntroVideoId(JSON.stringify({ lectureVideoId }));
+// 인트로가 삭제된 상태(publicId=null)면 전부 0으로 내려 공개 영상을 없앤다.
+async function syncPublicIntroVideo(introContent) {
+  const publicId = parseIntroVideoId(JSON.stringify(introContent || {}));
+  if (publicId === null) {
+    await getPool().query('UPDATE lecture_videos SET is_public = 0 WHERE is_public = 1');
+    return;
+  }
   await getPool().query('UPDATE lecture_videos SET is_public = 0 WHERE is_public = 1 AND id <> ?', [publicId]);
   await getPool().query('UPDATE lecture_videos SET is_public = 1 WHERE id = ? AND is_public = 0', [publicId]);
 }
@@ -3269,7 +3277,7 @@ app.put('/admin/api/site/:page/:section', requireAdminApi, wrapAsync(async (req,
   // VOD 페이지 인트로에 고른 영상은 로그인 없이 열리므로, 저장과 동시에 공개 플래그를 맞춘다
   // (새로 고른 영상 공개 + 직전 영상 자동 잠금). 자세한 규칙은 syncPublicIntroVideo 주석 참고.
   if (req.params.page === 'vod' && req.params.section === 'intro') {
-    await syncPublicIntroVideo(req.body?.lectureVideoId);
+    await syncPublicIntroVideo(req.body);
   }
   res.json({ ok: true });
 }));

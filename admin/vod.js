@@ -817,6 +817,10 @@ async function initVodIntroCard() {
   const colorInputEl = document.getElementById('vod-intro-play-color-input');
   const colorHexEl = document.getElementById('vod-intro-play-color-hex');
   const playToggleEl = document.getElementById('vod-intro-play-toggle');
+  const removedEl = document.getElementById('vod-intro-removed');
+  const editorEl = document.getElementById('vod-intro-editor');
+  const addBtn = document.getElementById('vod-intro-add');
+  const deleteBtn = document.getElementById('vod-intro-delete');
   let heroImage = '';
   let thumbnail = '';
   let playButtonColor = VOD_INTRO_DEFAULTS.playButtonColor;
@@ -859,6 +863,12 @@ async function initVodIntroCard() {
   });
   colorInputEl.addEventListener('input', () => setPlayColor(colorInputEl.value));
 
+  // 삭제된 상태({removed:true})면 편집 폼 대신 "인트로 추가" 안내만 보여준다
+  function setRemovedView(removed) {
+    removedEl.style.display = removed ? '' : 'none';
+    editorEl.style.display = removed ? 'none' : '';
+  }
+
   const [data, videos, folders] = await Promise.all([
     apiFetch('/admin/api/site/vod/intro').catch(() => ({})),
     apiFetch('/admin/api/videos?all=1').catch(() => []),
@@ -871,6 +881,7 @@ async function initVodIntroCard() {
   renderThumb();
   setPlayColor(data.playButtonColor || VOD_INTRO_DEFAULTS.playButtonColor);
   playToggleEl.checked = data.playButtonEnabled !== undefined ? data.playButtonEnabled : VOD_INTRO_DEFAULTS.playButtonEnabled;
+  setRemovedView(data.removed === true);
 
   const videoOptions = videos
     .filter(v => v.status === 'done' && v.final_r2_key)
@@ -928,6 +939,31 @@ async function initVodIntroCard() {
     } catch (err) {
       setStatus(status, err.message, 'error');
     }
+  });
+
+  // 삭제: VOD 페이지에서 인트로 영역을 없애고 소개 영상 공개도 닫는다(서버가 is_public을 전부 0으로)
+  deleteBtn.addEventListener('click', async () => {
+    if (!confirm('VOD 페이지 인트로(상단 이미지·소개 영상)를 삭제할까요? 소개 영상도 즉시 비공개로 바뀝니다.')) return;
+    const status = document.getElementById('vod-intro-status');
+    try {
+      await apiFetch('/admin/api/site/vod/intro', { method: 'PUT', body: JSON.stringify({ removed: true }) });
+      setRemovedView(true);
+      setStatus(status, '인트로를 삭제했습니다.', 'ok');
+    } catch (err) {
+      setStatus(status, err.message, 'error');
+    }
+  });
+
+  // 추가: 기본값이 채워진 편집 폼을 다시 연다. 저장을 눌러야 페이지에 반영된다.
+  addBtn.addEventListener('click', () => {
+    heroImage = VOD_INTRO_DEFAULTS.heroImage;
+    thumbnail = VOD_INTRO_DEFAULTS.thumbnail;
+    renderHero();
+    renderThumb();
+    setPlayColor(VOD_INTRO_DEFAULTS.playButtonColor);
+    playToggleEl.checked = VOD_INTRO_DEFAULTS.playButtonEnabled;
+    setRemovedView(false);
+    setStatus(document.getElementById('vod-intro-status'), '이미지·영상을 확인한 뒤 저장을 눌러야 페이지에 반영됩니다.');
   });
 }
 
