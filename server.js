@@ -529,6 +529,47 @@ app.get('/api/stream/vod-intro/key', wrapAsync(async (req, res) => {
   sendHlsKey(res, video?.hls_key_base64);
 }));
 
+// ── GET /vod.html — 인트로가 숨김·삭제 상태면 서버에서 <section class="vod-intro"> 블록을 빼고 내려준다 ──
+// site-content.js도 같은 처리를 하지만 /api/site/vod 응답을 기다리는 동안 인트로가 잠깐 보이므로,
+// 처음 HTML부터 빠져 있게 한다. express.static(public-figma)보다 먼저 등록돼야 한다.
+const VOD_HTML_PATH = path.join(__dirname, 'public-figma', 'vod.html');
+const VOD_INTRO_SECTION_RE = /<section class="vod-intro">[\s\S]*?<\/section>\s*/;
+let vodHtmlSource = null; // 파일 원문(프로세스당 1회 읽음 — 배포는 PM2 리로드)
+
+(function checkVodIntroSection() {
+  try {
+    const src = fs.readFileSync(VOD_HTML_PATH, 'utf8');
+    const count = (src.match(new RegExp(VOD_INTRO_SECTION_RE.source, 'g')) || []).length;
+    if (count !== 1) {
+      console.error(`[vod.html] 인트로 블록 '<section class="vod-intro">'이 ${count}개입니다(정확히 1개여야 함) — 숨김 시 서버 제거가 동작하지 않습니다.`);
+    }
+  } catch (err) {
+    console.error('[vod.html] 파일을 읽을 수 없습니다:', err.message);
+  }
+})();
+
+async function isVodIntroOff() {
+  const [rows] = await getPool().query(
+    "SELECT content FROM site_sections WHERE page = 'vod' AND section_key = 'intro'"
+  );
+  if (!rows[0]) return false;
+  try {
+    const intro = JSON.parse(rows[0].content);
+    return intro?.removed === true || intro?.hidden === true;
+  } catch {
+    return false;
+  }
+}
+
+app.get('/vod.html', wrapAsync(async (req, res) => {
+  if (vodHtmlSource === null) vodHtmlSource = await fs.promises.readFile(VOD_HTML_PATH, 'utf8');
+  let off = false;
+  try { off = await isVodIntroOff(); } catch (err) { console.error('[vod.html] 인트로 상태 조회 실패:', err.message); }
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.send(off ? vodHtmlSource.replace(VOD_INTRO_SECTION_RE, '') : vodHtmlSource);
+}));
+
 // 회원이 실제로 수강 중인 클래스/VOD 강좌의 HLS 영상만 서명된 매니페스트로 내려준다.
 // videoUrl을 이 경로로 내려주는 쪽은 /api/members/my-lectures/:classId, /api/members/my-vod-lectures/:vodCourseId.
 app.get('/api/stream/class-lecture/:lectureId/master.m3u8', requireMember, wrapAsync(async (req, res) => {
