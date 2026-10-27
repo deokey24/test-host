@@ -374,9 +374,18 @@ function expiryCellHtml(r) {
   if (!r.effective_expires_at) {
     return '<div>무제한</div><div class="field-hint">강좌에 수강기간 미설정</div>';
   }
-  const date = String(r.effective_expires_at).slice(0, 10);
-  const enrolled = String(r.enrolled_at).slice(0, 10);
+  const date = formatKst(r.effective_expires_at).slice(0, 10);
+  const enrolled = formatKst(r.enrolled_at).slice(0, 10);
   return `<div><strong>${date}</strong></div><div class="field-hint">등록일 ${enrolled} + ${r.access_days}일</div>`;
+}
+
+// DB DATETIME은 UTC로 저장되고 JSON에서 ISO(...Z) 문자열로 내려온다.
+// 브라우저 타임존과 무관하게 한국시간(UTC+9) 'YYYY-MM-DD HH:mm'으로 바꿔 보여준다.
+function formatKst(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return new Date(d.getTime() + 9 * 3600 * 1000).toISOString().slice(0, 16).replace('T', ' ');
 }
 
 function formatDuration(seconds) {
@@ -429,7 +438,7 @@ document.getElementById('enrollVodList').addEventListener('click', async (e) => 
             <td>${formatDuration(l.durationSeconds)}</td>
             <td>${l.watchedSeconds ? formatDuration(l.watchedSeconds) : '-'}</td>
             <td class="progress-cell">${l.completed ? '<span class="progress-done">완료</span>' : l.percent === null ? '-' : `${l.percent}%`}</td>
-            <td>${l.lastPlayedAt ? String(l.lastPlayedAt).slice(0, 16).replace('T', ' ') : '-'}</td>
+            <td>${l.lastPlayedAt ? formatKst(l.lastPlayedAt) : '-'}</td>
           </tr>
         `).join('')}
       </tbody>
