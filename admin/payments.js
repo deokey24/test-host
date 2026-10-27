@@ -19,7 +19,6 @@ function isSuspectPayment(p) {
 }
 
 function paymentRowHtml(p) {
-  const createdAt = new Date(p.created_at);
   const suspect = isSuspectPayment(p);
   const actions = [];
   // 유입 → 페이지 경로 → 결제 타임라인(admin/journey.js). 수집 전 결제는 모달에서 "수집 전 결제"로 표시된다.
@@ -45,7 +44,7 @@ function paymentRowHtml(p) {
         ${p.status === 'expired' ? '<span class="field-hint" style="display:block; white-space:nowrap;">미결제</span>' : ''}
       </td>
       <td>${escapeHtml(p.transaction_id || '-')}</td>
-      <td>${createdAt.toLocaleString('ko-KR')}</td>
+      <td>${formatKst(p.created_at, { seconds: true })}</td>
       <td>${actions.join(' ') || '-'}</td>
     </tr>
   `;

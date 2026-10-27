@@ -24,8 +24,8 @@ function couponRowHtml(c) {
       <td>${escapeHtml(c.label || '-')}</td>
       <td><span class="badge ${COUPON_STATUS_BADGE[c.status] || ''}">${escapeHtml(c.status)}</span></td>
       <td>${memberText}</td>
-      <td>${new Date(c.created_at).toLocaleString('ko-KR')}</td>
-      <td>${c.used_at ? new Date(c.used_at).toLocaleString('ko-KR') : '-'}</td>
+      <td>${formatKst(c.created_at)}</td>
+      <td>${c.used_at ? formatKst(c.used_at) : '-'}</td>
       <td>${canDelete ? `<button class="row-btn danger" data-coupon-delete="${c.id}" type="button">삭제</button>` : '-'}</td>
     </tr>
   `;

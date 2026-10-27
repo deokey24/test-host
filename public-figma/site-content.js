@@ -9,6 +9,34 @@ function escapeCmsHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// ── 한국표준시(KST, UTC+9 고정·서머타임 없음) 표기 헬퍼 — 브라우저 타임존과 무관 ──
+// 서버 DATETIME 값은 UTC 기준 ISO 문자열(`2026-10-27T04:04:00.000Z`)로 내려오므로 epoch에 9시간을 더한 뒤
+// UTC getter로 읽는다(getHours/toLocaleString 등 로컬 타임존 getter를 쓰면 해외 PC에서 틀어진다).
+// DATE 컬럼(`...T00:00:00.000Z`, 이미 "그 날짜")이나 서버가 DATE_FORMAT으로 만든 문자열에는 쓰지 말 것 — 이중 변환.
+// mypage.html 인라인 스크립트에 같은 이름의 사본이 있다(이 파일보다 먼저 실행될 수 있어서) — 고치면 둘 다 고칠 것.
+// 두 스크립트가 같은 전역에 선언하므로 const/let 최상위 선언을 추가하지 말 것(재선언 SyntaxError).
+function kstParts(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const t = value instanceof Date ? value.getTime() : (typeof value === 'number' ? value : new Date(value).getTime());
+  if (!Number.isFinite(t)) return null;
+  const k = new Date(t + 9 * 60 * 60 * 1000); // KST = UTC+9
+  return { y: k.getUTCFullYear(), m: k.getUTCMonth() + 1, d: k.getUTCDate(), h: k.getUTCHours(), mi: k.getUTCMinutes() };
+}
+// pattern 토큰: YYYY MM DD HH mm (기본 'YYYY-MM-DD HH:mm'). 값이 비었거나 파싱 불가면 ''.
+function formatKst(value, pattern) {
+  const p = kstParts(value);
+  if (!p) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return (pattern || 'YYYY-MM-DD HH:mm')
+    .replace('YYYY', String(p.y)).replace('MM', pad(p.m)).replace('DD', pad(p.d))
+    .replace('HH', pad(p.h)).replace('mm', pad(p.mi));
+}
+// 오늘의 KST 달력 날짜를 "로컬 자정 Date"로 — parseVodDateOnly()가 만드는 날짜 전용 Date와 같은 축에서 비교하기 위함.
+function kstToday() {
+  const p = kstParts(Date.now());
+  return new Date(p.y, p.m - 1, p.d);
+}
+
 // ── 다음(카카오) 우편번호 서비스 팝업 — join.html/mypage.html 공용 ──
 // 무료 서비스, API 키 불필요. 스크립트는 각 페이지에서
 // <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>로 미리 로드해둔다.
@@ -652,9 +680,9 @@ function formatVodDate(date) {
 // 종료일 "당일까지" 시청 가능하므로 남은 일수에 오늘을 포함해서 센다 (종료일이 오늘이면 1일).
 function vodDaysRemaining(date) {
   if (!date) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return Math.floor((date - today) / 86400000) + 1;
+  const today = kstToday();
+  // 둘 다 로컬 자정 Date라 차이는 정수 일(로컬 서머타임 경계에서만 ±1시간) → round로 일 수를 구한다.
+  return Math.round((date - today) / 86400000) + 1;
 }
 
 // { accessDays, endsAt, untilDate, effectiveDays, cutByEnd, isEnded }
@@ -662,8 +690,7 @@ function vodDaysRemaining(date) {
 function computeVodAccessWindow(course) {
   const accessDays = course && course.access_days > 0 ? Number(course.access_days) : null;
   const endsAt = parseVodDateOnly(course && course.ends_at);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = kstToday();
   const isEnded = !!(endsAt && endsAt < today);
 
   let periodEnd = null;
@@ -1568,10 +1595,9 @@ function startLecturePlayerWatermark(wrapEl, identity) {
     el.className = 'lp-watermark';
     el.setAttribute('aria-hidden', 'true');
   }
-  const pad = (n) => String(n).padStart(2, '0');
+  // 시청 시각 표기는 KST 고정(해외 PC에서도 같은 기준으로 추적되도록).
   function stamp() {
-    const d = new Date();
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return formatKst(Date.now(), 'YYYY-MM-DD HH:mm');
   }
   // 가장자리 순환형: 좌상 → 우상 → 우하 → 좌하 모서리를 2~4분마다 바꾼다.
   // 화면을 가로지르지 않고 가장자리 영역(모서리 안쪽 여백)에서만 옮겨 시청 방해를 줄이고,

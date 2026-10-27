@@ -5,9 +5,10 @@ let qnaCourses = [];
 let qnaRows = [];
 let qnaCurrentCourseId = '';
 
+// created_at은 DATETIME(UTC) — 앞 10자리를 자르면 KST 0~9시 작성 글이 하루 앞당겨지므로 KST 날짜로 변환(admin/cms.js)
 function qnaFormatDate(value) {
   if (!value) return '';
-  return String(value).slice(0, 10);
+  return formatKstDate(value);
 }
 
 async function loadQnaCourseOptions() {

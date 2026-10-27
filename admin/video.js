@@ -173,7 +173,7 @@ async function loadVideos() {
     <tr>
       <td>${escapeHtml(v.title)}</td>
       <td><span class="badge badge-${v.status}"${v.status === 'failed' && v.error_message ? ` title="${escapeHtml(v.error_message)}"` : ''}>${VIDEO_STATUS_LABELS[v.status] || v.status}</span></td>
-      <td>${new Date(v.created_at).toLocaleString('ko-KR')}</td>
+      <td>${formatKst(v.created_at)}</td>
       <td><button class="row-btn" data-rename-video="${v.id}" type="button">이름변경</button><button class="row-btn" data-move-video="${v.id}" type="button">이동</button><button class="row-btn danger" data-delete-video="${v.id}" type="button"
         ${v.status === 'processing' ? 'disabled title="인코딩이 진행 중인 영상은 삭제할 수 없습니다"' : ''}>삭제</button></td>
     </tr>

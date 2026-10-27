@@ -45,7 +45,7 @@ async function loadMembers() {
       <td>${escapeHtml(m.name)}</td>
       <td>${escapeHtml(m.email)}</td>
       <td>${escapeHtml(m.phone || m.mobile)}</td>
-      <td>${m.joined_at ? new Date(m.joined_at).toLocaleDateString('ko-KR') : ''}</td>
+      <td>${escapeHtml(formatJoinedAt(m.joined_at, { dateOnly: true }))}</td>
       <td><button class="row-btn" data-detail-member="${m.id}" type="button">상세</button></td>
       <td>${enrollCell}</td>
     </tr>
@@ -187,7 +187,7 @@ async function loadMemberDevices() {
         <td>${escapeHtml(d.label || '알 수 없는 기기')}</td>
         <td>${d.isApp ? '앱' : '웹'}</td>
         <td>${escapeHtml(d.ip || '-')}</td>
-        <td>${d.lastLoginAt ? new Date(d.lastLoginAt).toLocaleString('ko-KR') : '-'}</td>
+        <td>${d.lastLoginAt ? formatKst(d.lastLoginAt) : '-'}</td>
         <td><button class="row-btn danger" data-device-remove-id="${d.id}" type="button">삭제</button></td>
       </tr>
     `).join('') : '<tr><td colspan="5" class="field-hint">등록된 기기가 없습니다.</td></tr>';
@@ -239,8 +239,9 @@ async function openMemberDetailModal(memberId) {
     body.innerHTML = MEMBER_DETAIL_FIELDS.map(([key, label]) => {
       let val = m[key];
       if (key === 'has_password') val = val ? '설정됨' : '미설정';
-      else if (key === 'joined_at') val = val ? new Date(val).toLocaleString('ko-KR') : '';
-      else if (key === 'birth_date') val = val ? new Date(val).toLocaleDateString('ko-KR') : '';
+      else if (key === 'joined_at') val = escapeHtml(formatJoinedAt(val));
+      // birth_date는 DATE 컬럼('YYYY-MM-DDT00:00:00.000Z') — 이미 그 날짜이므로 시차 변환 없이 앞 10자리만
+      else if (key === 'birth_date') val = val ? escapeHtml(String(val).slice(0, 10)) : '';
       else if (key === 'member_group' && isWithdrawn) val = '탈퇴(익명화)';
       else val = escapeHtml(val || '-');
       return `<tr><th style="white-space:nowrap;">${label}</th><td>${val}</td></tr>`;
@@ -263,10 +264,8 @@ function renderMemberWebPlayer(m) {
   card.classList.toggle('is-on', !!m.web_player_enabled && !isWithdrawn);
   card.classList.toggle('is-disabled', isWithdrawn);
   const meta = document.getElementById('memberWebPlayerMeta');
-  const updatedAt = m.web_player_updated_at ? new Date(m.web_player_updated_at) : null;
-  const ymd = updatedAt
-    ? `${updatedAt.getFullYear()}-${String(updatedAt.getMonth() + 1).padStart(2, '0')}-${String(updatedAt.getDate()).padStart(2, '0')}`
-    : '';
+  // web_player_updated_at: DATETIME(UTC, NOW()) → KST 날짜
+  const ymd = m.web_player_updated_at ? formatKstDate(m.web_player_updated_at) : '';
   meta.classList.toggle('on', !!m.web_player_enabled && !isWithdrawn);
   meta.textContent = isWithdrawn ? '탈퇴 회원은 변경할 수 없습니다'
     : m.web_player_enabled ? `허용 중${ymd ? ` · ${ymd}부터` : ''}`
@@ -374,18 +373,28 @@ function expiryCellHtml(r) {
   if (!r.effective_expires_at) {
     return '<div>무제한</div><div class="field-hint">강좌에 수강기간 미설정</div>';
   }
-  const date = formatKst(r.effective_expires_at).slice(0, 10);
-  const enrolled = formatKst(r.enrolled_at).slice(0, 10);
+  // expires_at/enrolled_at 모두 DATETIME(UTC) → 만료 "시각"이 속한 KST 날짜로 보여준다.
+  const date = formatKstDate(r.effective_expires_at);
+  const enrolled = formatKstDate(r.enrolled_at);
   return `<div><strong>${date}</strong></div><div class="field-hint">등록일 ${enrolled} + ${r.access_days}일</div>`;
 }
 
-// DB DATETIME은 UTC로 저장되고 JSON에서 ISO(...Z) 문자열로 내려온다.
-// 브라우저 타임존과 무관하게 한국시간(UTC+9) 'YYYY-MM-DD HH:mm'으로 바꿔 보여준다.
-function formatKst(value) {
+// formatKst / formatKstDate 는 admin/cms.js 공용 헬퍼(KST 고정)를 쓴다.
+
+// members.joined_at은 데이터가 두 종류로 섞여 있다.
+//  - 2026-07-04 일괄 이관(구 사이트, member_group '1000' 1,770명): 구 사이트의 한국시간 벽시계 값이 그대로 들어가 있다.
+//    (이관 시각 created_at = 2026-07-04 20:57:50 UTC, 이 회원들의 joined_at은 전부 그보다 이르고 joined_at ≠ created_at)
+//  - 그 이후 가입(NOW(), UTC): 신규 '1001' 전원과 이관 후 생성된 '1000' 3명 (joined_at = created_at)
+// 그래서 이관 시각 이전 값은 이미 KST로 보고 +9h 하지 않는다. (근본 해결은 이관분 joined_at을 -9h 보정하는 DB 작업)
+const LEGACY_JOINED_AT_IMPORT_UTC = Date.parse('2026-07-04T20:57:50Z');
+function formatJoinedAt(value, opts) {
   if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return new Date(d.getTime() + 9 * 3600 * 1000).toISOString().slice(0, 16).replace('T', ' ');
+  const t = Date.parse(value);
+  if (!Number.isFinite(t)) return String(value);
+  const s = t < LEGACY_JOINED_AT_IMPORT_UTC
+    ? new Date(t).toISOString().slice(0, 16).replace('T', ' ') // 이관분: 저장된 벽시계(KST) 그대로
+    : formatKst(value);
+  return opts && opts.dateOnly ? s.slice(0, 10) : s;
 }
 
 function formatDuration(seconds) {

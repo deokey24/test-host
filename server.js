@@ -1675,11 +1675,18 @@ async function enrollMemberInVod(memberId, vodCourseId, source = 'admin', extra 
   );
 }
 
+// ── KST(한국표준시) 달력일 SQL 조각 ──
+// DB 세션 타임존은 UTC라 CURDATE()/DATE_FORMAT(created_at)는 UTC 날짜다. "사용자에게 보이는 날짜"와
+// "KST 달력일 의미의 DATE 컬럼 비교"(강좌 종료일·팝업 게시기간·공지일)만 +9시간 해서 KST 날짜로 맞춘다.
+// 경과시간·만료시각처럼 DATETIME끼리 비교하는 곳(NOW() 기준 진도·토큰·세션·결제·수강만료)은 UTC끼리라 그대로 둔다.
+const KST_TODAY_SQL = 'DATE(DATE_ADD(NOW(), INTERVAL 9 HOUR))';
+const kstDateFormatSql = (column, format) => `DATE_FORMAT(DATE_ADD(${column}, INTERVAL 9 HOUR), '${format}')`;
+
 // ── VOD 수강 접근 판정 (단일 진실공급원) ──
 // 수강권한 = 등록 존재 + 개인 수강기간(expires_at) 유효 + 강좌 종료일(ends_at) 미도래.
 // 스트림 매니페스트 / 강의 목록 / 재생 URL / Q&A 작성 게이트가 전부 이 함수만 쓰도록 통일한다
 // (체크가 흩어져 있으면 한 군데를 빠뜨렸을 때 그대로 우회 경로가 된다).
-// ends_at은 DATE라 "종료일 당일 자정까지"는 시청 가능하도록 >= CURDATE()로 비교한다.
+// ends_at은 KST 달력일 DATE라 "종료일 당일 KST 자정까지"는 시청 가능하도록 KST 오늘 날짜(KST_TODAY_SQL)와 비교한다.
 // 웹 브라우저(세션) 재생은 관리자가 허용한 회원만. Bearer(DockPlayer)는 호출하지 않는다.
 async function checkWebPlayerAllowed(memberId) {
   const [[row]] = await getPool().query('SELECT web_player_enabled FROM members WHERE id = ?', [memberId]);
@@ -1693,7 +1700,7 @@ async function checkVodAccess(memberId, vodCourseId) {
   const [[row]] = await getPool().query(
     `SELECT e.expires_at, c.ends_at,
             (e.expires_at IS NOT NULL AND e.expires_at <= NOW()) AS is_expired,
-            (c.ends_at IS NOT NULL AND c.ends_at < CURDATE()) AS is_ended
+            (c.ends_at IS NOT NULL AND c.ends_at < ${KST_TODAY_SQL}) AS is_ended
      FROM member_vod_enrollments e
      JOIN vod_courses c ON c.id = e.vod_course_id
      WHERE e.member_id = ? AND e.vod_course_id = ?`,
@@ -1771,7 +1778,7 @@ app.post('/api/payments/init', requireMember, wrapAsync(async (req, res) => {
   if (!vodCourseId) { res.status(400).json({ error: 'vodCourseId가 필요합니다.' }); return; }
 
   const [[course]] = await getPool().query(
-    `SELECT id, title, new_price, (ends_at IS NOT NULL AND ends_at < CURDATE()) AS is_ended
+    `SELECT id, title, new_price, (ends_at IS NOT NULL AND ends_at < ${KST_TODAY_SQL}) AS is_ended
      FROM vod_courses WHERE id = ? AND is_active = 1`, [vodCourseId]
   );
   if (!course) { res.status(404).json({ error: 'VOD 강좌를 찾을 수 없습니다.' }); return; }
@@ -2298,7 +2305,7 @@ app.get('/admin/api/members/:id/vod-enrollments', requireAdminApi, wrapAsync(asy
             ) AS effective_expires_at,
             (e.expires_at IS NULL AND c.access_days > 0) AS expiry_is_derived,
             (e.expires_at IS NOT NULL AND e.expires_at <= NOW()) AS is_expired,
-            (c.ends_at IS NOT NULL AND c.ends_at < CURDATE()) AS is_ended
+            (c.ends_at IS NOT NULL AND c.ends_at < ${KST_TODAY_SQL}) AS is_ended
      FROM member_vod_enrollments e
      JOIN vod_courses c ON c.id = e.vod_course_id
      WHERE e.member_id = ?
@@ -3065,7 +3072,7 @@ async function getMemberVodCourses(memberId) {
             c.is_best, c.color_variant, c.old_price, c.new_price, c.thumbnail_url,
             e.status, e.progress_note, e.expires_at, c.ends_at,
             (e.expires_at IS NOT NULL AND e.expires_at <= NOW()) AS is_expired,
-            (c.ends_at IS NOT NULL AND c.ends_at < CURDATE()) AS is_ended
+            (c.ends_at IS NOT NULL AND c.ends_at < ${KST_TODAY_SQL}) AS is_ended
      FROM member_vod_enrollments e
      JOIN vod_courses c ON c.id = e.vod_course_id
      WHERE e.member_id = ?
@@ -3396,13 +3403,14 @@ async function computeVodCourseLectureCounts(courseIds) {
   return map;
 }
 
-// mysql2는 DATE 컬럼을 "로컬 자정" Date 객체로 돌려주는데, JSON 직렬화(toISOString)에서 UTC로 밀리면서
-// KST 기준 2026-12-31이 클라이언트엔 2026-12-30으로 도착한다. 밖으로 나가는 날짜는 항상 'YYYY-MM-DD' 문자열로 고정.
+// 풀이 timezone:'Z'(lib/db.js)라 mysql2는 DATE 컬럼 'YYYY-MM-DD'를 Date.UTC(y,m,d) — UTC 자정 — 로 돌려준다.
+// 로컬 getter로 읽으면 PM2 프로세스 TZ가 UTC 서쪽일 때 하루 밀리므로 UTC getter로 읽어 프로세스 TZ와 무관하게 만든다.
+// 밖으로 나가는 날짜는 항상 'YYYY-MM-DD' 문자열로 고정.
 function toDateOnly(value) {
   if (!value) return null;
   if (typeof value === 'string') return value.slice(0, 10);
   const pad = n => String(n).padStart(2, '0');
-  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+  return `${value.getUTCFullYear()}-${pad(value.getUTCMonth() + 1)}-${pad(value.getUTCDate())}`;
 }
 
 async function withComputedTotalDuration(courses) {
@@ -3423,7 +3431,7 @@ async function withComputedTotalDuration(courses) {
 // 배치 잡으로 is_active를 내리지 않고 조회 시점에 걸러서 ends_at을 단일 진실공급원으로 유지한다.
 app.get('/api/vod-courses', wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
-    'SELECT * FROM vod_courses WHERE is_active = 1 AND (ends_at IS NULL OR ends_at >= CURDATE()) ORDER BY sort_order, id'
+    `SELECT * FROM vod_courses WHERE is_active = 1 AND (ends_at IS NULL OR ends_at >= ${KST_TODAY_SQL}) ORDER BY sort_order, id`
   );
   res.json(await withComputedTotalDuration(rows));
 }));
@@ -3431,7 +3439,7 @@ app.get('/api/vod-courses', wrapAsync(async (req, res) => {
 // 관리자 목록에는 종료된 강좌도 계속 보여야 하므로(종료일 수정/연장) is_ended 플래그만 실어 보낸다.
 app.get('/admin/api/vod-courses', requireAdminApi, wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
-    'SELECT *, (ends_at IS NOT NULL AND ends_at < CURDATE()) AS is_ended FROM vod_courses ORDER BY sort_order, id'
+    `SELECT *, (ends_at IS NOT NULL AND ends_at < ${KST_TODAY_SQL}) AS is_ended FROM vod_courses ORDER BY sort_order, id`
   );
   res.json(await withComputedTotalDuration(rows));
 }));
@@ -3450,7 +3458,7 @@ async function fetchVodCourseIntroParts(courseId) {
 // 깨진 화면 대신 "종료된 강좌" 안내를 보여주고 구매 버튼만 막기 위해서.
 app.get('/api/vod-courses/:id', wrapAsync(async (req, res) => {
   const [[course]] = await getPool().query(
-    'SELECT *, (ends_at IS NOT NULL AND ends_at < CURDATE()) AS is_ended FROM vod_courses WHERE id = ? AND is_active = 1',
+    `SELECT *, (ends_at IS NOT NULL AND ends_at < ${KST_TODAY_SQL}) AS is_ended FROM vod_courses WHERE id = ? AND is_active = 1`,
     [req.params.id]
   );
   if (!course) { res.status(404).json({ error: 'VOD 강좌를 찾을 수 없습니다.' }); return; }
@@ -4124,7 +4132,7 @@ app.get('/api/cert-posts', wrapAsync(async (req, res) => {
   const [[{ total }]] = await getPool().query('SELECT COUNT(*) AS total FROM cert_posts WHERE is_active = 1');
   const [rows] = await getPool().query(
     `SELECT id, title, author, view_count, pinned, ${preview ? 'image_url, body,' : ''}
-            DATE_FORMAT(created_at, '%Y.%m.%d') AS created_date
+            ${kstDateFormatSql('created_at', '%Y.%m.%d')} AS created_date
      FROM cert_posts WHERE is_active = 1
      ORDER BY ${preview ? '' : 'pinned DESC, '}created_at DESC, id DESC
      LIMIT ? OFFSET ?`,
@@ -4146,7 +4154,7 @@ app.get('/api/cert-posts', wrapAsync(async (req, res) => {
 app.get('/api/cert-posts/:id', wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
     `SELECT id, title, author, body, image_url, view_count,
-            DATE_FORMAT(created_at, '%Y.%m.%d') AS created_date
+            ${kstDateFormatSql('created_at', '%Y.%m.%d')} AS created_date
      FROM cert_posts WHERE id = ? AND is_active = 1`,
     [req.params.id]
   );
@@ -4159,7 +4167,7 @@ app.get('/api/cert-posts/:id', wrapAsync(async (req, res) => {
 app.get('/admin/api/cert-posts', requireAdminApi, wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
     `SELECT id, title, author, body, image_url, view_count, pinned, is_active,
-            DATE_FORMAT(created_at, '%Y.%m.%d') AS created_date
+            ${kstDateFormatSql('created_at', '%Y.%m.%d')} AS created_date
      FROM cert_posts ORDER BY pinned DESC, created_at DESC, id DESC`
   );
   res.json(rows);
@@ -4509,7 +4517,7 @@ app.post('/admin/api/notices', requireAdminApi, wrapAsync(async (req, res) => {
   }
   const categoryValue = category && String(category).trim() ? String(category).trim() : null;
   const [result] = await getPool().query(
-    'INSERT INTO notices (category, title, body, pinned, notice_date) VALUES (?, ?, ?, ?, CURDATE())',
+    `INSERT INTO notices (category, title, body, pinned, notice_date) VALUES (?, ?, ?, ?, ${KST_TODAY_SQL})`,
     [categoryValue, String(title).trim(), body ? String(body) : null, pinned ? 1 : 0]
   );
   res.json({ ok: true, id: result.insertId });
@@ -4546,7 +4554,7 @@ app.get('/api/popup-banners', wrapAsync(async (req, res) => {
   const [rows] = await getPool().query(
     `SELECT id, image_url, link_url, position
      FROM popup_banners
-     WHERE visible = 1 AND start_date <= CURDATE() AND end_date >= CURDATE()
+     WHERE visible = 1 AND start_date <= ${KST_TODAY_SQL} AND end_date >= ${KST_TODAY_SQL}
      ORDER BY sort_order, id`
   );
   res.json(rows);

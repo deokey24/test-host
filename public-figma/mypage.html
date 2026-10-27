@@ -238,18 +238,40 @@
   <script>
     const MP_PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,16}$/;
 
+    // ── KST(UTC+9 고정) 표기 헬퍼 — site-content.js와 같은 이름·같은 내용의 사본 ──
+    // site-content.js가 이 인라인 스크립트보다 뒤에 로드되므로, fetch가 먼저 끝나도 쓸 수 있게 여기도 둔다
+    // (function 선언이라 뒤에 로드되는 site-content.js가 같은 구현으로 덮어써도 무방). 고치면 둘 다 고칠 것.
+    function kstParts(value) {
+      if (value === null || value === undefined || value === '') return null;
+      const t = value instanceof Date ? value.getTime() : (typeof value === 'number' ? value : new Date(value).getTime());
+      if (!Number.isFinite(t)) return null;
+      const k = new Date(t + 9 * 60 * 60 * 1000); // KST = UTC+9
+      return { y: k.getUTCFullYear(), m: k.getUTCMonth() + 1, d: k.getUTCDate(), h: k.getUTCHours(), mi: k.getUTCMinutes() };
+    }
+    function formatKst(value, pattern) {
+      const p = kstParts(value);
+      if (!p) return '';
+      const pad = n => String(n).padStart(2, '0');
+      return (pattern || 'YYYY-MM-DD HH:mm')
+        .replace('YYYY', String(p.y)).replace('MM', pad(p.m)).replace('DD', pad(p.d))
+        .replace('HH', pad(p.h)).replace('mm', pad(p.mi));
+    }
+
     // 수강 만료일 안내 — 남은 기간이 7일 이하면 강조해서 재구매/연장 시점을 놓치지 않게 한다.
     function renderMpPeriod(el, course) {
       if (!el) return;
       if (!course.expires_at) { el.remove(); return; }
+      // expires_at은 member_vod_enrollments.expires_at(DATETIME, UTC ISO) — 만료 "시각"이므로 KST 날짜로 표기
       const date = new Date(course.expires_at);
-      const until = `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(2, '0')}. ${String(date.getDate()).padStart(2, '0')}`;
+      const until = formatKst(date, 'YYYY. MM. DD');
       if (course.access_state === 'expired') {
         el.classList.add('is-over');
         el.textContent = `${until} 수강 종료`;
         return;
       }
-      const midnight = new Date(); midnight.setHours(0, 0, 0, 0);
+      // 오늘 KST 자정(epoch) 기준 남은 일수 — 브라우저 타임존과 무관
+      const today = kstParts(Date.now());
+      const midnight = Date.UTC(today.y, today.m - 1, today.d) - 9 * 60 * 60 * 1000;
       const remaining = Math.floor((date - midnight) / 86400000);
       if (remaining <= 7) el.classList.add('is-soon');
       el.textContent = `${until}까지 (${remaining <= 0 ? 'D-DAY' : `D-${remaining}`})`;
@@ -402,7 +424,7 @@
           <div class="device-card">
             <div>
               <div class="label">${d.label || '알 수 없는 기기'}${d.isCurrent ? '<span class="badge-current">현재 기기</span>' : ''}</div>
-              <div class="meta">${d.ip || ''} · 최근 로그인 ${d.lastLoginAt ? new Date(d.lastLoginAt).toLocaleString('ko-KR') : '-'}</div>
+              <div class="meta">${d.ip || ''} · 최근 로그인 ${formatKst(d.lastLoginAt, 'YYYY. MM. DD HH:mm') || '-'}</div>
             </div>
             <button type="button" class="remove-btn" data-remove-device="${d.id}" title="기기 삭제">✕</button>
           </div>
@@ -435,7 +457,7 @@
             <div class="device-card">
               <div>
                 <div class="label">${c.code} ${statusBadge}</div>
-                <div class="meta">${c.label}${c.usedAt ? ` · 사용일 ${new Date(c.usedAt).toLocaleDateString('ko-KR')}` : ''}</div>
+                <div class="meta">${c.label}${c.usedAt ? ` · 사용일 ${formatKst(c.usedAt, 'YYYY. MM. DD')}` : ''}</div>
               </div>
             </div>
           `;
@@ -591,7 +613,7 @@
   </div>
 
 </div>
-<script src="site-content.js?v=20261015d"></script>
+<script src="site-content.js?v=20261028kst"></script>
 <script src="auth.js?v=20261015"></script>
 <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 </body>

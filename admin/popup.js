@@ -9,14 +9,13 @@ let popupCache = [];
 let currentPopupId = null;
 let newPopupImageUrl = '';
 
+// 노출 기간 기본값은 KST 달력일 기준(toISOString()은 UTC라 KST 0~9시에 어제가 됨) — admin/cms.js 헬퍼
 function todayDateString() {
-  return new Date().toISOString().slice(0, 10);
+  return kstToday();
 }
 
 function weekLaterDateString() {
-  const d = new Date();
-  d.setDate(d.getDate() + 7);
-  return d.toISOString().slice(0, 10);
+  return addDaysYmd(kstToday(), 7);
 }
 
 function popupRowHtml(item) {

@@ -54,10 +54,10 @@ const Journey = (() => {
     return `<span class="mk-pagename">${escapeHtml(name)}${qText ? ` <small>(${escapeHtml(qText)})</small>` : ''}</span><span class="mk-path-sub">${escapeHtml(p)}</span>`;
   }
 
+  // created_at/approved_at(DATETIME UTC ISO)·touch ts(ISO)·journey t(epoch ms) 모두 KST로 (admin/cms.js formatKst)
   function fmtTime(v) {
     if (v === null || v === undefined || v === '') return '-';
-    const d = new Date(typeof v === 'number' || /^\d+$/.test(String(v)) ? Number(v) : v);
-    return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleString('ko-KR');
+    return formatKst(v, { seconds: true });
   }
   function fmtDwell(sec) {
     if (sec === null || sec === undefined) return '체류 -';
@@ -96,7 +96,7 @@ const Journey = (() => {
       .sort((a, b) => (a.t && b.t ? a.t - b.t : 0) || a.i - b.i);
     return `<ol class="jr-steps">${list.map(e => `
       <li>
-        <span class="jr-time">${e.t ? escapeHtml(new Date(e.t).toLocaleTimeString('ko-KR')) : ''}</span>
+        <span class="jr-time">${e.t ? escapeHtml(formatKstTime(e.t)) : ''}</span>
         <span class="jr-path">${pageLabelHtml(e.path, e.q)}</span>
         <span class="jr-dwell">${escapeHtml(fmtDwell(e.d))}</span>
       </li>`).join('')}</ol>`;

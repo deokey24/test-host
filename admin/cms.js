@@ -31,6 +31,56 @@ function setStatus(el, message, kind) {
   if (kind) el.classList.add(kind);
 }
 
+// ── 한국시간(KST, UTC+9 고정) 표시 헬퍼 ──
+// 운영 DB는 UTC(NOW()=UTC)이고 DATETIME/TIMESTAMP는 JSON에 ISO(...Z) 문자열로 온다.
+// 관리자 화면은 브라우저 타임존(해외·UTC PC)과 무관하게 항상 KST로 보여준다 — toLocaleString/getHours 등 로컬 의존 금지.
+// 주의: DATE 컬럼(birth_date, ends_at 등 '...T00:00:00.000Z')은 이미 "그 날짜"라 여기에 넣지 말고 앞 10자리만 쓴다.
+//       서버가 DATE_FORMAT 등으로 이미 문자열을 만들어 준 필드도 그대로 쓴다(이중 변환 금지).
+const ADMIN_KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+// 값(ISO 문자열, Date, epoch ms 숫자/숫자 문자열) → KST 'YYYY-MM-DDTHH:mm:ss', 해석 불가면 ''
+function kstIsoString(value) {
+  if (value === null || value === undefined || value === '') return '';
+  let t;
+  if (value instanceof Date) t = value.getTime();
+  else if (typeof value === 'number' || /^\d+$/.test(String(value))) t = Number(value);
+  else t = Date.parse(value);
+  if (!Number.isFinite(t)) return '';
+  return new Date(t + ADMIN_KST_OFFSET_MS).toISOString().slice(0, 19);
+}
+
+// KST 'YYYY-MM-DD HH:mm' (opts.seconds면 ':ss'까지). 빈 값은 '', 해석 불가 값은 원문 그대로.
+function formatKst(value, opts) {
+  const s = kstIsoString(value);
+  if (!s) return value === null || value === undefined ? '' : String(value);
+  return s.slice(0, opts && opts.seconds ? 19 : 16).replace('T', ' ');
+}
+
+// KST 날짜 'YYYY-MM-DD' (UTC 시각 → 한국 달력일)
+function formatKstDate(value) {
+  const s = kstIsoString(value);
+  if (!s) return value === null || value === undefined ? '' : String(value);
+  return s.slice(0, 10);
+}
+
+// KST 시각 'HH:mm:ss' (opts.seconds === false면 'HH:mm')
+function formatKstTime(value, opts) {
+  const s = kstIsoString(value);
+  if (!s) return '';
+  return s.slice(11, opts && opts.seconds === false ? 16 : 19);
+}
+
+// 오늘(KST) 'YYYY-MM-DD' — new Date().toISOString().slice(0,10)은 KST 0~9시에 어제가 되므로 쓰지 말 것.
+function kstToday() {
+  return kstIsoString(Date.now()).slice(0, 10);
+}
+
+// 'YYYY-MM-DD' 달력일에 n일을 더한 'YYYY-MM-DD' (타임존·서머타임 무관한 순수 달력 계산)
+function addDaysYmd(ymd, n) {
+  const [y, m, d] = String(ymd).slice(0, 10).split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + Number(n || 0))).toISOString().slice(0, 10);
+}
+
 // ── 페이지 상단 "타이틀"(hero) 카드 공용 초기화 ──
 // `<prefix>-title` / `<prefix>-body` / `<prefix>-save` / `<prefix>-status` 4개 요소가 있다고 가정하고
 // site_sections(page, 'hero')에 {title, body}로 저장한다. 프론트는 data-cms="hero.title|hero.body"로 읽는다.

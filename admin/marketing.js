@@ -14,7 +14,8 @@
     if (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) return '-';
     return `${(Number(v) * 100).toFixed(1)}%`;
   };
-  const dateTime = (v) => (v ? new Date(v).toLocaleString('ko-KR') : '-');
+  // UTC 시각(ISO) → KST 'YYYY-MM-DD HH:mm' (admin/cms.js formatKst — 브라우저 타임존 무관)
+  const dateTime = (v) => (v ? formatKst(v) : '-');
 
   function ymd(d) {
     const p = (x) => String(x).padStart(2, '0');
@@ -29,12 +30,11 @@
   }
 
   // ── 1. 기간 선택 ──
+  // 서버(parseMarketingRange)는 from/to를 KST 달력일로 해석한다 → '오늘'도 KST 기준으로 잡는다.
   function setRangeDays(days) {
-    const to = new Date();
-    const from = new Date();
-    from.setDate(to.getDate() - (days - 1));
-    $('mkFrom').value = ymd(from);
-    $('mkTo').value = ymd(to);
+    const to = kstToday();
+    $('mkFrom').value = addDaysYmd(to, -(days - 1));
+    $('mkTo').value = to;
     section.querySelectorAll('[data-mk-days]').forEach(b => b.classList.toggle('active', Number(b.dataset.mkDays) === days));
   }
 
@@ -586,9 +586,10 @@
     const known = LINK_CHANNELS.find(c => c.source && c.source === l.source && c.medium === l.medium);
     return `<span class="mk-src mk-src-tracked">${escapeHtml(known ? known.name : '직접')}</span><span class="mk-label">${escapeHtml(`${l.source} / ${l.medium}`)}</span>`;
   };
+  // createdAt·lastSeen은 UTC ISO → KST 'YY.MM.DD'
   const shortDate = (iso) => {
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' });
+    const s = kstIsoString(iso);
+    return s ? s.slice(2, 10).replace(/-/g, '.') : '-';
   };
 
   function renderLinks() {
@@ -791,7 +792,7 @@
     let meta = '';
     if (fetched && !Number.isNaN(fetched.getTime())) {
       const mins = Math.max(0, Math.round((Date.now() - fetched.getTime()) / 60000));
-      const time = fetched.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+      const time = formatKstTime(fetched, { seconds: false });
       meta = d.cached ? `${mins ? `${mins}분 전` : '방금'} 조회 (${time}, 1시간 캐시)` : `${time} 조회`;
     }
     $('mkGa4Meta').textContent = meta;
@@ -1065,7 +1066,7 @@
     const byDate = new Map(days.map(d => [d.date, d]));
     const maxRev = Math.max(0, ...days.map(d => d.revenue));
     const first = parseYmd(days[0].date), last = parseYmd(days[days.length - 1].date);
-    const today = ymd(new Date());
+    const today = kstToday(); // 달력의 '오늘' 강조도 KST 기준
     const months = [];
     for (let m = new Date(first.getFullYear(), first.getMonth(), 1); m <= last; m.setMonth(m.getMonth() + 1)) {
       months.push(new Date(m));
